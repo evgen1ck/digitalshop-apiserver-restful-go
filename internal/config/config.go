@@ -63,15 +63,13 @@ func New() (*Config, error) {
 }
 
 func (cfg *Config) GetPostgresDSN() string {
-	dsn := cfg.Postgres.User + ":" +
+	return cfg.Postgres.User + ":" +
 		cfg.Postgres.Password + "@" +
 		cfg.Postgres.Ip + ":" +
 		cfg.Postgres.Port + "/" +
 		cfg.Postgres.Database
-	return dsn
 }
 
 func (cfg *Config) GetURL() string {
-	url := cfg.App.Host + ":" + cfg.App.Port
-	return url
+	return cfg.App.Host + ":" + cfg.App.Port
 }
