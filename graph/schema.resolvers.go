@@ -10,15 +10,27 @@ import (
 	"test-server-go/graph/model"
 )
 
-// SignupUser is the resolver for the signupUser field.
-func (r *queryResolver) SignupUser(ctx context.Context, id string, password string) (*model.SignupUser, error) {
-
-	fmt.Println(r)
-
-	panic(fmt.Errorf("not implemented: SignupUser - signupUser"))
+// Signup is the resolver for the signup field.
+func (r *mutationResolver) Signup(ctx context.Context, input model.SignupInput) (*model.AuthPayload, error) {
+	panic(fmt.Errorf("not implemented: Signup - signup"))
 }
 
-// Query returns QueryResolver implementation.
-func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error) {
+	panic(fmt.Errorf("not implemented: Login - login"))
+}
 
-type queryResolver struct{ *Resolver }
+// Logout is the resolver for the logout field.
+func (r *mutationResolver) Logout(ctx context.Context, input model.TokenInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: Logout - logout"))
+}
+
+// TokenValidate is the resolver for the tokenValidate field.
+func (r *mutationResolver) TokenValidate(ctx context.Context, input model.TokenInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: TokenValidate - tokenValidate"))
+}
+
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
+type mutationResolver struct{ *Resolver }

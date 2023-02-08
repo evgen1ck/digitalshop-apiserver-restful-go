@@ -2,7 +2,28 @@
 
 package model
 
-type SignupUser struct {
+type AuthPayload struct {
+	Token string `json:"token"`
+	User  *User  `json:"user"`
+}
+
+type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type SignupInput struct {
+	Nickname string `json:"nickname"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type TokenInput struct {
+	Token string `json:"token"`
+}
+
+type User struct {
+	UUID     string `json:"uuid"`
+	Email    string `json:"email"`
+	Nickname string `json:"nickname"`
 }
