@@ -1,7 +1,6 @@
 type User {
     uuid: String!
     email: String!
-    nickname: String!
 }
 
 type AuthPayload {
