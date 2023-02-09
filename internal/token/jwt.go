@@ -13,7 +13,7 @@ type Claims struct {
 
 // GenerateToken creates a JWT token with provided claims and secret key
 func GenerateToken(claims Claims, secret string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS384, claims)
 	return token.SignedString([]byte(secret))
 }
 
@@ -37,7 +37,7 @@ func SetClaims(uuid string, issuer string) Claims {
 	return Claims{
 		Uuid: uuid,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * 24 * 21).Unix(),
 			IssuedAt:  time.Now().Unix(),
 			Issuer:    issuer,
 		},
