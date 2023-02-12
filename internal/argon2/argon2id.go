@@ -6,6 +6,16 @@ import (
 	"log"
 )
 
+// Define parameters for Argon2id
+// https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-argon2-13#section-7.4
+const (
+	saltLength  = 16
+	keyLength   = 32
+	iterations  = 3
+	memory      = 64 * 1024
+	parallelism = 2
+)
+
 // generateSalt generates a salt for password hashing
 func generateSalt(length int) string {
 	salt := make([]byte, length)
@@ -19,13 +29,6 @@ func generateSalt(length int) string {
 
 // HashPassword hashes the input password using the Argon2id algorithm.
 func HashPassword(password string, salt string) (string, string) {
-	// Define parameters for Argon2id
-	const saltLength = 16
-	const keyLength = 32
-	const iterations = 1
-	const memory = 64 * 1024
-	const parallelism = 2
-
 	if salt == "" {
 		salt = generateSalt(saltLength)
 	}
