@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -18,12 +17,5 @@ func Connect(ctx context.Context, dsn string) (*PostgresTwo, error) {
 		return nil, err
 	}
 
-	return &PostgresTwo{
-		Pool: pool,
-	}, nil
+	return &PostgresTwo{pool}, nil
 }
-
-//// Close closes the connection to the database
-//func (db *PostgresTwo) Close() {
-//	db.Pool.Close()
-//}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"test-server-go/internal/config"
+	"test-server-go/internal/mailer"
 	"test-server-go/internal/postgres"
 	"test-server-go/internal/server"
 )
@@ -22,14 +23,13 @@ func main() {
 	}
 	defer pdb.Close()
 
-	//mailer := mailer.NewSmtp(*cfg)
+	smtpMailer := mailer.NewSmtp(*cfg)
 
 	app := &server.Application{
 		Config:   cfg,
 		Postgres: pdb,
-		//mailer:   mailer,
+		Mailer:   smtpMailer,
 		//logger:       logger,
-		//sessionStore: sessionStore,
 	}
 
 	fmt.Println(app.Config)

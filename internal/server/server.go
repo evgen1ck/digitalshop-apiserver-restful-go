@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"test-server-go/graph"
 	"test-server-go/internal/config"
+	"test-server-go/internal/mailer"
 	"test-server-go/internal/postgres"
 )
 
 type Application struct {
 	Config   *config.Config
 	Postgres *postgres.Postgres
-	//Mailer   *mailer.Mailer
+	Mailer   *mailer.Mailer
 	//logger       *logger.Logger
-	//sessionStore *sessions.CookieStore
 }
 
 func (app *Application) ServerRun() error {
