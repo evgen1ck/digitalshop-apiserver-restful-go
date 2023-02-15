@@ -86,7 +86,7 @@ CREATE TABLE product.variant
     product_id      uuid        NOT NULL,
     variant_name    text        UNIQUE NOT NULL,
     variant_desc    text        NOT NULL,
-    quantity        integer     NOT NULL CHECK ( quantity >= 0 ) DEFAULT 0,
+    quantity        integer     NOT NULL CHECK ( quantity >= -1 ) DEFAULT 0,
     commentary      text        NOT NULL,
     modified_at	    timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (product_id, variant_name),
