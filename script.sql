@@ -1,13 +1,11 @@
 SET timezone = 'UTC';
 
+CREATE SCHEMA IF NOT EXISTS optional;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA optional;
 CREATE SCHEMA IF NOT EXISTS account;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA account;
 CREATE SCHEMA IF NOT EXISTS employee;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA employee;
 CREATE SCHEMA IF NOT EXISTS product;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA product;
 CREATE SCHEMA IF NOT EXISTS vendor;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA vendor;
 CREATE SCHEMA IF NOT EXISTS payment;
 
 
@@ -28,7 +26,7 @@ INSERT INTO account.status(status_name) VALUES ('account not verified');
 DROP TABLE IF EXISTS account.account CASCADE;
 CREATE TABLE account.account
 (
-    account_id              uuid        DEFAULT account.UUID_GENERATE_V4(),
+    account_id              uuid        DEFAULT optional.UUID_GENERATE_V4(),
 	account_email			text		UNIQUE NOT NULL,
 	account_status			smallint 	NOT NULL DEFAULT 1,
 	account_nickname		text		UNIQUE NOT NULL,
@@ -69,7 +67,7 @@ CREATE TABLE product.platform
 DROP TABLE IF EXISTS product.product CASCADE;
 CREATE TABLE product.product
 (
-    product_id      uuid        DEFAULT product.UUID_GENERATE_V4(),
+    product_id      uuid        DEFAULT optional.UUID_GENERATE_V4(),
     product_type    smallint    NOT NULL,
     product_name    text        UNIQUE NOT NULL,
     product_desc    text        NOT NULL,
@@ -99,6 +97,6 @@ CREATE TABLE product.variant
 
 
 
-GRANT USAGE ON SCHEMA xxxx TO user;
-GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA xxxx TO user;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA xxxx TO user;
+--GRANT USAGE ON SCHEMA xxxx TO user;
+--GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA xxxx TO user;
+--GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA xxxx TO user;
