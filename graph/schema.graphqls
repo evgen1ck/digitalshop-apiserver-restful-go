@@ -12,6 +12,7 @@ input SignupInput {
     nickname: String!
     email: String!
     password: String!
+    code: String
 }
 
 input LoginInput {
