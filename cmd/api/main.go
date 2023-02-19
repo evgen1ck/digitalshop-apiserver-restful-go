@@ -2,43 +2,41 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"test-server-go/internal/config"
+	"test-server-go/internal/logger"
 	"test-server-go/internal/mailer"
+	"test-server-go/internal/models"
 	"test-server-go/internal/postgres"
 	"test-server-go/internal/server"
 )
 
 func main() {
-	cfg, err := config.New()
+	logrus := logger.New()
+
+	cfg, err := config.New(logrus)
 	if err != nil {
-		//logger.Fatal(err)
-		log.Fatal(err)
+		logrus.NewError("Config build error", err)
 	}
 
 	pdb, err := postgres.New(cfg.GetPostgresDSN())
 	if err != nil {
-		//logger.Fatal(err)
-		log.Fatal(err)
+		logrus.NewError("Error connecting to the postgres database", err)
 	}
 	defer pdb.Close()
 
-	smtpMailer := mailer.NewSmtp(*cfg)
-
-	app := &server.Application{
+	application := models.Application{
 		Config:   cfg,
 		Postgres: pdb,
-		Mailer:   smtpMailer,
-		//logger:       logger,
+		Mailer:   mailer.NewSmtp(*cfg),
+		Logrus:   logrus,
 	}
 
-	fmt.Println(app.Config)
-	fmt.Println("OK")
+	fmt.Println(application.Config)
 
-	err = app.ServerRun()
+	err = server.Run(application)
 	if err != nil {
-		log.Fatal(err)
+		logrus.NewError("Server startup error", err)
 	}
 
-	fmt.Println("server is stopped")
+	logrus.NewInfo("Server is stopped")
 }

@@ -2,8 +2,8 @@ package argon2
 
 import (
 	"crypto/rand"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/argon2"
-	"log"
 )
 
 // Define parameters for Argon2id
@@ -21,7 +21,7 @@ func generateSalt(length int) string {
 	salt := make([]byte, length)
 	_, err := rand.Read(salt)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal("salt generation error", err)
 	}
 
 	return string(salt)

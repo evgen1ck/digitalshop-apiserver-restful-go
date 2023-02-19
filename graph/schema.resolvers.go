@@ -7,6 +7,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"test-server-go/graph/model"
 )
 
@@ -26,8 +27,10 @@ func (r *mutationResolver) Logout(ctx context.Context, input model.TokenInput) (
 }
 
 // TokenValidate is the resolver for the tokenValidate field.
-func (r *mutationResolver) TokenValidate(ctx context.Context, input model.TokenInput) (bool, error) {
-	panic(fmt.Errorf("not implemented: TokenValidate - tokenValidate"))
+func (r *mutationResolver) TokenValidate(ctx context.Context, input model.TokenInput) (string, error) {
+	abc, er := ctx.Value("Authorization").(string)
+
+	return abc + "d" + strconv.FormatBool(er), nil
 }
 
 // Mutation returns MutationResolver implementation.

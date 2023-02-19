@@ -23,7 +23,6 @@ type TokenInput struct {
 }
 
 type User struct {
-	UUID     string `json:"uuid"`
-	Email    string `json:"email"`
-	Nickname string `json:"nickname"`
+	UUID  string `json:"uuid"`
+	Email string `json:"email"`
 }

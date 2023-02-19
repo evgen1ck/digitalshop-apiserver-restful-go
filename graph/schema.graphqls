@@ -27,5 +27,5 @@ type Mutation {
     signup(input: SignupInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
     logout(input: TokenInput!): Boolean!
-    tokenValidate(input: TokenInput!): Boolean!
+    tokenValidate(input: TokenInput!): String!
 }

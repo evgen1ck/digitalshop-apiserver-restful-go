@@ -59,9 +59,8 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Email    func(childComplexity int) int
-		Nickname func(childComplexity int) int
-		UUID     func(childComplexity int) int
+		Email func(childComplexity int) int
+		UUID  func(childComplexity int) int
 	}
 }
 
@@ -69,7 +68,7 @@ type MutationResolver interface {
 	Signup(ctx context.Context, input model.SignupInput) (*model.AuthPayload, error)
 	Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error)
 	Logout(ctx context.Context, input model.TokenInput) (bool, error)
-	TokenValidate(ctx context.Context, input model.TokenInput) (bool, error)
+	TokenValidate(ctx context.Context, input model.TokenInput) (string, error)
 }
 
 type executableSchema struct {
@@ -155,13 +154,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Email(childComplexity), true
-
-	case "User.nickname":
-		if e.complexity.User.Nickname == nil {
-			break
-		}
-
-		return e.complexity.User.Nickname(childComplexity), true
 
 	case "User.uuid":
 		if e.complexity.User.UUID == nil {
@@ -460,8 +452,6 @@ func (ec *executionContext) fieldContext_AuthPayload_user(ctx context.Context, f
 				return ec.fieldContext_User_uuid(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "nickname":
-				return ec.fieldContext_User_nickname(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -668,9 +658,9 @@ func (ec *executionContext) _Mutation_tokenValidate(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_tokenValidate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -680,7 +670,7 @@ func (ec *executionContext) fieldContext_Mutation_tokenValidate(ctx context.Cont
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	defer func() {
@@ -900,50 +890,6 @@ func (ec *executionContext) _User_email(ctx context.Context, field graphql.Colle
 }
 
 func (ec *executionContext) fieldContext_User_email(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _User_nickname(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_User_nickname(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Nickname, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_User_nickname(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -2988,13 +2934,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "email":
 
 			out.Values[i] = ec._User_email(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "nickname":
-
-			out.Values[i] = ec._User_nickname(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

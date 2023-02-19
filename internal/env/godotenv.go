@@ -2,44 +2,36 @@ package env
 
 import (
 	"errors"
-	"github.com/joho/godotenv"
-	"log"
 	"os"
 	"strconv"
+	"test-server-go/internal/logger"
 )
 
-func init() {
-	// loads values from .env into the system
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("No .env file found")
-	}
-}
-
-func GetEnv(key string) string {
+func GetEnv(key string, logger *logger.Logger) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
 
-	log.Fatal(errors.New("GetEnv: not found " + key))
+	logger.NewError("GetEnv", errors.New("not found "+key))
 	return ""
 }
 
-func GetEnvAsBool(key string) bool {
-	valStr := GetEnv(key)
+func GetEnvAsBool(key string, logger *logger.Logger) bool {
+	valStr := GetEnv(key, logger)
 	if value, err := strconv.ParseBool(valStr); err == nil {
 		return value
 	}
 
-	log.Fatal(errors.New("GetEnvAsBool: not convert " + key))
+	logger.NewError("GetEnvAsBool", errors.New("not convert "+key))
 	return false
 }
 
-func GetEnvAsInt(key string) int {
-	valStr := GetEnv(key)
+func GetEnvAsInt(key string, logger *logger.Logger) int {
+	valStr := GetEnv(key, logger)
 	if value, err := strconv.Atoi(valStr); err == nil {
 		return value
 	}
 
-	log.Fatal(errors.New("GetEnvAsInt: not convert " + key))
+	logger.NewError("GetEnvAsInt", errors.New("not convert "+key))
 	return 0
 }
