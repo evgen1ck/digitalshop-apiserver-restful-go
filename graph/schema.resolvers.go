@@ -22,13 +22,13 @@ func (r *mutationResolver) SignupWithoutCode(ctx context.Context, input model.Si
 	email := strings.TrimSpace(input.Email)
 	password := strings.TrimSpace(input.Password)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainSpaces()); err != nil {
+	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpaces()); err != nil {
 		return "", errors.New("nickname: " + err.Error())
 	}
-	if err := v.Validate(email, v.IsMinMaxLen(5, 64), v.IsContainSpaces(), v.IsEmail()); err != nil {
+	if err := v.Validate(email, v.IsMinMaxLen(5, 64), v.IsContainsSpaces(), v.IsEmail()); err != nil {
 		return "", errors.New("email: " + err.Error())
 	}
-	if err := v.Validate(password, v.IsMinMaxLen(6, 128), v.IsContainSpaces()); err != nil {
+	if err := v.Validate(password, v.IsMinMaxLen(6, 128), v.IsContainsSpaces()); err != nil {
 		return "", errors.New("password: " + err.Error())
 	}
 

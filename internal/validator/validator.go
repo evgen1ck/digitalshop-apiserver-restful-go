@@ -79,7 +79,7 @@ func IsBlank() func(string) error {
 	}
 }
 
-func IsContainSpaces() func(string) error {
+func IsContainsSpaces() func(string) error {
 	return func(str string) error {
 		for _, c := range str {
 			if unicode.IsSpace(c) {
