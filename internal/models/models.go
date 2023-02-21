@@ -13,3 +13,10 @@ type Application struct {
 	Mailer   *mailer.Mailer
 	Logrus   *logger.Logger
 }
+
+type RegistrationTemp struct {
+	Nickname         string
+	Email            string
+	Password         string
+	ConfirmationCode uint64
+}

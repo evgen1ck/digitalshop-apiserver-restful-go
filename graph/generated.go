@@ -49,10 +49,11 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		Login         func(childComplexity int, input model.LoginInput) int
-		Logout        func(childComplexity int, input model.TokenInput) int
-		Signup        func(childComplexity int, input model.SignupInput) int
-		TokenValidate func(childComplexity int, input model.TokenInput) int
+		Login             func(childComplexity int, input model.LoginInput) int
+		Logout            func(childComplexity int, input model.TokenInput) int
+		SignupWithCode    func(childComplexity int, input model.SignupWithCodeInput) int
+		SignupWithoutCode func(childComplexity int, input model.SignupWithoutCodeInput) int
+		TokenValidate     func(childComplexity int, input model.TokenInput) int
 	}
 
 	Query struct {
@@ -65,7 +66,8 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	Signup(ctx context.Context, input model.SignupInput) (*model.AuthPayload, error)
+	SignupWithoutCode(ctx context.Context, input model.SignupWithoutCodeInput) (string, error)
+	SignupWithCode(ctx context.Context, input model.SignupWithCodeInput) (*model.AuthPayload, error)
 	Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error)
 	Logout(ctx context.Context, input model.TokenInput) (bool, error)
 	TokenValidate(ctx context.Context, input model.TokenInput) (string, error)
@@ -124,17 +126,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Logout(childComplexity, args["input"].(model.TokenInput)), true
 
-	case "Mutation.signup":
-		if e.complexity.Mutation.Signup == nil {
+	case "Mutation.signupWithCode":
+		if e.complexity.Mutation.SignupWithCode == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_signup_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_signupWithCode_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Signup(childComplexity, args["input"].(model.SignupInput)), true
+		return e.complexity.Mutation.SignupWithCode(childComplexity, args["input"].(model.SignupWithCodeInput)), true
+
+	case "Mutation.signupWithoutCode":
+		if e.complexity.Mutation.SignupWithoutCode == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_signupWithoutCode_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SignupWithoutCode(childComplexity, args["input"].(model.SignupWithoutCodeInput)), true
 
 	case "Mutation.tokenValidate":
 		if e.complexity.Mutation.TokenValidate == nil {
@@ -171,7 +185,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{rc, e}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputLoginInput,
-		ec.unmarshalInputSignupInput,
+		ec.unmarshalInputSignupWithCodeInput,
+		ec.unmarshalInputSignupWithoutCodeInput,
 		ec.unmarshalInputTokenInput,
 	)
 	first := true
@@ -282,13 +297,28 @@ func (ec *executionContext) field_Mutation_logout_args(ctx context.Context, rawA
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_signup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_signupWithCode_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.SignupInput
+	var arg0 model.SignupWithCodeInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNSignupInput2testᚑserverᚑgoᚋgraphᚋmodelᚐSignupInput(ctx, tmp)
+		arg0, err = ec.unmarshalNSignupWithCodeInput2testᚑserverᚑgoᚋgraphᚋmodelᚐSignupWithCodeInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_signupWithoutCode_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.SignupWithoutCodeInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNSignupWithoutCodeInput2testᚑserverᚑgoᚋgraphᚋmodelᚐSignupWithoutCodeInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -459,8 +489,8 @@ func (ec *executionContext) fieldContext_AuthPayload_user(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_signup(ctx, field)
+func (ec *executionContext) _Mutation_signupWithoutCode(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_signupWithoutCode(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -473,7 +503,61 @@ func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Signup(rctx, fc.Args["input"].(model.SignupInput))
+		return ec.resolvers.Mutation().SignupWithoutCode(rctx, fc.Args["input"].(model.SignupWithoutCodeInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_signupWithoutCode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_signupWithoutCode_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_signupWithCode(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_signupWithCode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SignupWithCode(rctx, fc.Args["input"].(model.SignupWithCodeInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -489,7 +573,7 @@ func (ec *executionContext) _Mutation_signup(ctx context.Context, field graphql.
 	return ec.marshalNAuthPayload2ᚖtestᚑserverᚑgoᚋgraphᚋmodelᚐAuthPayload(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_signupWithCode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -512,7 +596,7 @@ func (ec *executionContext) fieldContext_Mutation_signup(ctx context.Context, fi
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_signup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_signupWithCode_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -2711,8 +2795,68 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputSignupInput(ctx context.Context, obj interface{}) (model.SignupInput, error) {
-	var it model.SignupInput
+func (ec *executionContext) unmarshalInputSignupWithCodeInput(ctx context.Context, obj interface{}) (model.SignupWithCodeInput, error) {
+	var it model.SignupWithCodeInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "nickname", "email", "password", "code"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "nickname":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nickname"))
+			it.Nickname, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "code":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+			it.Code, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSignupWithoutCodeInput(ctx context.Context, obj interface{}) (model.SignupWithoutCodeInput, error) {
+	var it model.SignupWithoutCodeInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -2844,10 +2988,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "signup":
+		case "signupWithoutCode":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_signup(ctx, field)
+				return ec._Mutation_signupWithoutCode(ctx, field)
+			})
+
+		case "signupWithCode":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_signupWithCode(ctx, field)
 			})
 
 		case "login":
@@ -3301,8 +3451,13 @@ func (ec *executionContext) unmarshalNLoginInput2testᚑserverᚑgoᚋgraphᚋmo
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNSignupInput2testᚑserverᚑgoᚋgraphᚋmodelᚐSignupInput(ctx context.Context, v interface{}) (model.SignupInput, error) {
-	res, err := ec.unmarshalInputSignupInput(ctx, v)
+func (ec *executionContext) unmarshalNSignupWithCodeInput2testᚑserverᚑgoᚋgraphᚋmodelᚐSignupWithCodeInput(ctx context.Context, v interface{}) (model.SignupWithCodeInput, error) {
+	res, err := ec.unmarshalInputSignupWithCodeInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNSignupWithoutCodeInput2testᚑserverᚑgoᚋgraphᚋmodelᚐSignupWithoutCodeInput(ctx context.Context, v interface{}) (model.SignupWithoutCodeInput, error) {
+	res, err := ec.unmarshalInputSignupWithoutCodeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

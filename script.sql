@@ -39,15 +39,16 @@ INSERT INTO account.type_registration(type_registration_name) VALUES ('user'), (
 DROP TABLE IF EXISTS account.registration_temp CASCADE;
 CREATE TABLE account.registration_temp
 (
-    registration_temp_no    bigserial   ,
+    registration_temp_no    uuid        DEFAULT account.UUID_GENERATE_V4(),
+    nickname                text        NOT NULL,
     email                   text        NOT NULL,
     password                text        NOT NULL,
     confirmation_code       numeric     NOT NULL,
-    expiration              timestamp   NOT NULL,
+    expiration              timestamp   NOT NULL DEFAULT NOW() + interval '10 minute',
     PRIMARY KEY (registration_temp_no)
 );
 
-
+select * from account.registration_temp;
 
 DROP TABLE IF EXISTS account.account CASCADE;
 CREATE TABLE account.account
@@ -55,7 +56,7 @@ CREATE TABLE account.account
     account_id              uuid        DEFAULT account.UUID_GENERATE_V4(),
     account_status			smallint 	NOT NULL DEFAULT 1,
     last_change_status      timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    type_registration       smallint    NOT NULL,
+    type_registration       smallint    NOT NULL DEFAULT 1,
 	timestamp_last_activity	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at              timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at         	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -109,7 +110,21 @@ CREATE TABLE account.employee
     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
 );
 
-
+CREATE OR REPLACE PROCEDURE account.insert_registration_temp(
+    IN in_nickname TEXT,
+    IN in_email TEXT,
+    IN in_password TEXT,
+    IN in_confirmation_code TEXT,
+    OUT out_registration_temp_no BIGINT
+)
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO account.registration_temp (nickname, email, password, confirmation_code)
+    VALUES (in_nickname, in_email, in_password, in_confirmation_code)
+    RETURNING registration_temp_no INTO out_registration_temp_no;
+END;
+$$;
 
 
 

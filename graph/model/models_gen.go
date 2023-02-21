@@ -12,7 +12,15 @@ type LoginInput struct {
 	Password string `json:"password"`
 }
 
-type SignupInput struct {
+type SignupWithCodeInput struct {
+	ID       string `json:"id"`
+	Nickname string `json:"nickname"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Code     string `json:"code"`
+}
+
+type SignupWithoutCodeInput struct {
 	Nickname string `json:"nickname"`
 	Email    string `json:"email"`
 	Password string `json:"password"`

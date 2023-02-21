@@ -10,7 +10,7 @@ import (
 )
 
 func Run(app models.Application) error {
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{App: &app}}))
 	http.Handle("/api/v1", srv)
 
 	if app.Config.App.DebugMode {

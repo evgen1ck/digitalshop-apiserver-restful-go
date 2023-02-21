@@ -6,14 +6,86 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strconv"
+	"github.com/gofrs/uuid"
+	"strings"
 	"test-server-go/graph/model"
+	"test-server-go/internal/tools"
+	v "test-server-go/internal/validator"
 )
 
-// Signup is the resolver for the signup field.
-func (r *mutationResolver) Signup(ctx context.Context, input model.SignupInput) (*model.AuthPayload, error) {
-	panic(fmt.Errorf("not implemented: Signup - signup"))
+// SignupWithoutCode is the resolver for the signupWithoutCode field.
+func (r *mutationResolver) SignupWithoutCode(ctx context.Context, input model.SignupWithoutCodeInput) (string, error) {
+
+	nickname := strings.TrimSpace(input.Nickname)
+	email := strings.TrimSpace(input.Email)
+	password := strings.TrimSpace(input.Password)
+
+	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainSpaces()); err != nil {
+		return "", errors.New("nickname: " + err.Error())
+	}
+	if err := v.Validate(email, v.IsMinMaxLen(5, 64), v.IsContainSpaces(), v.IsEmail()); err != nil {
+		return "", errors.New("email: " + err.Error())
+	}
+	if err := v.Validate(password, v.IsMinMaxLen(6, 128), v.IsContainSpaces()); err != nil {
+		return "", errors.New("password: " + err.Error())
+	}
+
+	// Get a database connection from the pool
+	conn, err := r.App.Postgres.Acquire(ctx)
+	if err != nil {
+		r.App.Logrus.NewErrorWithoutExit("error acquiring database connection", err)
+		return "", errors.New("error acquiring database connection")
+	}
+	defer conn.Release()
+
+	// Begin a transaction
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		r.App.Logrus.NewErrorWithoutExit("error beginning transaction", err)
+		return "", errors.New("error beginning transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	//////////////////////////////////////////////////
+	//////////////////////////////////////////////////
+
+	confirmCode, err := tools.GenerateConfirmCode()
+	if err != nil {
+		r.App.Logrus.NewErrorWithoutExit("the confirm code not generated", err)
+		return "", errors.New("the confirm code not generated")
+	}
+
+	// Call the procedure
+	var resultRegistrationTempNo uuid.UUID
+	err = tx.QueryRow(ctx,
+		"INSERT INTO account.registration_temp(nickname, email, password, confirmation_code) VALUES ($1, $2, $3, $4) RETURNING registration_temp_no",
+		nickname, email, password, confirmCode).Scan(&resultRegistrationTempNo)
+	if err != nil {
+		r.App.Logrus.NewErrorWithoutExit("error calling query or scanning", err)
+		return "", errors.New("error calling query or scanning")
+	}
+
+	//////////////////////////////////////////////////
+	//////////////////////////////////////////////////
+
+	// Commit the transaction
+	err = tx.Commit(ctx)
+	if err != nil {
+		r.App.Logrus.NewErrorWithoutExit("error committing transaction", err)
+		return "", errors.New("error committing transaction")
+	}
+
+	//////////////////////////////////////////////////
+	//////////////////////////////////////////////////
+
+	return resultRegistrationTempNo.String(), nil
+}
+
+// SignupWithCode is the resolver for the signupWithCode field.
+func (r *mutationResolver) SignupWithCode(ctx context.Context, input model.SignupWithCodeInput) (*model.AuthPayload, error) {
+	panic(fmt.Errorf("not implemented: SignupWithCode - signupWithCode"))
 }
 
 // Login is the resolver for the login field.
@@ -28,9 +100,7 @@ func (r *mutationResolver) Logout(ctx context.Context, input model.TokenInput) (
 
 // TokenValidate is the resolver for the tokenValidate field.
 func (r *mutationResolver) TokenValidate(ctx context.Context, input model.TokenInput) (string, error) {
-	abc, er := ctx.Value("Authorization").(string)
-
-	return abc + "d" + strconv.FormatBool(er), nil
+	panic(fmt.Errorf("not implemented: TokenValidate - tokenValidate"))
 }
 
 // Mutation returns MutationResolver implementation.

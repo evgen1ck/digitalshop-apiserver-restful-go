@@ -8,11 +8,18 @@ type AuthPayload {
     user: User!
 }
 
-input SignupInput {
+input SignupWithoutCodeInput {
     nickname: String!
     email: String!
     password: String!
-    code: String
+}
+
+input SignupWithCodeInput {
+    id: String!
+    nickname: String!
+    email: String!
+    password: String!
+    code: String!
 }
 
 input LoginInput {
@@ -25,7 +32,8 @@ input TokenInput {
 }
 
 type Mutation {
-    signup(input: SignupInput!): AuthPayload!
+    signupWithoutCode(input: SignupWithoutCodeInput!): String!
+    signupWithCode(input: SignupWithCodeInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
     logout(input: TokenInput!): Boolean!
     tokenValidate(input: TokenInput!): String!

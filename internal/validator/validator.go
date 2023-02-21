@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 func Validate(s string, validators ...func(string) error) error {
@@ -73,6 +74,17 @@ func IsBlank() func(string) error {
 	return func(str string) error {
 		if strings.TrimSpace(str) == "" {
 			return errors.New("the value is blank")
+		}
+		return nil
+	}
+}
+
+func IsContainSpaces() func(string) error {
+	return func(str string) error {
+		for _, c := range str {
+			if unicode.IsSpace(c) {
+				return errors.New("the value contains a space(s)")
+			}
 		}
 		return nil
 	}
