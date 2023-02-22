@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"test-server-go/internal/logger"
 )
 
 // execInTx executes a given function inside a transaction.
@@ -21,12 +22,13 @@ import (
 //	}
 //
 // // Handle result
-func execInTx(ctx context.Context, db *pgxpool.Pool, f func(pgx.Tx) (interface{}, error)) (interface{}, error) {
+func execInTx(ctx context.Context, db *pgxpool.Pool, logger *logger.Logger, f func(pgx.Tx) (interface{}, error)) interface{} {
 	// Start a new transaction.
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		// If an error occurred while starting the transaction, return the error.
-		return nil, err
+		logger.NewError("error in start a new transaction", err)
+		return nil
 	}
 
 	// Defer a function that will be executed when this function returns. It will roll back the transaction if it was not committed yet.
@@ -40,17 +42,19 @@ func execInTx(ctx context.Context, db *pgxpool.Pool, f func(pgx.Tx) (interface{}
 	result, err := f(tx)
 	if err != nil {
 		// If an error occurred while executing the function, rollback the transaction and return the error.
-		return nil, err
+		logger.NewError("error in execute the function", err)
+		return nil
 	}
 
 	// Commit the transaction.
 	err = tx.Commit(ctx)
 	if err != nil {
 		// If an error occurred while committing the transaction, return the error.
-		return nil, err
+		logger.NewError("error in commit the transaction", err)
+		return nil
 	}
 
 	// Set the transaction variable to nil and return the result.
 	tx = nil
-	return result, nil
+	return result
 }
