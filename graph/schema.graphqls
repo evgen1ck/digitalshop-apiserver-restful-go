@@ -1,5 +1,6 @@
 type User {
     uuid: String!
+    nickname: String!
     email: String!
 }
 
@@ -15,7 +16,6 @@ input SignupWithoutCodeInput {
 }
 
 input SignupWithCodeInput {
-    id: String!
     nickname: String!
     email: String!
     password: String!
@@ -25,6 +25,7 @@ input SignupWithCodeInput {
 input LoginInput {
     email: String!
     password: String!
+    twoFaCode: String
 }
 
 input TokenInput {
@@ -32,9 +33,9 @@ input TokenInput {
 }
 
 type Mutation {
-    signupWithoutCode(input: SignupWithoutCodeInput!): String!
-    signupWithCode(input: SignupWithCodeInput!): AuthPayload!
-    login(input: LoginInput!): AuthPayload!
-    logout(input: TokenInput!): Boolean!
-    tokenValidate(input: TokenInput!): String!
+    authSignupWithoutCode(input: SignupWithoutCodeInput!): Boolean!
+    authSignupWithCode(input: SignupWithCodeInput!): AuthPayload!
+    authLogin(input: LoginInput!): AuthPayload!
+    authLogout(input: TokenInput!): Boolean!
+    authTokenValidate(input: TokenInput!): Boolean!
 }

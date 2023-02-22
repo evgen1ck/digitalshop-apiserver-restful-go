@@ -14,9 +14,7 @@ type Application struct {
 	Logrus   *logger.Logger
 }
 
-type RegistrationTemp struct {
-	Nickname         string
-	Email            string
-	Password         string
-	ConfirmationCode uint64
+type ExistsNicknameEmail struct {
+	NicknameExists bool
+	EmailExists    bool
 }

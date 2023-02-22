@@ -2,13 +2,24 @@ package tools
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 )
 
-func GenerateConfirmCode() (int64, error) {
-	num, err := rand.Int(rand.Reader, big.NewInt(999999))
+func GenerateConfirmCode() (string, error) {
+	// Generate 3 random bytes
+	b := make([]byte, 3)
+	_, err := rand.Read(b)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return num.Int64() + 100000, nil
+
+	// Convert bytes to a number
+	n := new(big.Int).SetBytes(b)
+
+	// Limit the number to 6 digits
+	n.Mod(n, big.NewInt(1000000))
+
+	// Again limit the number to 6 digits
+	return fmt.Sprintf("%06d", n), nil
 }

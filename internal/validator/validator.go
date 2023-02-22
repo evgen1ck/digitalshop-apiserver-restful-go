@@ -2,8 +2,8 @@ package validator
 
 import (
 	"errors"
-	"net/mail"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -22,9 +22,9 @@ func IsMinMaxLen(min, max int) func(string) error {
 	return func(str string) error {
 		l := len(str)
 		if l < min {
-			return errors.New("the value is too short (minimum is " + string(rune(min)) + " characters)")
+			return errors.New("the value is too short (minimum is " + strconv.Itoa(min) + " characters)")
 		} else if l > max {
-			return errors.New("the value is too long (maximum is " + string(rune(max)) + " characters)")
+			return errors.New("the value is too long (maximum is " + strconv.Itoa(max) + " characters)")
 		}
 		return nil
 	}
@@ -32,8 +32,8 @@ func IsMinMaxLen(min, max int) func(string) error {
 
 func IsEmail() func(string) error {
 	return func(str string) error {
-		_, err := mail.ParseAddress(str)
-		if err != nil {
+		regex, _ := regexp.Compile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+		if !regex.MatchString(str) {
 			return errors.New("the value is not an email")
 		}
 		return nil

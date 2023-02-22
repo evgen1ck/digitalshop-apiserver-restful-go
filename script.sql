@@ -43,7 +43,7 @@ CREATE TABLE account.registration_temp
     nickname                text        NOT NULL,
     email                   text        NOT NULL,
     password                text        NOT NULL,
-    confirmation_code       numeric     NOT NULL,
+    confirmation_code       integer     NOT NULL,
     expiration              timestamp   NOT NULL DEFAULT NOW() + interval '10 minute',
     PRIMARY KEY (registration_temp_no)
 );
@@ -54,7 +54,7 @@ DROP TABLE IF EXISTS account.account CASCADE;
 CREATE TABLE account.account
 (
     account_id              uuid        DEFAULT account.UUID_GENERATE_V4(),
-    account_status			smallint 	NOT NULL DEFAULT 1,
+    account_status			smallint 	NOT NULL DEFAULT 2,
     last_change_status      timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     type_registration       smallint    NOT NULL DEFAULT 1,
 	timestamp_last_activity	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -66,13 +66,12 @@ CREATE TABLE account.account
     FOREIGN KEY (type_registration) REFERENCES account.type_registration(type_registration_no)
 );
 
-
-
 DROP TABLE IF EXISTS account.user CASCADE;
 CREATE TABLE account.user
 (
     account_id              uuid        UNIQUE NOT NULL,
-    username                text        UNIQUE NOT NULL,
+    email                   text        UNIQUE NOT NULL,
+    nickname                text        UNIQUE NOT NULL,
     password 				bytea		NOT NULL,
 	salt_for_password       text        NOT NULL,
     modified_at         	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -109,25 +108,6 @@ CREATE TABLE account.employee
     commentary			    text		NULL,
     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
 );
-
-CREATE OR REPLACE PROCEDURE account.insert_registration_temp(
-    IN in_nickname TEXT,
-    IN in_email TEXT,
-    IN in_password TEXT,
-    IN in_confirmation_code TEXT,
-    OUT out_registration_temp_no BIGINT
-)
-    LANGUAGE plpgsql
-AS $$
-BEGIN
-    INSERT INTO account.registration_temp (nickname, email, password, confirmation_code)
-    VALUES (in_nickname, in_email, in_password, in_confirmation_code)
-    RETURNING registration_temp_no INTO out_registration_temp_no;
-END;
-$$;
-
-
-
 
 
 

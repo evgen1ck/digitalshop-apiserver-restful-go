@@ -12,6 +12,10 @@ type Logger struct {
 }
 
 // New creates a new Logger instance with a logrus logger and sets its output to os.Stdout
+//
+// Example:
+//
+// logrus := logger.New()
 func New() *Logger {
 	logger := logrus.New()
 	logger.SetOutput(os.Stdout)

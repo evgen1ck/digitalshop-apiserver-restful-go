@@ -8,12 +8,12 @@ type AuthPayload struct {
 }
 
 type LoginInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email     string  `json:"email"`
+	Password  string  `json:"password"`
+	TwoFaCode *string `json:"twoFaCode"`
 }
 
 type SignupWithCodeInput struct {
-	ID       string `json:"id"`
 	Nickname string `json:"nickname"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -31,6 +31,7 @@ type TokenInput struct {
 }
 
 type User struct {
-	UUID  string `json:"uuid"`
-	Email string `json:"email"`
+	UUID     string `json:"uuid"`
+	Nickname string `json:"nickname"`
+	Email    string `json:"email"`
 }
