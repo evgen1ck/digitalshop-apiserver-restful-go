@@ -2,8 +2,8 @@ package argon2
 
 import (
 	"crypto/rand"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/argon2"
+	"test-server-go/internal/logger"
 )
 
 // Define parameters for Argon2id
@@ -17,20 +17,20 @@ const (
 )
 
 // generateSalt generates a salt for password hashing
-func generateSalt(length int) string {
+func generateSalt(length int, logger *logger.Logger) string {
 	salt := make([]byte, length)
 	_, err := rand.Read(salt)
 	if err != nil {
-		logrus.Fatal("salt generation error", err)
+		logger.NewError("error in salt generation", err)
 	}
 
 	return string(salt)
 }
 
 // HashPassword hashes the input password using the Argon2id algorithm.
-func HashPassword(password string, salt string) (string, string) {
+func HashPassword(password string, salt string, logger *logger.Logger) (string, string) {
 	if salt == "" {
-		salt = generateSalt(saltLength)
+		salt = generateSalt(saltLength, logger)
 	}
 
 	// Hash the password using Argon2id

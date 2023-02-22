@@ -8,9 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"strings"
 	"test-server-go/graph/model"
+	"test-server-go/internal/argon2"
 	"test-server-go/internal/models"
 	"test-server-go/internal/tools"
 	v "test-server-go/internal/validator"
@@ -50,7 +52,7 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 	}
 
 	// Block 3
-	confirmCode, err := tools.GenerateConfirmCode()
+	confirmCode, err := tools.GenerateConfirmationCode()
 	if err != nil {
 		r.App.Logrus.NewError("the confirm code not generated", err)
 	}
@@ -69,7 +71,63 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 
 // AuthSignupWithCode is the resolver for the authSignupWithCode field.
 func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.SignupWithCodeInput) (*model.AuthPayload, error) {
-	panic(fmt.Errorf("not implemented: AuthSignupWithCode - authSignupWithCode"))
+	// Block 1
+	nickname := strings.TrimSpace(input.Nickname)
+	email := strings.TrimSpace(input.Email)
+	password := strings.TrimSpace(input.Password)
+	code := strings.TrimSpace(input.Code)
+
+	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpaces()); err != nil {
+		return nil, errors.New("nickname: " + err.Error())
+	}
+	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpaces(), v.IsEmail()); err != nil {
+		return nil, errors.New("email: " + err.Error())
+	}
+	if err := v.Validate(password, v.IsMinMaxLen(6, 64), v.IsContainsSpaces()); err != nil {
+		return nil, errors.New("password: " + err.Error())
+	}
+	if err := v.Validate(code, v.IsLen(6), v.IsContainsSpaces(), v.IsUint64()); err != nil {
+		return nil, errors.New("confirmation code from email: " + err.Error())
+	}
+
+	// Block 2
+	result := execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
+		var resultTempExists bool
+		err := tx.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM account.registration_temp WHERE nickname = $1 AND email = $2 AND password = $3 AND confirmation_code = $4)::boolean AS temp_exists",
+			nickname, email, password, code).Scan(&resultTempExists)
+		return resultTempExists, err
+	})
+	existsTemp := result.(bool)
+	if !existsTemp {
+		return nil, errors.New("no results found")
+	}
+
+	// Block 3
+	hashedPassword, passwordSalt := argon2.HashPassword(password, "", r.App.Logrus)
+
+	result = execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
+		err := tx.QueryRow(ctx,
+			"DELETE FROM account.registration_temp WHERE nickname = $1 OR email = $2",
+			nickname, email).Scan(nil)
+		if err != nil {
+			return nil, err
+		}
+		var resultAccountId uuid.UUID
+		err = tx.QueryRow(ctx,
+			"INSERT INTO account.account(type_registration) VALUES ($1) RETURNING account_id",
+			nickname, email).Scan(&resultAccountId)
+		if err != nil {
+			return nil, err
+		}
+		err = tx.QueryRow(ctx,
+			"INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5)",
+			resultAccountId, email, nickname, hashedPassword, passwordSalt).Scan(&resultAccountId)
+		return resultAccountId, nil
+	})
+	resultAccountId := result.(uuid.UUID).String
+
+	// Block 4
 }
 
 // AuthLogin is the resolver for the authLogin field.

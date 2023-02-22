@@ -56,7 +56,7 @@ CREATE TABLE account.account
     account_id              uuid        DEFAULT account.UUID_GENERATE_V4(),
     account_status			smallint 	NOT NULL DEFAULT 2,
     last_change_status      timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    type_registration       smallint    NOT NULL DEFAULT 1,
+    type_registration       smallint    NOT NULL,
 	timestamp_last_activity	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at              timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at         	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,

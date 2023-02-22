@@ -6,7 +6,7 @@ import (
 	"math/big"
 )
 
-func GenerateConfirmCode() (string, error) {
+func GenerateConfirmationCode() (string, error) {
 	// Generate 3 random bytes
 	b := make([]byte, 3)
 	_, err := rand.Read(b)

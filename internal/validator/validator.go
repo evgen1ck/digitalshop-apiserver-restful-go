@@ -30,6 +30,16 @@ func IsMinMaxLen(min, max int) func(string) error {
 	}
 }
 
+func IsLen(length int) func(string) error {
+	return func(str string) error {
+		l := len(str)
+		if l != length {
+			return errors.New("the value is not required length (required is " + strconv.Itoa(length) + " characters)")
+		}
+		return nil
+	}
+}
+
 func IsEmail() func(string) error {
 	return func(str string) error {
 		regex, _ := regexp.Compile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
