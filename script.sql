@@ -48,7 +48,13 @@ CREATE TABLE account.registration_temp
     PRIMARY KEY (registration_temp_no)
 );
 
+INSERT INTO account.user(account_id, email, nickname, password, salt_for_password)
+VALUES ('2d615a18-803d-4cf1-bedd-5ca35a98676b', 'dwadawd', decode('', 'hex'), '1111', 'awdawdawd');
+INSERT INTO account.account(type_registration) VALUES (1) RETURNING account_id;
 select * from account.registration_temp;
+select * from account.user;
+
+SELECT EXISTS(SELECT 1 FROM account.registration_temp WHERE nickname = 'Evgenick' AND email = '77lm@mail.ru' AND password = 'admin123' AND confirmation_code = '644753')::boolean AS temp_exists;
 
 DROP TABLE IF EXISTS account.account CASCADE;
 CREATE TABLE account.account
@@ -72,7 +78,7 @@ CREATE TABLE account.user
     account_id              uuid        UNIQUE NOT NULL,
     email                   text        UNIQUE NOT NULL,
     nickname                text        UNIQUE NOT NULL,
-    password 				bytea		NOT NULL,
+    password 				text		NOT NULL,
 	salt_for_password       text        NOT NULL,
     modified_at         	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary			    text		NULL,
@@ -108,9 +114,6 @@ CREATE TABLE account.employee
     commentary			    text		NULL,
     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
 );
-
-
-
 
 
 

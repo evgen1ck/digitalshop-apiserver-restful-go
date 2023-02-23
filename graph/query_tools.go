@@ -22,9 +22,9 @@ import (
 //	}
 //
 // // Handle result
-func execInTx(ctx context.Context, db *pgxpool.Pool, logger *logger.Logger, f func(pgx.Tx) (interface{}, error)) interface{} {
+func execInTx(ctx context.Context, pool *pgxpool.Pool, logger *logger.Logger, f func(pgx.Tx) (interface{}, error)) interface{} {
 	// Start a new transaction.
-	tx, err := db.Begin(ctx)
+	tx, err := pool.Begin(ctx)
 	if err != nil {
 		// If an error occurred while starting the transaction, return the error.
 		logger.NewError("error in start a new transaction", err)

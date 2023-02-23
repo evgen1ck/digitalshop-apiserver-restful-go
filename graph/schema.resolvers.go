@@ -13,35 +13,44 @@ import (
 	"strings"
 	"test-server-go/graph/model"
 	"test-server-go/internal/argon2"
+	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
+	"test-server-go/internal/token"
 	"test-server-go/internal/tools"
 	v "test-server-go/internal/validator"
 )
 
 // AuthSignupWithoutCode is the resolver for the authSignupWithoutCode field.
 func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input model.SignupWithoutCodeInput) (bool, error) {
-	// Block 1
+	// Block 1 - data validation
 	nickname := strings.TrimSpace(input.Nickname)
-	email := strings.TrimSpace(input.Email)
+	email := strings.TrimSpace(strings.ToLower(input.Email))
 	password := strings.TrimSpace(input.Password)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpaces()); err != nil {
+	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpace()); err != nil {
 		return false, errors.New("nickname: " + err.Error())
 	}
-	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpaces(), v.IsEmail()); err != nil {
+	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsEmail()); err != nil {
 		return false, errors.New("email: " + err.Error())
 	}
-	if err := v.Validate(password, v.IsMinMaxLen(6, 64), v.IsContainsSpaces()); err != nil {
+	if err := v.Validate(password, v.IsMinMaxLen(6, 64), v.IsContainsSpace()); err != nil {
 		return false, errors.New("password: " + err.Error())
 	}
+	emailDomainExists, err := mailer.CheckEmailDomainExistence(email)
+	if !emailDomainExists {
+		return false, errors.New("email: the email domain is not exist")
+	}
+	if err != nil {
+		r.App.Logrus.NewErrorWithoutExit("error in checked the email domain", err)
+	}
 
-	// Block 2
+	// Block 2 - checking for an existing nickname and email
 	result := execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
 		var result models.ExistsNicknameEmail
-		err := tx.QueryRow(ctx,
+		localErr := tx.QueryRow(ctx,
 			"SELECT EXISTS(SELECT 1 FROM account.user WHERE nickname = $1)::boolean AS username_exists, EXISTS(SELECT 1 FROM account.user WHERE email = $2)::boolean AS email_exists",
 			nickname, email).Scan(&result.NicknameExists, &result.EmailExists)
-		return result, err
+		return result, localErr
 	})
 	existsAccount := result.(models.ExistsNicknameEmail)
 	if existsAccount.NicknameExists {
@@ -51,7 +60,7 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 		return false, errors.New("this email is already in use")
 	}
 
-	// Block 3
+	// Block 3 - generating code and inserting a temporary account record
 	confirmCode, err := tools.GenerateConfirmationCode()
 	if err != nil {
 		r.App.Logrus.NewError("the confirm code not generated", err)
@@ -66,31 +75,32 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 		return resultRegistrationTempNo, nil
 	})
 
+	// Block 4 - sending the result
 	return result.(bool), nil
 }
 
 // AuthSignupWithCode is the resolver for the authSignupWithCode field.
 func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.SignupWithCodeInput) (*model.AuthPayload, error) {
-	// Block 1
+	// Block 1 - data validation
 	nickname := strings.TrimSpace(input.Nickname)
-	email := strings.TrimSpace(input.Email)
+	email := strings.TrimSpace(strings.ToLower(input.Email))
 	password := strings.TrimSpace(input.Password)
 	code := strings.TrimSpace(input.Code)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpaces()); err != nil {
+	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpace()); err != nil {
 		return nil, errors.New("nickname: " + err.Error())
 	}
-	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpaces(), v.IsEmail()); err != nil {
+	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsEmail()); err != nil {
 		return nil, errors.New("email: " + err.Error())
 	}
-	if err := v.Validate(password, v.IsMinMaxLen(6, 64), v.IsContainsSpaces()); err != nil {
+	if err := v.Validate(password, v.IsMinMaxLen(6, 64), v.IsContainsSpace()); err != nil {
 		return nil, errors.New("password: " + err.Error())
 	}
-	if err := v.Validate(code, v.IsLen(6), v.IsContainsSpaces(), v.IsUint64()); err != nil {
+	if err := v.Validate(code, v.IsLen(6), v.IsContainsSpace(), v.IsUint64()); err != nil {
 		return nil, errors.New("confirmation code from email: " + err.Error())
 	}
 
-	// Block 2
+	// Block 2 - comparing data sets
 	result := execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
 		var resultTempExists bool
 		err := tx.QueryRow(ctx,
@@ -103,31 +113,49 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 		return nil, errors.New("no results found")
 	}
 
-	// Block 3
-	hashedPassword, passwordSalt := argon2.HashPassword(password, "", r.App.Logrus)
+	// Block 3 - hashing password and adding a user
+	base64PasswordHash, base64Salt := argon2.HashPassword(password, "", r.App.Logrus)
 
 	result = execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
+		var registrationTempExists uuid.UUID
 		err := tx.QueryRow(ctx,
-			"DELETE FROM account.registration_temp WHERE nickname = $1 OR email = $2",
-			nickname, email).Scan(nil)
+			"DELETE FROM account.registration_temp WHERE nickname = $1 OR email = $2 RETURNING registration_temp_no",
+			nickname, email).Scan(&registrationTempExists)
 		if err != nil {
 			return nil, err
 		}
+
 		var resultAccountId uuid.UUID
 		err = tx.QueryRow(ctx,
 			"INSERT INTO account.account(type_registration) VALUES ($1) RETURNING account_id",
-			nickname, email).Scan(&resultAccountId)
+			"1").Scan(&resultAccountId)
 		if err != nil {
 			return nil, err
 		}
-		err = tx.QueryRow(ctx,
-			"INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5)",
-			resultAccountId, email, nickname, hashedPassword, passwordSalt).Scan(&resultAccountId)
-		return resultAccountId, nil
-	})
-	resultAccountId := result.(uuid.UUID).String
 
-	// Block 4
+		err = tx.QueryRow(ctx,
+			"INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5) RETURNING account_id",
+			resultAccountId, email, nickname, base64PasswordHash, base64Salt).Scan(&resultAccountId)
+		return resultAccountId, err
+	})
+	resultAccountId := result.(uuid.UUID).String()
+
+	// Block 4 - generating JWT
+	claims := token.SetClaims(resultAccountId, r.App.Config.App.ServiceUrl)
+	jwt, err := token.GenerateToken(claims, r.App.Config.App.JwtSecret)
+	if err != nil {
+		r.App.Logrus.NewError("the jwt not generated", err)
+	}
+
+	// Block 5 - sending the result
+	return &model.AuthPayload{
+		Token: jwt,
+		User: &model.User{
+			UUID:     resultAccountId,
+			Nickname: nickname,
+			Email:    email,
+		},
+	}, nil
 }
 
 // AuthLogin is the resolver for the authLogin field.

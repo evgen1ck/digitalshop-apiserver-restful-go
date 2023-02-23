@@ -22,9 +22,9 @@ func IsMinMaxLen(min, max int) func(string) error {
 	return func(str string) error {
 		l := len(str)
 		if l < min {
-			return errors.New("the value is too short (minimum is " + strconv.Itoa(min) + " characters)")
+			return errors.New("the value is too short length characters (minimum is " + strconv.Itoa(min) + " characters vs your " + strconv.Itoa(l) + " character(s))")
 		} else if l > max {
-			return errors.New("the value is too long (maximum is " + strconv.Itoa(max) + " characters)")
+			return errors.New("the value is too long length characters (maximum is " + strconv.Itoa(max) + " characters vs your " + strconv.Itoa(l) + " character(s))")
 		}
 		return nil
 	}
@@ -34,7 +34,7 @@ func IsLen(length int) func(string) error {
 	return func(str string) error {
 		l := len(str)
 		if l != length {
-			return errors.New("the value is not required length (required is " + strconv.Itoa(length) + " characters)")
+			return errors.New("the value is not the required length characters (required is " + strconv.Itoa(length) + " vs your " + strconv.Itoa(l) + " character(s))")
 		}
 		return nil
 	}
@@ -89,11 +89,11 @@ func IsBlank() func(string) error {
 	}
 }
 
-func IsContainsSpaces() func(string) error {
+func IsContainsSpace() func(string) error {
 	return func(str string) error {
-		for _, c := range str {
+		for p, c := range str {
 			if unicode.IsSpace(c) {
-				return errors.New("the value contains a space(s)")
+				return errors.New("the value contains a space (space in " + strconv.Itoa(p+1) + " character)")
 			}
 		}
 		return nil

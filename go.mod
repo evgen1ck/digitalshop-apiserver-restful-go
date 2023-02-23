@@ -6,8 +6,10 @@ require (
 	github.com/99designs/gqlgen v0.17.24
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-mail/mail/v2 v2.3.0
+	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/jackc/pgx/v4 v4.17.2
 	github.com/joho/godotenv v1.4.0
+	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/vektah/gqlparser/v2 v2.5.1
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa

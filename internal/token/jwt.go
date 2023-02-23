@@ -7,7 +7,7 @@ import (
 
 // Claims represent JWT claims
 type Claims struct {
-	Uuid string `json:"uuid"`
+	AccountUuid string `json:"account_uuid"`
 	jwt.StandardClaims
 }
 
@@ -35,7 +35,7 @@ func ParseToken(tokenString string, secret string) (*Claims, error) {
 // SetClaims sets claims for JWT token
 func SetClaims(uuid string, issuer string) Claims {
 	return Claims{
-		Uuid: uuid,
+		AccountUuid: uuid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour * 24 * 21).Unix(),
 			IssuedAt:  time.Now().Unix(),
