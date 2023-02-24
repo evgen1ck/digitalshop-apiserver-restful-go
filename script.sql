@@ -44,17 +44,14 @@ CREATE TABLE account.registration_temp
     email                   text        NOT NULL,
     password                text        NOT NULL,
     confirmation_code       integer     NOT NULL,
-    expiration              timestamp   NOT NULL DEFAULT NOW() + interval '10 minute',
+    expiration              timestamp   NOT NULL DEFAULT NOW() + interval '15 minute',
     PRIMARY KEY (registration_temp_no)
 );
 
-INSERT INTO account.user(account_id, email, nickname, password, salt_for_password)
-VALUES ('2d615a18-803d-4cf1-bedd-5ca35a98676b', 'dwadawd', decode('', 'hex'), '1111', 'awdawdawd');
+
 INSERT INTO account.account(type_registration) VALUES (1) RETURNING account_id;
 select * from account.registration_temp;
 select * from account.user;
-
-SELECT EXISTS(SELECT 1 FROM account.registration_temp WHERE nickname = 'Evgenick' AND email = '77lm@mail.ru' AND password = 'admin123' AND confirmation_code = '644753')::boolean AS temp_exists;
 
 DROP TABLE IF EXISTS account.account CASCADE;
 CREATE TABLE account.account

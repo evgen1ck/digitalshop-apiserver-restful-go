@@ -119,7 +119,7 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 	result = execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
 		var registrationTempExists uuid.UUID
 		err := tx.QueryRow(ctx,
-			"DELETE FROM account.registration_temp WHERE nickname = $1 OR email = $2 RETURNING registration_temp_no",
+			"DELETE FROM account.registration_temp WHERE lower(nickname) = lower($1) OR email = $2 RETURNING registration_temp_no",
 			nickname, email).Scan(&registrationTempExists)
 		if err != nil {
 			return nil, err
