@@ -50,6 +50,16 @@ func IsEmail() func(string) error {
 	}
 }
 
+func IsNickname() func(string) error {
+	return func(str string) error {
+		regex, _ := regexp.Compile(`^[a-zA-Z0-9_'-]+$`)
+		if !regex.MatchString(str) {
+			return errors.New("the value is not a nickname")
+		}
+		return nil
+	}
+}
+
 func IsUrl() func(string) error {
 	return func(str string) error {
 		_, err := url.ParseRequestURI(str)
@@ -80,7 +90,7 @@ func IsUint64() func(string) error {
 	}
 }
 
-func IsBlank() func(string) error {
+func IsNotBlank() func(string) error {
 	return func(str string) error {
 		if strings.TrimSpace(str) == "" {
 			return errors.New("the value is blank")

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
+	"strconv"
 	"strings"
 	"test-server-go/graph/model"
 	"test-server-go/internal/argon2"
@@ -87,7 +88,7 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 	password := strings.TrimSpace(input.Password)
 	code := strings.TrimSpace(input.Code)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpace()); err != nil {
+	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsNickname()); err != nil {
 		return nil, errors.New("nickname: " + err.Error())
 	}
 	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsEmail()); err != nil {
@@ -103,9 +104,11 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 	// Block 2 - comparing data sets
 	result := execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
 		var resultTempExists bool
+		i, _ := strconv.ParseInt(code, 10, 64)
+		localCode := strconv.FormatInt(i, 10)
 		err := tx.QueryRow(ctx,
 			"SELECT EXISTS(SELECT 1 FROM account.registration_temp WHERE nickname = $1 AND email = $2 AND password = $3 AND confirmation_code = $4)::boolean AS temp_exists",
-			nickname, email, password, code).Scan(&resultTempExists)
+			nickname, email, password, localCode).Scan(&resultTempExists)
 		return resultTempExists, err
 	})
 	existsTemp := result.(bool)
