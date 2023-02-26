@@ -28,7 +28,7 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 	email := strings.TrimSpace(strings.ToLower(input.Email))
 	password := strings.TrimSpace(input.Password)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpace()); err != nil {
+	if err := v.Validate(nickname, v.IsMinMaxLen(5, 32), v.IsContainsSpace()); err != nil {
 		return false, errors.New("nickname: " + err.Error())
 	}
 	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsEmail()); err != nil {
@@ -42,7 +42,7 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 		return false, errors.New("email: the email domain is not exist")
 	}
 	if err != nil {
-		r.App.Logrus.NewErrorWithoutExit("error in checked the email domain", err)
+		r.App.Logrus.NewWarn("error in checked the email domain: " + err.Error())
 	}
 
 	// Block 2 - checking for an existing nickname and email
@@ -88,7 +88,7 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 	password := strings.TrimSpace(input.Password)
 	code := strings.TrimSpace(input.Code)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsNickname()); err != nil {
+	if err := v.Validate(nickname, v.IsMinMaxLen(5, 32), v.IsContainsSpace(), v.IsNickname()); err != nil {
 		return nil, errors.New("nickname: " + err.Error())
 	}
 	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsEmail()); err != nil {

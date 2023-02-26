@@ -52,7 +52,7 @@ func IsEmail() func(string) error {
 
 func IsNickname() func(string) error {
 	return func(str string) error {
-		regex, _ := regexp.Compile(`^[a-zA-Z0-9_'-]+$`)
+		regex, _ := regexp.Compile(`^[a-zA-Z0-9_-]+$`)
 		if !regex.MatchString(str) {
 			return errors.New("the value is not a nickname")
 		}
