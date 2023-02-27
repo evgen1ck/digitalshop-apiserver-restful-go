@@ -3,6 +3,9 @@ package config
 import (
 	"flag"
 	"github.com/joho/godotenv"
+	"os"
+	"path/filepath"
+	"runtime"
 	"test-server-go/internal/env"
 	"test-server-go/internal/logger"
 )
@@ -39,8 +42,20 @@ func New(logger *logger.Logger) (*Config, error) {
 	var cfg Config
 
 	// loads values from .env into the system
-	if err := godotenv.Load(); err != nil {
-		logger.NewError("No .env file found", err)
+	osName := runtime.GOOS
+	if osName == "linux" {
+		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err != nil {
+			logger.NewError("Failed to get project directory", err)
+		}
+		envFilePath := filepath.Join(dir, ".env")
+		if err := godotenv.Load(envFilePath); err != nil {
+			logger.NewError("Failed to load .env file", err)
+		}
+	} else {
+		if err := godotenv.Load(); err != nil {
+			logger.NewError("No .env file found", err)
+		}
 	}
 
 	// General settings
