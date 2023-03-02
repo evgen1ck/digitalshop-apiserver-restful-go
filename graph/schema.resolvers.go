@@ -28,7 +28,7 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 	email := strings.TrimSpace(strings.ToLower(input.Email))
 	password := strings.TrimSpace(input.Password)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(5, 32), v.IsContainsSpace()); err != nil {
+	if err := v.Validate(nickname, v.IsMinMaxLen(5, 32), v.IsContainsSpace(), v.IsNickname()); err != nil {
 		return false, errors.New("nickname: " + err.Error())
 	}
 	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsEmail()); err != nil {
@@ -55,10 +55,10 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 	})
 	existsAccount := result.(models.ExistsNicknameEmail)
 	if existsAccount.NicknameExists {
-		return false, errors.New("this nickname is already in use")
+		return false, errors.New("nickname: this nickname is already in use")
 	}
 	if existsAccount.EmailExists {
-		return false, errors.New("this email is already in use")
+		return false, errors.New("email: this email is already in use")
 	}
 
 	// Block 3 - generating code and inserting a temporary account record
