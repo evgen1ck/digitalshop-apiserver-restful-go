@@ -3,9 +3,8 @@ package argon2
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/argon2"
-	"test-server-go/internal/logger"
+	"log"
 )
 
 // Define parameters for Argon2id
@@ -20,24 +19,20 @@ const (
 )
 
 // generateSalt generates a salt for password hashing
-func generateSalt(length int, logger *logger.Logger) string {
+func generateSalt(length int) string {
 	salt := make([]byte, length)
 	_, err := rand.Read(salt)
 	if err != nil {
-		logger.NewError("error in salt generation", err)
+		log.Fatalf("error in salt generation %e", err)
 	}
 
 	return string(salt)
 }
 
 // HashPassword hashes the input password using the Argon2id algorithm.
-func HashPassword(password string, salt string, logger *logger.Logger) (string, string) {
-	if argon2.Version != argonVersion {
-		logger.NewError("error in hashes password", errors.New("version argon is not 19"))
-	}
-
+func HashPassword(password string, salt string) (string, string) {
 	if salt == "" {
-		salt = generateSalt(saltLength, logger)
+		salt = generateSalt(saltLength)
 	}
 
 	// Hash the password using Argon2id
@@ -50,14 +45,10 @@ func HashPassword(password string, salt string, logger *logger.Logger) (string, 
 	return base64PasswordHash, base64Salt
 }
 
-func CompareHashPasswords(password string, base64PasswordHash string, base64Salt string, logger *logger.Logger) bool {
-	if argon2.Version != argonVersion {
-		logger.NewError("error in hashes password", errors.New("version argon is not 19"))
-	}
-
+func CompareHashPasswords(password string, base64PasswordHash string, base64Salt string) bool {
 	localBase64Salt, err := base64.RawStdEncoding.DecodeString(base64Salt)
 	if err != nil {
-		logger.NewError("error in decode base64", err)
+		log.Fatalf("error in decode base64 %e", err)
 	}
 
 	localPasswordHash := argon2.IDKey([]byte(password), localBase64Salt, iterations, memory, parallelism, keyLength)

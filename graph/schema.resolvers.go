@@ -117,7 +117,7 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 	}
 
 	// Block 3 - hashing password and adding a user
-	base64PasswordHash, base64Salt := argon2.HashPassword(password, "", r.App.Logrus)
+	base64PasswordHash, base64Salt := argon2.HashPassword(password, "")
 
 	result = execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
 		var registrationTempExists uuid.UUID
