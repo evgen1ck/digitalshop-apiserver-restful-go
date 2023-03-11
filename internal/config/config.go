@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"test-server-go/internal/env"
 	"test-server-go/internal/logger"
 )
 
@@ -59,29 +58,29 @@ func New(logger *logger.Logger) (*Config, error) {
 	}
 
 	// General settings
-	flag.StringVar(&cfg.App.ServiceUrl, "service-url", env.GetEnv("APP_SERVICE_URL", logger), "service url")
-	flag.StringVar(&cfg.App.Host, "app-host", env.GetEnv("APP_HOST", logger), "server host")
-	flag.StringVar(&cfg.App.Port, "app-port", env.GetEnv("APP_PORT", logger), "server port")
-	flag.BoolVar(&cfg.App.DebugMode, "debug-mode", env.GetEnvAsBool("APP_DEBUG_MODE", logger), "debug mode")
-	flag.StringVar(&cfg.App.JwtSecret, "jwt-secret", env.GetEnv("APP_JWT_SECRET", logger), "jwt secret")
+	flag.StringVar(&cfg.App.ServiceUrl, "service-url", GetEnv("APP_SERVICE_URL", logger), "service url")
+	flag.StringVar(&cfg.App.Host, "app-host", GetEnv("APP_HOST", logger), "server host")
+	flag.StringVar(&cfg.App.Port, "app-port", GetEnv("APP_PORT", logger), "server port")
+	flag.BoolVar(&cfg.App.DebugMode, "debug-mode", GetEnvAsBool("APP_DEBUG_MODE", logger), "debug mode")
+	flag.StringVar(&cfg.App.JwtSecret, "jwt-secret", GetEnv("APP_JWT_SECRET", logger), "jwt secret")
 
 	// STMP for noreply mail
-	flag.StringVar(&cfg.Smtp1.Username, "mailer-username", env.GetEnv("STMP1_USERNAME", logger), "mailer username")
-	flag.StringVar(&cfg.Smtp1.Password, "mailer-password", env.GetEnv("STMP1_PASSWORD", logger), "mailer password")
-	flag.StringVar(&cfg.Smtp1.Host, "mailer-host", env.GetEnv("STMP1_HOST", logger), "mailer host")
-	flag.IntVar(&cfg.Smtp1.Port, "mailer-port", env.GetEnvAsInt("STMP1_PORT", logger), "mailer port")
-	flag.StringVar(&cfg.Smtp1.From, "mailer-from", env.GetEnv("STMP1_FROM", logger), "mailer sender")
+	flag.StringVar(&cfg.Smtp1.Username, "mailer-username", GetEnv("STMP1_USERNAME", logger), "mailer username")
+	flag.StringVar(&cfg.Smtp1.Password, "mailer-password", GetEnv("STMP1_PASSWORD", logger), "mailer password")
+	flag.StringVar(&cfg.Smtp1.Host, "mailer-host", GetEnv("STMP1_HOST", logger), "mailer host")
+	flag.IntVar(&cfg.Smtp1.Port, "mailer-port", GetEnvAsInt("STMP1_PORT", logger), "mailer port")
+	flag.StringVar(&cfg.Smtp1.From, "mailer-from", GetEnv("STMP1_FROM", logger), "mailer sender")
 
 	// Postgres DSN
-	flag.StringVar(&cfg.Postgres.User, "postgres-user", env.GetEnv("POSTGRES_USER", logger), "username for postgres")
-	flag.StringVar(&cfg.Postgres.Password, "postgres-password", env.GetEnv("POSTGRES_PASSWORD", logger), "password for postgres")
-	flag.StringVar(&cfg.Postgres.Ip, "postgres-ip", env.GetEnv("POSTGRES_IP", logger), "hostname/address for postgres")
-	flag.StringVar(&cfg.Postgres.Port, "postgres-port", env.GetEnv("POSTGRES_PORT", logger), "port for postgres")
-	flag.StringVar(&cfg.Postgres.Database, "postgres-database", env.GetEnv("POSTGRES_DATABASE", logger), "maintenance database for postgres")
+	flag.StringVar(&cfg.Postgres.User, "database-user", GetEnv("POSTGRES_USER", logger), "username for database")
+	flag.StringVar(&cfg.Postgres.Password, "database-password", GetEnv("POSTGRES_PASSWORD", logger), "password for database")
+	flag.StringVar(&cfg.Postgres.Ip, "database-ip", GetEnv("POSTGRES_IP", logger), "hostname/address for database")
+	flag.StringVar(&cfg.Postgres.Port, "database-port", GetEnv("POSTGRES_PORT", logger), "port for database")
+	flag.StringVar(&cfg.Postgres.Database, "database-database", GetEnv("POSTGRES_DATABASE", logger), "maintenance database for database")
 
 	// TLS files
-	flag.StringVar(&cfg.Tls.CertFile, "tls-cert-file", env.GetEnv("TLS_CERTFILE", logger), "tls certificate file")
-	flag.StringVar(&cfg.Tls.KeyFile, "tls-key-file", env.GetEnv("TLS_KEYFILE", logger), "tls key file")
+	flag.StringVar(&cfg.Tls.CertFile, "tls-cert-file", GetEnv("TLS_CERTFILE", logger), "tls certificate file")
+	flag.StringVar(&cfg.Tls.KeyFile, "tls-key-file", GetEnv("TLS_KEYFILE", logger), "tls key file")
 
 	flag.Parse()
 

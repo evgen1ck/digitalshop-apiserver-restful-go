@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"test-server-go/internal/config"
+	"test-server-go/internal/database"
 	"test-server-go/internal/logger"
 	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
-	"test-server-go/internal/postgres"
 	"test-server-go/internal/server"
 )
 
@@ -19,9 +19,9 @@ func main() {
 		logrus.NewError("Config build error", err)
 	}
 
-	pdb, err := postgres.New(context.Background(), cfg.GetPostgresDSN())
+	pdb, err := database.NewPostgres(context.Background(), cfg.GetPostgresDSN())
 	if err != nil {
-		logrus.NewError("Error connecting to the postgres database", err)
+		logrus.NewError("Error connecting to the database database", err)
 	}
 	defer pdb.Close()
 

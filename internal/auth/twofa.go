@@ -1,4 +1,4 @@
-package twofa
+package auth
 
 import (
 	"crypto/rand"

@@ -13,12 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"test-server-go/graph/model"
-	"test-server-go/internal/argon2"
+	"test-server-go/internal/auth"
 	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
-	"test-server-go/internal/token"
-	"test-server-go/internal/tools"
-	v "test-server-go/internal/validator"
+	tl "test-server-go/internal/tools"
 )
 
 // AuthSignupWithoutCode is the resolver for the authSignupWithoutCode field.
@@ -28,13 +26,13 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 	email := strings.TrimSpace(strings.ToLower(input.Email))
 	password := strings.TrimSpace(input.Password)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(5, 32), v.IsContainsSpace(), v.IsNickname()); err != nil {
+	if err := tl.Validate(nickname, tl.IsMinMaxLen(5, 32), tl.IsContainsSpace(), tl.IsNickname()); err != nil {
 		return false, errors.New("nickname: " + err.Error())
 	}
-	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsEmail()); err != nil {
+	if err := tl.Validate(email, tl.IsMinMaxLen(6, 64), tl.IsContainsSpace(), tl.IsEmail()); err != nil {
 		return false, errors.New("email: " + err.Error())
 	}
-	if err := v.Validate(password, v.IsMinMaxLen(6, 64), v.IsContainsSpace()); err != nil {
+	if err := tl.Validate(password, tl.IsMinMaxLen(6, 64), tl.IsContainsSpace()); err != nil {
 		return false, errors.New("password: " + err.Error())
 	}
 	emailDomainExists, err := mailer.CheckEmailDomainExistence(email)
@@ -62,7 +60,7 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 	}
 
 	// Block 3 - generating code and inserting a temporary account record
-	confirmCode, err := tools.GenerateConfirmationCode()
+	confirmCode, err := tl.GenerateSixDigitNumber()
 	if err != nil {
 		r.App.Logrus.NewError("the confirm code not generated", err)
 	}
@@ -88,16 +86,16 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 	password := strings.TrimSpace(input.Password)
 	code := strings.TrimSpace(input.Code)
 
-	if err := v.Validate(nickname, v.IsMinMaxLen(5, 32), v.IsContainsSpace(), v.IsNickname()); err != nil {
+	if err := tl.Validate(nickname, tl.IsMinMaxLen(5, 32), tl.IsContainsSpace(), tl.IsNickname()); err != nil {
 		return nil, errors.New("nickname: " + err.Error())
 	}
-	if err := v.Validate(email, v.IsMinMaxLen(6, 64), v.IsContainsSpace(), v.IsEmail()); err != nil {
+	if err := tl.Validate(email, tl.IsMinMaxLen(6, 64), tl.IsContainsSpace(), tl.IsEmail()); err != nil {
 		return nil, errors.New("email: " + err.Error())
 	}
-	if err := v.Validate(password, v.IsMinMaxLen(6, 64), v.IsContainsSpace()); err != nil {
+	if err := tl.Validate(password, tl.IsMinMaxLen(6, 64), tl.IsContainsSpace()); err != nil {
 		return nil, errors.New("password: " + err.Error())
 	}
-	if err := v.Validate(code, v.IsLen(6), v.IsContainsSpace(), v.IsUint64()); err != nil {
+	if err := tl.Validate(code, tl.IsLen(6), tl.IsContainsSpace(), tl.IsUint64()); err != nil {
 		return nil, errors.New("confirmation code from email: " + err.Error())
 	}
 
@@ -117,7 +115,10 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 	}
 
 	// Block 3 - hashing password and adding a user
-	base64PasswordHash, base64Salt := argon2.HashPassword(password, "")
+	base64PasswordHash, base64Salt, err := auth.HashPassword(password, "")
+	if err != nil {
+		r.App.Logrus.NewError("the hash password not generated", err)
+	}
 
 	result = execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
 		var registrationTempExists uuid.UUID
@@ -144,8 +145,7 @@ func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.S
 	resultAccountId := result.(uuid.UUID).String()
 
 	// Block 4 - generating JWT
-	claims := token.SetClaims(resultAccountId, r.App.Config.App.ServiceUrl)
-	jwt, err := token.GenerateToken(claims, r.App.Config.App.JwtSecret)
+	jwt, err := auth.GenerateJwtToken(resultAccountId, r.App.Config.App.JwtSecret)
 	if err != nil {
 		r.App.Logrus.NewError("the jwt not generated", err)
 	}
