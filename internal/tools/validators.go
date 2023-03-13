@@ -20,7 +20,7 @@ func Validate(s string, validators ...func(string) error) error {
 
 func IsMinMaxLen(min, max int) func(string) error {
 	return func(str string) error {
-		l := len(str)
+		l := len([]rune(str))
 		if l < min {
 			return errors.New("the value is too short length characters (minimum is " + strconv.Itoa(min) + " characters vs your " + strconv.Itoa(l) + " character(s))")
 		} else if l > max {
@@ -32,7 +32,7 @@ func IsMinMaxLen(min, max int) func(string) error {
 
 func IsLen(length int) func(string) error {
 	return func(str string) error {
-		l := len(str)
+		l := len([]rune(str))
 		if l != length {
 			return errors.New("the value is not the required length characters (required is " + strconv.Itoa(length) + " vs your " + strconv.Itoa(l) + " character(s))")
 		}
@@ -64,7 +64,7 @@ func IsUrl() func(string) error {
 	return func(str string) error {
 		_, err := url.ParseRequestURI(str)
 		if err != nil {
-			return errors.New("the value is not a url")
+			return errors.New("the value is not a url address")
 		}
 		return nil
 	}
@@ -99,7 +99,7 @@ func IsNotBlank() func(string) error {
 	}
 }
 
-func IsContainsSpace() func(string) error {
+func IsNotContainsSpace() func(string) error {
 	return func(str string) error {
 		for p, c := range str {
 			if unicode.IsSpace(c) {

@@ -6,36 +6,33 @@ package graph
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/gofrs/uuid"
-	"github.com/jackc/pgx/v4"
-	"strconv"
 	"strings"
 	"test-server-go/graph/model"
 	"test-server-go/internal/auth"
-	"test-server-go/internal/mailer"
-	"test-server-go/internal/models"
+	"test-server-go/internal/queries"
 	tl "test-server-go/internal/tools"
 )
 
-// AuthSignupWithoutCode is the resolver for the authSignupWithoutCode field.
-func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input model.SignupWithoutCodeInput) (bool, error) {
+// AuthSignup is the resolver for the authSignup field.
+func (r *mutationResolver) AuthSignup(ctx context.Context, input model.SignupInput) (bool, error) {
 	// Block 1 - data validation
 	nickname := strings.TrimSpace(input.Nickname)
 	email := strings.TrimSpace(strings.ToLower(input.Email))
 	password := strings.TrimSpace(input.Password)
 
-	if err := tl.Validate(nickname, tl.IsMinMaxLen(5, 32), tl.IsContainsSpace(), tl.IsNickname()); err != nil {
+	if err := tl.Validate(nickname, tl.IsMinMaxLen(5, 32), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
 		return false, errors.New("nickname: " + err.Error())
 	}
-	if err := tl.Validate(email, tl.IsMinMaxLen(6, 64), tl.IsContainsSpace(), tl.IsEmail()); err != nil {
+	if err := tl.Validate(email, tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
 		return false, errors.New("email: " + err.Error())
 	}
-	if err := tl.Validate(password, tl.IsMinMaxLen(6, 64), tl.IsContainsSpace()); err != nil {
+	if err := tl.Validate(password, tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace()); err != nil {
 		return false, errors.New("password: " + err.Error())
 	}
-	emailDomainExists, err := mailer.CheckEmailDomainExistence(email)
+	emailDomainExists, err := tl.CheckEmailDomainExistence(email)
 	if !emailDomainExists {
 		return false, errors.New("email: the email domain is not exist")
 	}
@@ -44,136 +41,105 @@ func (r *mutationResolver) AuthSignupWithoutCode(ctx context.Context, input mode
 	}
 
 	// Block 2 - checking for an existing nickname and email
-	result := execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
-		var result models.ExistsNicknameEmail
-		localErr := tx.QueryRow(ctx,
-			"SELECT EXISTS(SELECT 1 FROM account.user WHERE nickname = $1)::boolean AS username_exists, EXISTS(SELECT 1 FROM account.user WHERE email = $2)::boolean AS email_exists",
-			nickname, email).Scan(&result.NicknameExists, &result.EmailExists)
-		return result, localErr
-	})
-	existsAccount := result.(models.ExistsNicknameEmail)
-	if existsAccount.NicknameExists {
+	nicknameExist, emailExist, err := queries.CheckUserExistence(ctx, r.App.Postgres.Pool, nickname, email)
+	if err != nil {
+		r.App.Logrus.NewError("error in checked the user existence", err)
+		return false, errors.New("system error")
+	}
+	if nicknameExist {
 		return false, errors.New("nickname: this nickname is already in use")
 	}
-	if existsAccount.EmailExists {
+	if emailExist {
 		return false, errors.New("email: this email is already in use")
 	}
 
-	// Block 3 - generating code and inserting a temporary account record
-	confirmCode, err := tl.GenerateSixDigitNumber()
+	// Block 3 - generating token and inserting a temporary account record
+	randomString, err := tl.GenerateRandomString(48)
 	if err != nil {
-		r.App.Logrus.NewError("the confirm code not generated", err)
+		r.App.Logrus.NewError("error in generated random string", err)
+		return false, errors.New("system error")
 	}
+	confirmationToken := base64.URLEncoding.EncodeToString([]byte(randomString))
 
-	result = execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
-		var resultRegistrationTempNo bool
-		err = tx.QueryRow(ctx,
-			"INSERT INTO account.registration_temp(nickname, email, password, confirmation_code) VALUES ($1, $2, $3, $4) RETURNING EXISTS(SELECT 1 FROM account.registration_temp WHERE registration_temp_no = registration_temp_no) AS result;",
-			nickname, email, password, confirmCode).Scan(&resultRegistrationTempNo)
-
-		return resultRegistrationTempNo, nil
-	})
-
-	// Block 4 - sending the result
-	return result.(bool), nil
-}
-
-// AuthSignupWithCode is the resolver for the authSignupWithCode field.
-func (r *mutationResolver) AuthSignupWithCode(ctx context.Context, input model.SignupWithCodeInput) (*model.AuthPayload, error) {
-	// Block 1 - data validation
-	nickname := strings.TrimSpace(input.Nickname)
-	email := strings.TrimSpace(strings.ToLower(input.Email))
-	password := strings.TrimSpace(input.Password)
-	code := strings.TrimSpace(input.Code)
-
-	if err := tl.Validate(nickname, tl.IsMinMaxLen(5, 32), tl.IsContainsSpace(), tl.IsNickname()); err != nil {
-		return nil, errors.New("nickname: " + err.Error())
-	}
-	if err := tl.Validate(email, tl.IsMinMaxLen(6, 64), tl.IsContainsSpace(), tl.IsEmail()); err != nil {
-		return nil, errors.New("email: " + err.Error())
-	}
-	if err := tl.Validate(password, tl.IsMinMaxLen(6, 64), tl.IsContainsSpace()); err != nil {
-		return nil, errors.New("password: " + err.Error())
-	}
-	if err := tl.Validate(code, tl.IsLen(6), tl.IsContainsSpace(), tl.IsUint64()); err != nil {
-		return nil, errors.New("confirmation code from email: " + err.Error())
-	}
-
-	// Block 2 - comparing data sets
-	result := execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
-		var resultTempExists bool
-		i, _ := strconv.ParseInt(code, 10, 64)
-		localCode := strconv.FormatInt(i, 10)
-		err := tx.QueryRow(ctx,
-			"SELECT EXISTS(SELECT 1 FROM account.registration_temp WHERE nickname = $1 AND email = $2 AND password = $3 AND confirmation_code = $4)::boolean AS temp_exists",
-			nickname, email, password, localCode).Scan(&resultTempExists)
-		return resultTempExists, err
-	})
-	existsTemp := result.(bool)
-	if !existsTemp {
-		return nil, errors.New("no results found")
-	}
-
-	// Block 3 - hashing password and adding a user
-	base64PasswordHash, base64Salt, err := auth.HashPassword(password, "")
+	err = queries.InsertRegistrationTemp(ctx, r.App.Postgres.Pool, nickname, email, password, confirmationToken)
 	if err != nil {
-		r.App.Logrus.NewError("the hash password not generated", err)
+		r.App.Logrus.NewError("error in inserted registration temp record", err)
+		return false, errors.New("system error")
 	}
 
-	result = execInTx(ctx, r.App.Postgres.Pool, r.App.Logrus, func(tx pgx.Tx) (interface{}, error) {
-		var registrationTempExists uuid.UUID
-		err := tx.QueryRow(ctx,
-			"DELETE FROM account.registration_temp WHERE lower(nickname) = lower($1) OR email = $2 RETURNING registration_temp_no",
-			nickname, email).Scan(&registrationTempExists)
-		if err != nil {
-			return nil, err
-		}
-
-		var resultAccountId uuid.UUID
-		err = tx.QueryRow(ctx,
-			"INSERT INTO account.account(type_registration) VALUES ($1) RETURNING account_id",
-			"1").Scan(&resultAccountId)
-		if err != nil {
-			return nil, err
-		}
-
-		err = tx.QueryRow(ctx,
-			"INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5) RETURNING account_id",
-			resultAccountId, email, nickname, base64PasswordHash, base64Salt).Scan(&resultAccountId)
-		return resultAccountId, err
-	})
-	resultAccountId := result.(uuid.UUID).String()
-
-	// Block 4 - generating JWT
-	jwt, err := auth.GenerateJwtToken(resultAccountId, r.App.Config.App.JwtSecret)
+	// Block 4 - generating url and sending url on email
+	url, err := tl.UrlSetParam("https://digitalshop.evgenick.com/confirm-registration", "token", confirmationToken)
 	if err != nil {
-		r.App.Logrus.NewError("the jwt not generated", err)
+		r.App.Logrus.NewError("error in url set param", err)
+		return false, errors.New("system error")
+	}
+
+	err = r.App.Mailer.SendEmailConfirmation(nickname, email, url)
+	if err != nil {
+		r.App.Logrus.NewError("error in sent email confirmation", err)
+		return false, errors.New("system error")
 	}
 
 	// Block 5 - sending the result
-	return &model.AuthPayload{
-		Token: jwt,
-		User: &model.User{
-			UUID:     resultAccountId,
-			Nickname: nickname,
-			Email:    email,
-		},
+	return true, nil
+}
+
+// AuthSignupWithToken is the resolver for the authSignupWithToken field.
+func (r *mutationResolver) AuthSignupWithToken(ctx context.Context, token string) (*model.AuthUserPayload, error) {
+	// Block 1 - data validation
+	token = strings.TrimSpace(token)
+
+	if err := tl.Validate(token, tl.IsLen(64), tl.IsNotContainsSpace()); err != nil {
+		return nil, errors.New("token: " + err.Error())
+	}
+
+	// Block 2 - get user data and checking on exist user
+	userData, err := queries.GetRegistrationTemp(ctx, r.App.Postgres.Pool, token)
+	if userData.Email == "" {
+		return nil, errors.New("user not found")
+	}
+	if err != nil {
+		r.App.Logrus.NewError("error in checked registration temp record", err)
+		return nil, errors.New("system error")
+	}
+
+	// Block 3 - hashing password and adding a user
+	base64PasswordHash, base64Salt, err := auth.HashPassword(userData.Password, "")
+	if err != nil {
+		r.App.Logrus.NewError("error in generated hash password", err)
+		return nil, errors.New("system error")
+	}
+
+	userUuid, err := queries.RegistrationUser(ctx, r.App.Postgres.Pool, userData.Nickname, userData.Email, base64PasswordHash, base64Salt)
+	if err != nil {
+		r.App.Logrus.NewError("error in registration user", err)
+		return nil, errors.New("system error")
+	}
+
+	// Block 4 - generating JWT
+	jwt, err := auth.GenerateJwt(userUuid.String(), r.App.Config.App.JwtSecret)
+	if err != nil {
+		r.App.Logrus.NewError("error in generated jwt", err)
+		return nil, errors.New("system error")
+	}
+
+	// Block 5 - sending the result
+	return &model.AuthUserPayload{
+		Token:    jwt,
+		UUID:     userUuid.String(),
+		Nickname: userData.Nickname,
+		Email:    userData.Email,
 	}, nil
 }
 
 // AuthLogin is the resolver for the authLogin field.
-func (r *mutationResolver) AuthLogin(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error) {
+func (r *mutationResolver) AuthLogin(ctx context.Context, input model.LoginInput) (*model.AuthUserPayload, error) {
 	panic(fmt.Errorf("not implemented: AuthLogin - authLogin"))
 }
 
 // AuthLogout is the resolver for the authLogout field.
-func (r *mutationResolver) AuthLogout(ctx context.Context, input model.TokenInput) (bool, error) {
+func (r *mutationResolver) AuthLogout(ctx context.Context, token string) (bool, error) {
 	panic(fmt.Errorf("not implemented: AuthLogout - authLogout"))
-}
-
-// AuthTokenValidate is the resolver for the authTokenValidate field.
-func (r *mutationResolver) AuthTokenValidate(ctx context.Context, input model.TokenInput) (bool, error) {
-	panic(fmt.Errorf("not implemented: AuthTokenValidate - authTokenValidate"))
 }
 
 // Mutation returns MutationResolver implementation.

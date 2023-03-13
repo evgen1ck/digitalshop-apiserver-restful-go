@@ -12,10 +12,6 @@ type Logger struct {
 }
 
 // New creates a new Logger instance with a logrus logger and sets its output to os.Stdout
-//
-// Example:
-//
-// logrus := logger.New()
 func New() *Logger {
 	logger := logrus.New()
 	logger.SetOutput(os.Stdout)
@@ -42,8 +38,8 @@ func (l *Logger) NewWarn(msg string) {
 	}).Warn(msg)
 }
 
-// NewError logs an error message with the file name and line number of the calling function and exits the program
-func (l *Logger) NewError(msg string, err error) {
+// NewErrorWithExit logs an error message with the file name and line number of the calling function and exits the program
+func (l *Logger) NewErrorWithExit(msg string, err error) {
 	_, file, line, _ := runtime.Caller(1)
 
 	l.WithFields(logrus.Fields{
@@ -54,8 +50,8 @@ func (l *Logger) NewError(msg string, err error) {
 	os.Exit(1)
 }
 
-// NewErrorWithoutExit logs an error message with the file name and line number of the calling function
-func (l *Logger) NewErrorWithoutExit(msg string, err error) {
+// NewError logs an error message with the file name and line number of the calling function
+func (l *Logger) NewError(msg string, err error) {
 	_, file, line, _ := runtime.Caller(1)
 
 	l.WithFields(logrus.Fields{

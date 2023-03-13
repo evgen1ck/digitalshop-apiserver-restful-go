@@ -20,7 +20,7 @@ type Postgres struct {
 //	}
 //	defer pdb.Close()
 func NewPostgres(ctx context.Context, dsn string) (*Postgres, error) {
-	pool, err := pgxpool.Connect(ctx, "database://"+dsn+"?sslmode=disable")
+	pool, err := pgxpool.Connect(ctx, "postgres://"+dsn+"?sslmode=disable")
 	if err != nil {
 		return nil, err
 	}

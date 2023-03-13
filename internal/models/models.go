@@ -13,8 +13,3 @@ type Application struct {
 	Mailer   *mailer.Mailer
 	Logrus   *logger.Logger
 }
-
-type ExistsNicknameEmail struct {
-	NicknameExists bool
-	EmailExists    bool
-}

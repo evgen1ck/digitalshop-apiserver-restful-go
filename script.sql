@@ -39,16 +39,16 @@ INSERT INTO account.type_registration(type_registration_name) VALUES ('user'), (
 DROP TABLE IF EXISTS account.registration_temp CASCADE;
 CREATE TABLE account.registration_temp
 (
-    registration_temp_no    uuid        DEFAULT account.UUID_GENERATE_V4(),
+    confirmation_token      text        ,
     nickname                text        NOT NULL,
     email                   text        NOT NULL,
     password                text        NOT NULL,
-    confirmation_code       integer     NOT NULL,
     expiration              timestamp   NOT NULL DEFAULT NOW() + interval '15 minute',
-    PRIMARY KEY (registration_temp_no)
+    PRIMARY KEY (confirmation_token)
 );
 
-
+INSERT INTO account.registration_temp(confirmation_token, nickname, email, password) VALUES ('a', 'a', 'a', 'a');
+SELECT nickname, email, password FROM account.registration_temp WHERE confirmation_token = 'srToSey1thbRSECJOD6dNHLZ84nMOaHheYrSbqRbgNaaphT1uummTxQ6YyPOZo47';
 INSERT INTO account.account(type_registration) VALUES (1) RETURNING account_id;
 select * from account.registration_temp;
 select * from account.user;
@@ -69,6 +69,8 @@ CREATE TABLE account.account
     FOREIGN KEY (type_registration) REFERENCES account.type_registration(type_registration_no)
 );
 
+INSERT INTO account.account DEFAULT VALUES RETURNING account_id;
+select * from account.account;
 DROP TABLE IF EXISTS account.user CASCADE;
 CREATE TABLE account.user
 (

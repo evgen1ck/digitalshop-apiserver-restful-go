@@ -16,9 +16,9 @@ type JwtClaims struct {
 	jwt.StandardClaims
 }
 
-// GenerateJwtToken generates a JWT token for a given account UUID and secret key.
+// GenerateJwt generates a JWT token for a given account UUID and secret key.
 // It sets the token to expire in 21 days and includes the issued at time.
-func GenerateJwtToken(accountUuid string, secret string) (string, error) {
+func GenerateJwt(accountUuid string, secret string) (string, error) {
 	claims := JwtClaims{
 		AccountUuid: accountUuid,
 		StandardClaims: jwt.StandardClaims{

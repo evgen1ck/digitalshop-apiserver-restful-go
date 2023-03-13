@@ -16,12 +16,12 @@ func main() {
 
 	cfg, err := config.New(logrus)
 	if err != nil {
-		logrus.NewError("Config build error", err)
+		logrus.NewErrorWithExit("Config build error", err)
 	}
 
 	pdb, err := database.NewPostgres(context.Background(), cfg.GetPostgresDSN())
 	if err != nil {
-		logrus.NewError("Error connecting to the database database", err)
+		logrus.NewErrorWithExit("Error connecting to the database database", err)
 	}
 	defer pdb.Close()
 
@@ -36,7 +36,7 @@ func main() {
 
 	err = server.Run(application)
 	if err != nil {
-		logrus.NewError("Server startup error", err)
+		logrus.NewErrorWithExit("Server startup error", err)
 	}
 
 	logrus.NewInfo("Server is stopped")

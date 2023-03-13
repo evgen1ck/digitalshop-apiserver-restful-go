@@ -38,15 +38,15 @@ func HashPassword(password string, salt string) (string, string, error) {
 
 // CompareHashPasswords compares the input password with the hashed password and salt.
 func CompareHashPasswords(password string, base64PasswordHash string, base64Salt string) (bool, error) {
-	localBase64Salt, err := base64.RawStdEncoding.DecodeString(base64Salt)
+	newBase64Salt, err := base64.RawStdEncoding.DecodeString(base64Salt)
 	if err != nil {
 		return false, err
 	}
 
-	localPasswordHash := argon2.IDKey([]byte(password), localBase64Salt, iterations, memory, parallelism, keyLength)
+	newPasswordHash := argon2.IDKey([]byte(password), newBase64Salt, iterations, memory, parallelism, keyLength)
 
-	localBase64PasswordHash := base64.RawStdEncoding.EncodeToString(localPasswordHash)
-	if localBase64PasswordHash == base64PasswordHash {
+	newBase64PasswordHash := base64.RawStdEncoding.EncodeToString(newPasswordHash)
+	if newBase64PasswordHash == base64PasswordHash {
 		return true, nil
 	}
 	return false, nil

@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"net"
 	"net/url"
 	"strconv"
+	"strings"
 	"unicode"
 )
 
@@ -45,12 +47,12 @@ func GenerateRandomString(length int) (string, error) {
 	return string(b), nil
 }
 
-// GenerateRandomClassicString generates a random string of the specified length with letters (lowercase and uppercase) and digits.
+// GenerateRandomClassicString generates a random string of the specified length with letters and digits.
 // It generates a byte slice with the specified length and fills it with random bytes using the crypto/rand package.
 // It iterates over each byte in the byte slice and replaces it with a character from the specified character set.
 // It returns the byte slice converted to a string.
 func GenerateRandomClassicString(length int) (string, error) {
-	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 	b := make([]byte, length)
 	_, err := rand.Read(b)
@@ -152,4 +154,27 @@ func UrlDelParam(u string, key string) (string, error) {
 
 	parsedURL.RawQuery = values.Encode()
 	return parsedURL.String(), nil
+}
+
+// CheckEmailDomainExistence checks if an email domain exists using SPF (Sender Policy Framework) record.
+// It extracts the domain from the email address, performs a DNS lookup to get the TXT record of the domain,
+// and checks if the TXT record contains the "v=spf1" flag. It returns true if the flag is found, and false otherwise.
+func CheckEmailDomainExistence(addr string) (bool, error) {
+	// Extract the domain from the email address
+	domain := strings.Split(addr, "@")[1]
+
+	// Get the TXT record of the domain
+	txtRecords, err := net.LookupTXT(domain)
+	if err != nil {
+		return false, err
+	}
+
+	// Search for the "v=spf1" flag in the TXT record
+	for _, txt := range txtRecords {
+		if strings.Contains(txt, "v=spf1") {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

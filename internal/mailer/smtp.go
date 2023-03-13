@@ -1,9 +1,9 @@
 package mailer
 
 import (
+	"bytes"
 	"github.com/go-mail/mail/v2"
-	"net"
-	"strings"
+	"html/template"
 	"test-server-go/internal/config"
 	"time"
 )
@@ -24,11 +24,11 @@ func NewSmtp(cfg config.Config) *Mailer {
 }
 
 // SendEmail function sends an email with provided parameters
-func (m *Mailer) SendEmail(to []string, subject string, body string) error {
+func (m *Mailer) sendEmail(to []string, title string, body string) error {
 	msg := mail.NewMessage()
 	msg.SetHeader("From", m.from)
 	msg.SetHeader("To", to...)
-	msg.SetHeader("Subject", subject)
+	msg.SetHeader("Subject", title)
 	msg.SetBody("text/plain", body)
 
 	if err := m.dialer.DialAndSend(msg); err != nil {
@@ -38,25 +38,29 @@ func (m *Mailer) SendEmail(to []string, subject string, body string) error {
 	return nil
 }
 
-// CheckEmailDomainExistence checks if an email domain exists using SPF (Sender Policy Framework) record.
-// It extracts the domain from the email address, performs a DNS lookup to get the TXT record of the domain,
-// and checks if the TXT record contains the "v=spf1" flag. It returns true if the flag is found, and false otherwise.
-func CheckEmailDomainExistence(addr string) (bool, error) {
-	// Extract the domain from the email address
-	domain := strings.Split(addr, "@")[1]
-
-	// Get the TXT record of the domain
-	txtRecords, err := net.LookupTXT(domain)
+func (m *Mailer) SendEmailConfirmation(nickname, email, url string) error {
+	tmpl, err := template.ParseFiles("tmplEmailConfirmation.tmpl")
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	// Search for the "v=spf1" flag in the TXT record
-	for _, txt := range txtRecords {
-		if strings.Contains(txt, "v=spf1") {
-			return true, nil
-		}
+	resources := map[string]interface{}{
+		"Nickname":         nickname,
+		"Email":            email,
+		"ConfirmationLink": url,
+		"WebAppName":       "https://digitalshop.evgenick.com",
 	}
 
-	return false, nil
+	var buf bytes.Buffer
+	err = tmpl.ExecuteTemplate(&buf, "tmplEmailConfirmation.tmpl", resources)
+	if err != nil {
+		return err
+	}
+
+	err = m.sendEmail([]string{email}, "Evgenick's Digitals: подтверждение учётной записи", buf.String())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
