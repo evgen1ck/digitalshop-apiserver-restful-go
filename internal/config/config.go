@@ -11,11 +11,13 @@ import (
 
 type Config struct {
 	App struct {
-		ServiceUrl string // example: example.com
-		Host       string // example: localhost
-		Port       string // example: 3000
-		DebugMode  bool   // example: true
-		JwtSecret  string // example: 3d93fe63ff2d2ebc9c0c814f7364fbba1653eddeb63a006b59cf7b2985545242
+		ServiceName   string // example: flower shop
+		ServiceUrl    string // example: https://example.com
+		ApiServiceUrl string // example: https://api.example.com
+		Host          string // example: localhost
+		Port          string // example: 9990
+		DebugMode     bool   // example: true
+		JwtSecret     string // example: 3d93fe63ff2d2ebc9c0c814f7364fbba1653eddeb63a006b59cf7b2985545242
 	}
 	Smtp1 struct {
 		Username string
@@ -58,7 +60,9 @@ func New(logger *logger.Logger) (*Config, error) {
 	}
 
 	// General settings
+	flag.StringVar(&cfg.App.ServiceName, "service-name", getEnv("APP_SERVICE_NAME", logger), "service name")
 	flag.StringVar(&cfg.App.ServiceUrl, "service-url", getEnv("APP_SERVICE_URL", logger), "service url")
+	flag.StringVar(&cfg.App.ApiServiceUrl, "api-service-url", getEnv("APP_API_SERVICE_URL", logger), "api service url")
 	flag.StringVar(&cfg.App.Host, "app-host", getEnv("APP_HOST", logger), "server host")
 	flag.StringVar(&cfg.App.Port, "app-port", getEnv("APP_PORT", logger), "server port")
 	flag.BoolVar(&cfg.App.DebugMode, "debug-mode", getEnvAsBool("APP_DEBUG_MODE", logger), "debug mode")

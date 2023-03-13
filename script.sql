@@ -43,7 +43,7 @@ CREATE TABLE account.registration_temp
     nickname                text        NOT NULL,
     email                   text        NOT NULL,
     password                text        NOT NULL,
-    expiration              timestamp   NOT NULL DEFAULT NOW() + interval '15 minute',
+    expiration              timestamp   NOT NULL DEFAULT NOW() + interval '10 minute',
     PRIMARY KEY (confirmation_token)
 );
 

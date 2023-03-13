@@ -24,7 +24,7 @@ func NewSmtp(cfg config.Config) *Mailer {
 }
 
 // SendEmail function sends an email with provided parameters
-func (m *Mailer) sendEmail(to []string, title string, body string) error {
+func (m *Mailer) sendEmail(to []string, title, body string) error {
 	msg := mail.NewMessage()
 	msg.SetHeader("From", m.from)
 	msg.SetHeader("To", to...)
@@ -38,7 +38,7 @@ func (m *Mailer) sendEmail(to []string, title string, body string) error {
 	return nil
 }
 
-func (m *Mailer) SendEmailConfirmation(nickname, email, url string) error {
+func (m *Mailer) SendEmailConfirmation(nickname, email, confirmationUrl string) error {
 	tmpl, err := template.ParseFiles("tmplEmailConfirmation.tmpl")
 	if err != nil {
 		return err
@@ -47,8 +47,7 @@ func (m *Mailer) SendEmailConfirmation(nickname, email, url string) error {
 	resources := map[string]interface{}{
 		"Nickname":         nickname,
 		"Email":            email,
-		"ConfirmationLink": url,
-		"WebAppName":       "https://digitalshop.evgenick.com",
+		"ConfirmationLink": confirmationUrl,
 	}
 
 	var buf bytes.Buffer

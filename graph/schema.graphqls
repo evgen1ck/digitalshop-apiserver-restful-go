@@ -25,9 +25,15 @@ input LoginInput {
     twoFaCode: String
 }
 
+input ResetPasswordInput {
+    token: String!
+    newPassword: String!
+}
+
 type Mutation {
     authSignup(input: SignupInput!): Boolean!
     authSignupWithToken(token: String!): AuthUserPayload!
     authLogin(input: LoginInput!): AuthUserPayload!
+    authResetPassword(input: ResetPasswordInput!): AuthUserPayload!
     authLogout(token: String!): Boolean!
 }

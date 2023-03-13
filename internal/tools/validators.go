@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf16"
+	"unicode/utf8"
 )
 
 func Validate(s string, validators ...func(string) error) error {
@@ -103,8 +105,39 @@ func IsNotContainsSpace() func(string) error {
 	return func(str string) error {
 		for p, c := range str {
 			if unicode.IsSpace(c) {
-				return errors.New("the value contains a space (space in " + strconv.Itoa(p+1) + " character)")
+				return errors.New("the value contains a space (space in " + strconv.Itoa(p+1) + " position)")
 			}
+		}
+		return nil
+	}
+}
+
+func IsAscii() func(string) error {
+	return func(str string) error {
+		for p, c := range str {
+			if c > 127 {
+				return errors.New("the value is not ASCII (character in " + strconv.Itoa(p+1) + " position is not ASCII)")
+			}
+		}
+		return nil
+	}
+}
+
+func IsUtf16() func(string) error {
+	return func(str string) error {
+		for p, r := range str {
+			if !utf16.IsSurrogate(r) {
+				return errors.New("the value is not UTF-16 (character in " + strconv.Itoa(p+1) + " position is not UTF-16)")
+			}
+		}
+		return nil
+	}
+}
+
+func IsUtf8() func(string) error {
+	return func(str string) error {
+		if !utf8.ValidString(str) {
+			return errors.New("the value is not UTF-8")
 		}
 		return nil
 	}
