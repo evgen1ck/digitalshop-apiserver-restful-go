@@ -32,7 +32,7 @@ CREATE TABLE account.type_registration
     commentary			    text		NULL,
     PRIMARY KEY (type_registration_no)
 );
-INSERT INTO account.type_registration(type_registration_name) VALUES ('user'), ('telegram'), ('employee'), ('vendor');
+INSERT INTO account.type_registration(type_registration_name) VALUES ('fromWebApp'), ('fromTelegram'), ('employee'), ('vendor');
 
 
 
@@ -47,9 +47,7 @@ CREATE TABLE account.registration_temp
     PRIMARY KEY (confirmation_token)
 );
 
-INSERT INTO account.registration_temp(confirmation_token, nickname, email, password) VALUES ('a', 'a', 'a', 'a');
-SELECT nickname, email, password FROM account.registration_temp WHERE confirmation_token = 'srToSey1thbRSECJOD6dNHLZ84nMOaHheYrSbqRbgNaaphT1uummTxQ6YyPOZo47';
-INSERT INTO account.account(type_registration) VALUES (1) RETURNING account_id;
+
 select * from account.registration_temp;
 select * from account.user;
 

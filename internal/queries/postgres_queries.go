@@ -131,7 +131,7 @@ func RegistrationUser(ctx context.Context, pool *pgxpool.Pool, nickname, email, 
 			return err
 		}
 		if res.RowsAffected() < 1 {
-			return errors.New("failed to insert data")
+			return errors.New("failed to delete data")
 		}
 
 		err = tx.QueryRow(ctx,
