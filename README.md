@@ -1,4 +1,4 @@
-# test-apiserver-graphql-go
+# test-apiserver-restful-go
 
 command for generate again graph -->
 go run -mod=mod github.com/99designs/gqlgen generate --verbose
