@@ -10,11 +10,11 @@ import (
 	"time"
 )
 
-type Resolver22 struct {
+type Resolver2 struct {
 	App *models.Application
 }
 
-func (rd *Resolver22) NewRoutes() *chi.Mux {
+func (rd *Resolver2) NewRoutes() *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.StripSlashes)                    // Оптимизация путей
@@ -45,7 +45,7 @@ func (rd *Resolver22) NewRoutes() *chi.Mux {
 	return r
 }
 
-func (rd *Resolver22) Routes(r *chi.Mux) http.Handler {
+func (rd *Resolver2) Routes(r *chi.Mux) http.Handler {
 	r.Get("/getAllAlbums3", getAllAlbums)
 	r.Get("/getAllAlbums", getAllAlbums)
 	r.Get("/authSignup", rd.authSignup)

@@ -19,7 +19,7 @@ type SignupInput struct {
 	Password string `json:"password"`
 }
 
-func (rd *Resolver22) authSignup(w http.ResponseWriter, r *http.Request) {
+func (rd *Resolver2) authSignup(w http.ResponseWriter, r *http.Request) {
 	//var input SignupInput
 	//decodeErr := json.NewDecoder(r.Body).Decode(&input)
 	//if decodeErr != nil {

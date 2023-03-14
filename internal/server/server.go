@@ -37,7 +37,7 @@ func Run() {
 
 	fmt.Println(app.Config)
 
-	resolver22 := api.Resolver22{
+	resolver22 := api.Resolver2{
 		App: &app,
 	}
 	router3 := resolver22.NewRoutes()
