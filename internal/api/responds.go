@@ -99,3 +99,13 @@ func respondWithNotImplemented(w http.ResponseWriter) {
 	}
 	_ = json.NewEncoder(w).Encode(response)
 }
+
+func respondWithMethodNotAllowed(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	response := ErrorResponse{
+		StatusCode: http.StatusMethodNotAllowed,
+		Message:    "Method not allowed",
+	}
+	_ = json.NewEncoder(w).Encode(response)
+}

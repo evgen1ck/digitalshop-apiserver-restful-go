@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 	"net/http"
@@ -65,7 +66,7 @@ func rateLimitMiddleware(requests int, interval time.Duration) func(http.Handler
 func serviceUnavailableMiddleware(enable bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !enable {
+			if enable {
 				respondWithServiceUnavailable(w)
 				return
 			}
@@ -124,4 +125,15 @@ func maxHeaderBytesMiddleware(maxHeaderSize int) func(http.Handler) http.Handler
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func methodNotAllowedHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+		next.ServeHTTP(ww, r)
+		if ww.Status() == http.StatusMethodNotAllowed {
+			respondWithMethodNotAllowed(w)
+			return
+		}
+	})
 }

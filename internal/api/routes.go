@@ -33,29 +33,23 @@ func (rh *RouteHandler) SetupRouter() http.Handler {
 	r.Use(middleware.Compress(compressLevel, "application/json")) // Supports compression
 
 	// Error handling
-	r.Use(serviceUnavailableMiddleware(true))                        // Error 503 - Service Unavailable
+	r.Use(serviceUnavailableMiddleware(false))                       // Error 503 - Service Unavailable
 	r.NotFound(notFoundMiddleware())                                 // Error 404 - Not Found
 	r.Use(uriLengthMiddleware(uriMaxLength))                         // Error 414 - URI Too Long
 	r.Use(requestSizeMiddleware(requestMaxSize))                     // Error 413 - Payload Too Large
 	r.Use(rateLimitMiddleware(rateLimitRequests, rateLimitInterval)) // Error 429 - Too Many Requests
 	r.Use(unsupportedMediaTypeMiddleware("application/json"))        // Error 415 - Unsupported Media Type
 	r.Use(notImplementedMiddleware(allowedMethods))                  // Error 501 - (Method) Not implemented
+	r.Use(methodNotAllowedHandler)                                   // Error 405 - Method Not Allowed
 
 	// CORS settings
 	r.Use(corsMiddleware())
 
-	r.Mount("/api/v1", rh.Routes(r))
+	r.Get("/api/v1/getAllAlbums", getAllAlbums)
+	r.Post("/api/v1/authSignup", rh.authSignup)
 
 	maxHeaderBytesMW := maxHeaderBytesMiddleware(maxHeaderSize)
 	handlerWithMiddleware := maxHeaderBytesMW(r)
 
 	return handlerWithMiddleware
-}
-
-func (rh *RouteHandler) Routes(r *chi.Mux) http.Handler {
-	r.Get("/getAllAlbums3", getAllAlbums)
-	r.Get("/getAllAlbums", getAllAlbums)
-	r.Get("/authSignup", rh.authSignup)
-
-	return r
 }

@@ -2,8 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
+	tl "test-server-go/internal/tools"
 )
 
 type Album struct {
@@ -20,38 +23,41 @@ type SignupInput struct {
 }
 
 func (rh *RouteHandler) authSignup(w http.ResponseWriter, r *http.Request) {
-	//var input SignupInput
-	//decodeErr := json.NewDecoder(r.Body).Decode(&input)
-	//if decodeErr != nil {
-	//	respondWithBadRequest(w, "Invalid request payload")
-	//}
-	//
-	//// Block 1 - data validation
-	//nickname := strings.TrimSpace(input.Nickname)
-	//email := strings.TrimSpace(strings.ToLower(input.Email))
-	//password := strings.TrimSpace(input.Password)
-	//
-	//if err := tl.Validate(nickname, tl.IsMinMaxLen(5, 32), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
-	//	respondWithBadRequest(w, "Nickname: "+err.Error())
-	//}
-	//if err := tl.Validate(email, tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
-	//	respondWithBadRequest(w, "Email: "+err.Error())
-	//}
-	//if err := tl.Validate(password, tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace()); err != nil {
-	//	respondWithBadRequest(w, "Password: "+err.Error())
-	//}
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"ip_address": rh.App.Config.App.ServiceName,
-	})
+	var input SignupInput
+	decodeErr := json.NewDecoder(r.Body).Decode(&input)
+	if decodeErr != nil {
+		fmt.Println(decodeErr.Error())
+		respondWithBadRequest(w, "Invalid request payload")
+		return
+	}
 
-	//emailDomainExists, err := tl.CheckEmailDomainExistence(email)
-	//if !emailDomainExists {
-	//	respondWithBadRequest(w, "Email: the email domain is not exist")
-	//}
-	//if err != nil {
-	//	r.Server.Logrus.NewWarn("error in checked the email domain: " + err.Error())
-	//}
-	//
+	// Block 1 - data validation
+	nickname := strings.TrimSpace(input.Nickname)
+	email := strings.TrimSpace(strings.ToLower(input.Email))
+	password := strings.TrimSpace(input.Password)
+
+	if err := tl.Validate(nickname, tl.IsMinMaxLen(5, 32), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
+		respondWithBadRequest(w, "Nickname: "+err.Error())
+		return
+	}
+	if err := tl.Validate(email, tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
+		respondWithBadRequest(w, "Email: "+err.Error())
+		return
+	}
+	if err := tl.Validate(password, tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace()); err != nil {
+		respondWithBadRequest(w, "Password: "+err.Error())
+		return
+	}
+
+	emailDomainExists, err := tl.CheckEmailDomainExistence(email)
+	if !emailDomainExists {
+		respondWithBadRequest(w, "Email: the email domain is not exist")
+		return
+	}
+	if err != nil {
+		rh.App.Logrus.NewWarn("Error in checked the email domain: " + err.Error())
+	}
+
 	//// Block 2 - checking for an existing nickname and email
 	//nicknameExist, emailExist, err := queries.CheckUserExistence(ctx, r.App.Postgres.Pool, nickname, email)
 	//if err != nil {
@@ -95,6 +101,9 @@ func (rh *RouteHandler) authSignup(w http.ResponseWriter, r *http.Request) {
 	//// Block 5 - sending the result
 	//return true, nil
 
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"ip_address": rh.App.Config.App.ServiceName,
+	})
 }
 
 func getAllAlbums(w http.ResponseWriter, r *http.Request) {
