@@ -3,52 +3,59 @@ package api
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
-	"github.com/go-chi/httprate"
 	"net/http"
 	"test-server-go/internal/models"
 	"time"
 )
 
-type Resolver2 struct {
+type RouteHandler struct {
 	App *models.Application
 }
 
-func (rd *Resolver2) NewRoutes() *chi.Mux {
+const (
+	compressLevel     = 5
+	rateLimitRequests = 10
+	rateLimitInterval = 10 * time.Second
+	requestMaxSize    = 4 * 1024 * 1024 // 4MB
+	maxHeaderSize     = 1024            // 1MB
+	uriMaxLength      = 1024
+)
+
+var allowedMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+
+func (rh *RouteHandler) SetupRouter() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.StripSlashes)                    // Оптимизация путей
-	r.Use(middleware.Compress(5, "application/json")) // Поддержка сжатия
-	r.Use(middleware.Logger)                          // Логгирование
-	r.Use(middleware.Recoverer)                       // Обработка ошибок 500
-	r.Use(httprate.Limit(                             // Количество запросов для одного ip (10 в 10 секунд)
-		10,
-		10*time.Second,
-		httprate.WithLimitHandler(func(w http.ResponseWriter, r *http.Request) {
-			respondWithTooManyRequests(w)
-		}),
-	))
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) { // Обработка ошибок 404
-		respondWithResourceNotFound(w)
-	})
-	r.Use(cors.New(cors.Options{ // Разрешаем CORS
-		AllowedOrigins:   []string{"*"},                                                       // Разрешаем запросы со всех источников
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},                 // Разрешаем все методы запросов
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"}, // Разрешаем указанные заголовки
-		ExposedHeaders:   []string{"Link"},                                                    // Разрешаем доступ к указанным заголовкам из JavaScript кода
-		AllowCredentials: true,                                                                // Разрешаем куки в CORS запросах
-		MaxAge:           300,                                                                 // Устанавливаем максимальный срок действия CORS политики
-	}).Handler)
+	// Default settings
+	r.Use(middleware.Recoverer)                                   // Prevents server from crashing
+	r.Use(middleware.StripSlashes)                                // Optimizes paths
+	r.Use(middleware.Logger)                                      // Logging
+	r.Use(middleware.Compress(compressLevel, "application/json")) // Supports compression
 
-	r.Mount("/api/v1", rd.Routes(r))
+	// Error handling
+	r.Use(serviceUnavailableMiddleware(true))                        // Error 503 - Service Unavailable
+	r.NotFound(notFoundMiddleware())                                 // Error 404 - Not Found
+	r.Use(uriLengthMiddleware(uriMaxLength))                         // Error 414 - URI Too Long
+	r.Use(requestSizeMiddleware(requestMaxSize))                     // Error 413 - Payload Too Large
+	r.Use(rateLimitMiddleware(rateLimitRequests, rateLimitInterval)) // Error 429 - Too Many Requests
+	r.Use(unsupportedMediaTypeMiddleware("application/json"))        // Error 415 - Unsupported Media Type
+	r.Use(notImplementedMiddleware(allowedMethods))                  // Error 501 - (Method) Not implemented
 
-	return r
+	// CORS settings
+	r.Use(corsMiddleware())
+
+	r.Mount("/api/v1", rh.Routes(r))
+
+	maxHeaderBytesMW := maxHeaderBytesMiddleware(maxHeaderSize)
+	handlerWithMiddleware := maxHeaderBytesMW(r)
+
+	return handlerWithMiddleware
 }
 
-func (rd *Resolver2) Routes(r *chi.Mux) http.Handler {
+func (rh *RouteHandler) Routes(r *chi.Mux) http.Handler {
 	r.Get("/getAllAlbums3", getAllAlbums)
 	r.Get("/getAllAlbums", getAllAlbums)
-	r.Get("/authSignup", rd.authSignup)
+	r.Get("/authSignup", rh.authSignup)
 
 	return r
 }

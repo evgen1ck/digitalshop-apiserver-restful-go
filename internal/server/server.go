@@ -37,14 +37,14 @@ func Run() {
 
 	fmt.Println(app.Config)
 
-	resolver22 := api.Resolver2{
+	routeHandler := api.RouteHandler{
 		App: &app,
 	}
-	router3 := resolver22.NewRoutes()
+	router := routeHandler.SetupRouter()
 
 	srv := &http.Server{
 		Addr:         app.Config.GetURL(),
-		Handler:      router3,
+		Handler:      router,
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,

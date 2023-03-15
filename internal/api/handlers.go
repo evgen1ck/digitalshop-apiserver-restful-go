@@ -19,7 +19,7 @@ type SignupInput struct {
 	Password string `json:"password"`
 }
 
-func (rd *Resolver2) authSignup(w http.ResponseWriter, r *http.Request) {
+func (rh *RouteHandler) authSignup(w http.ResponseWriter, r *http.Request) {
 	//var input SignupInput
 	//decodeErr := json.NewDecoder(r.Body).Decode(&input)
 	//if decodeErr != nil {
@@ -41,7 +41,7 @@ func (rd *Resolver2) authSignup(w http.ResponseWriter, r *http.Request) {
 	//	respondWithBadRequest(w, "Password: "+err.Error())
 	//}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"ip_address": rd.App.Config.App.ServiceName,
+		"ip_address": rh.App.Config.App.ServiceName,
 	})
 
 	//emailDomainExists, err := tl.CheckEmailDomainExistence(email)
