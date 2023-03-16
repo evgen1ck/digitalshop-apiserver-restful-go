@@ -1,11 +1,14 @@
 package api
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
+	"test-server-go/internal/auth"
+	"test-server-go/internal/queries"
 	tl "test-server-go/internal/tools"
 )
 
@@ -16,17 +19,14 @@ type Album struct {
 	Price  float64 `json:"price"`
 }
 
-type SignupInput struct {
-	Nickname string `json:"nickname"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-func (rh *RouteHandler) authSignup(w http.ResponseWriter, r *http.Request) {
-	var input SignupInput
+func (rh *RouteHandler) AuthSignup(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Nickname string `json:"nickname"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
 	decodeErr := json.NewDecoder(r.Body).Decode(&input)
 	if decodeErr != nil {
-		fmt.Println(decodeErr.Error())
 		respondWithBadRequest(w, "Invalid request payload")
 		return
 	}
@@ -58,52 +58,123 @@ func (rh *RouteHandler) authSignup(w http.ResponseWriter, r *http.Request) {
 		rh.App.Logrus.NewWarn("Error in checked the email domain: " + err.Error())
 	}
 
-	//// Block 2 - checking for an existing nickname and email
-	//nicknameExist, emailExist, err := queries.CheckUserExistence(ctx, r.App.Postgres.Pool, nickname, email)
-	//if err != nil {
-	//	r.App.Logrus.NewError("error in checked the user existence", err)
-	//	return false, errors.New("system error")
-	//}
-	//if nicknameExist {
-	//	return false, errors.New("nickname: this nickname is already in use")
-	//}
-	//if emailExist {
-	//	return false, errors.New("email: this email is already in use")
-	//}
-	//
-	//// Block 3 - generating token and inserting a temporary account record
-	//randomString, err := tl.GenerateRandomString(48)
-	//if err != nil {
-	//	r.App.Logrus.NewError("error in generated random string", err)
-	//	return false, errors.New("system error")
-	//}
-	//confirmationToken := base64.URLEncoding.EncodeToString([]byte(randomString))
-	//
-	//err = queries.InsertRegistrationTemp(ctx, r.App.Postgres.Pool, nickname, email, password, confirmationToken)
-	//if err != nil {
-	//	r.App.Logrus.NewError("error in inserted registration temp record", err)
-	//	return false, errors.New("system error")
-	//}
-	//
-	//// Block 4 - generating url and sending url on email
-	//url, err := tl.UrlSetParam("https://digitalshop.evgenick.com/confirm-registration", "token", confirmationToken)
-	//if err != nil {
-	//	r.App.Logrus.NewError("error in url set param", err)
-	//	return false, errors.New("system error")
-	//}
-	//
-	//err = r.App.Mailer.SendEmailConfirmation(nickname, email, url)
-	//if err != nil {
-	//	r.App.Logrus.NewError("error in sent email confirmation", err)
-	//	return false, errors.New("system error")
-	//}
-	//
-	//// Block 5 - sending the result
-	//return true, nil
+	// Block 2 - checking for an existing nickname and email
+	nicknameExist, emailExist, err := queries.CheckUserExistence(context.Background(), rh.App.Postgres.Pool, nickname, email)
+	if err != nil {
+		rh.App.Logrus.NewError("error in checked the user existence", err)
+		respondWithInternalServerError(w)
+		return
+	}
+	if nicknameExist {
+		respondWithBadRequest(w, "Nickname: this nickname is already in use")
+		return
+	}
+	if emailExist {
+		respondWithBadRequest(w, "Email: this email is already in use")
+		return
+	}
 
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"ip_address": rh.App.Config.App.ServiceName,
-	})
+	// Block 3 - generating token and inserting a temporary account record
+	randomString, err := tl.GenerateRandomString(48)
+	if err != nil {
+		rh.App.Logrus.NewError("error in generated random string", err)
+		respondWithInternalServerError(w)
+		return
+	}
+	confirmationToken := base64.URLEncoding.EncodeToString([]byte(randomString))
+
+	err = queries.InsertRegistrationTemp(context.Background(), rh.App.Postgres.Pool, nickname, email, password, confirmationToken)
+	if err != nil {
+		rh.App.Logrus.NewError("error in inserted registration temp record", err)
+		respondWithInternalServerError(w)
+		return
+	}
+
+	// Block 4 - generating url and sending url on email
+	_, err = tl.UrlSetParam(rh.App.Config.App.ServiceUrl+"/confirm-registration", "token", confirmationToken)
+	if err != nil {
+		rh.App.Logrus.NewError("error in url set param", err)
+		respondWithInternalServerError(w)
+		return
+	}
+
+	//err = rh.App.Mailer.SendEmailConfirmation(nickname, email, url)
+	//if err != nil {
+	//	rh.App.Logrus.NewError("error in sent email confirmation", err)
+	//	respondWithInternalServerError(w)
+	//	return
+	//}
+
+	// Block 5 - sending the result
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rh *RouteHandler) SignupWithToken(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Token string `json:"token"`
+	}
+	decodeErr := json.NewDecoder(r.Body).Decode(&input)
+	if decodeErr != nil {
+		respondWithBadRequest(w, "Invalid request payload")
+		return
+	}
+
+	// Block 1 - data validation
+	token := strings.TrimSpace(input.Token)
+
+	if err := tl.Validate(token, tl.IsLen(64), tl.IsNotContainsSpace()); err != nil {
+		respondWithBadRequest(w, "Token: "+err.Error())
+		return
+	}
+
+	// Block 2 - get user data and checking on exist user
+	userData, err := queries.GetRegistrationTemp(context.Background(), rh.App.Postgres.Pool, token)
+	if userData.Email == "" {
+		respondWithBadRequest(w, "User not found")
+		return
+	}
+	if err != nil {
+		rh.App.Logrus.NewError("error in checked registration temp record", err)
+		respondWithInternalServerError(w)
+		return
+	}
+
+	// Block 3 - hashing password and adding a user
+	base64PasswordHash, base64Salt, err := auth.HashPassword(userData.Password, "")
+	if err != nil {
+		rh.App.Logrus.NewError("error in generated hash password", err)
+		respondWithInternalServerError(w)
+		return
+	}
+
+	userUuid, err := queries.RegistrationUser(context.Background(), rh.App.Postgres.Pool, userData.Nickname, userData.Email, base64PasswordHash, base64Salt)
+	if err != nil {
+		rh.App.Logrus.NewError("error in registration user", err)
+		respondWithInternalServerError(w)
+		return
+	}
+
+	// Block 4 - generating JWT
+	jwt, err := auth.GenerateJwt(userUuid.String(), rh.App.Config.App.JwtSecret)
+	if err != nil {
+		rh.App.Logrus.NewError("error in generated jwt", err)
+		respondWithInternalServerError(w)
+		return
+	}
+
+	// Block 5 - sending the result
+	response := struct {
+		Token    string `json:"token"`
+		Uuid     string `json:"uuid"`
+		Nickname string `json:"nickname"`
+		Email    string `json:"email"`
+	}{
+		Token:    jwt,
+		Uuid:     userUuid.String(),
+		Nickname: userData.Nickname,
+		Email:    userData.Email,
+	}
+	respondWithCreated(w, response)
 }
 
 func getAllAlbums(w http.ResponseWriter, r *http.Request) {

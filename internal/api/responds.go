@@ -6,8 +6,9 @@ import (
 )
 
 type ErrorResponse struct {
-	StatusCode int    `json:"status_code"`
-	Message    string `json:"message"`
+	StatusCode  int    `json:"status_code"`
+	Message     string `json:"message"`
+	Description string `json:"description"`
 }
 
 func respondWithTooManyRequests(w http.ResponseWriter) {
@@ -44,8 +45,9 @@ func respondWithBadRequest(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 	response := ErrorResponse{
-		StatusCode: http.StatusBadRequest,
-		Message:    message,
+		StatusCode:  http.StatusBadRequest,
+		Message:     "Bad request",
+		Description: message,
 	}
 	_ = json.NewEncoder(w).Encode(response)
 }
@@ -108,4 +110,11 @@ func respondWithMethodNotAllowed(w http.ResponseWriter) {
 		Message:    "Method not allowed",
 	}
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+func respondWithCreated(w http.ResponseWriter, result interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	_ = json.NewEncoder(w).Encode(result)
 }
