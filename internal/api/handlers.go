@@ -36,15 +36,15 @@ func (rh *RouteHandler) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(strings.ToLower(input.Email))
 	password := strings.TrimSpace(input.Password)
 
-	if err := tl.Validate(nickname, tl.IsMinMaxLen(5, 32), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
+	if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(5, 32), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
 		respondWithBadRequest(w, "Nickname: "+err.Error())
 		return
 	}
-	if err := tl.Validate(email, tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
+	if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
 		respondWithBadRequest(w, "Email: "+err.Error())
 		return
 	}
-	if err := tl.Validate(password, tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace()); err != nil {
+	if err := tl.Validate(password, tl.IsNotBlank(), tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace()); err != nil {
 		respondWithBadRequest(w, "Password: "+err.Error())
 		return
 	}
@@ -122,7 +122,7 @@ func (rh *RouteHandler) SignupWithToken(w http.ResponseWriter, r *http.Request) 
 	// Block 1 - data validation
 	token := strings.TrimSpace(input.Token)
 
-	if err := tl.Validate(token, tl.IsLen(64), tl.IsNotContainsSpace()); err != nil {
+	if err := tl.Validate(token, tl.IsNotBlank(), tl.IsLen(64), tl.IsNotContainsSpace()); err != nil {
 		respondWithBadRequest(w, "Token: "+err.Error())
 		return
 	}
