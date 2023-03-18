@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"test-server-go/internal/api"
+	"test-server-go/internal/api/handlers"
 	"test-server-go/internal/config"
 	"test-server-go/internal/database"
 	"test-server-go/internal/logger"
@@ -37,7 +37,7 @@ func Run() {
 
 	fmt.Println(app.Config)
 
-	routeHandler := api.RouteHandler{
+	routeHandler := handlers.RouteHandler{
 		App: &app,
 	}
 	router := routeHandler.SetupRouter()

@@ -1,15 +1,18 @@
 package api
 
 import (
+	"bytes"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
+	"io"
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
-func corsMiddleware() func(http.Handler) http.Handler {
+func CorsMiddleware() func(http.Handler) http.Handler {
 	return cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -20,17 +23,32 @@ func corsMiddleware() func(http.Handler) http.Handler {
 	}).Handler
 }
 
-func notFoundMiddleware() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		respondWithNotFound(w)
+func ContentTypeCompressMiddleware(level int, allowedContentTypes []string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, allowedContentType := range allowedContentTypes {
+				if strings.Contains(r.Header.Get("Accept"), allowedContentType) {
+					compressMiddleware := middleware.Compress(level, allowedContentType)
+					compressMiddleware(next).ServeHTTP(w, r)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
 	}
 }
 
-func uriLengthMiddleware(maxLength int) func(http.Handler) http.Handler {
+func NotFoundMiddleware() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		RespondWithNotFound(w)
+	}
+}
+
+func UriLengthMiddleware(maxLength int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if len(r.RequestURI) > maxLength {
-				respondWithURITooLong(w, maxLength)
+				RespondWithURITooLong(w, maxLength)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -38,13 +56,13 @@ func uriLengthMiddleware(maxLength int) func(http.Handler) http.Handler {
 	}
 }
 
-func requestSizeMiddleware(maxSize int64) func(http.Handler) http.Handler {
+func RequestSizeMiddleware(maxSize int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, maxSize)
 			err := r.ParseMultipartForm(maxSize)
 			if err != nil && err != http.ErrNotMultipart {
-				respondWithPayloadTooLarge(w, maxSize)
+				RespondWithPayloadTooLarge(w, maxSize)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -52,22 +70,22 @@ func requestSizeMiddleware(maxSize int64) func(http.Handler) http.Handler {
 	}
 }
 
-func rateLimitMiddleware(requests int, interval time.Duration) func(http.Handler) http.Handler {
+func RateLimitMiddleware(requests int, interval time.Duration) func(http.Handler) http.Handler {
 	return httprate.Limit(
 		requests,
 		interval,
 		httprate.WithLimitHandler(func(w http.ResponseWriter, r *http.Request) {
-			respondWithTooManyRequests(w, requests, interval)
+			RespondWithTooManyRequests(w, requests, interval)
 			return
 		}),
 	)
 }
 
-func serviceUnavailableMiddleware(enable bool) func(http.Handler) http.Handler {
+func ServiceUnavailableMiddleware(enable bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if enable {
-				respondWithServiceUnavailable(w)
+				RespondWithServiceUnavailable(w)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -75,7 +93,7 @@ func serviceUnavailableMiddleware(enable bool) func(http.Handler) http.Handler {
 	}
 }
 
-func unsupportedMediaTypeMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
+func UnsupportedMediaTypeMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			contentType := r.Header.Get("Content-Type")
@@ -89,7 +107,7 @@ func unsupportedMediaTypeMiddleware(allowedContentTypes []string) func(http.Hand
 				}
 			}
 			if !allowed {
-				respondWithUnsupportedMediaType(w, strings.Join(allowedContentTypes, ", "))
+				RespondWithUnsupportedMediaType(w, allowedContentTypes)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -97,7 +115,7 @@ func unsupportedMediaTypeMiddleware(allowedContentTypes []string) func(http.Hand
 	}
 }
 
-func notImplementedMiddleware(allowedMethods []string) func(http.Handler) http.Handler {
+func NotImplementedMiddleware(allowedMethods []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			method := r.Method
@@ -109,7 +127,7 @@ func notImplementedMiddleware(allowedMethods []string) func(http.Handler) http.H
 				}
 			}
 			if !allowed {
-				respondWithNotImplemented(w, method)
+				RespondWithNotImplemented(w, method)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -117,18 +135,18 @@ func notImplementedMiddleware(allowedMethods []string) func(http.Handler) http.H
 	}
 }
 
-func maxHeaderBytesMiddleware(maxHeaderSize int) func(http.Handler) http.Handler {
+func MaxHeaderBytesMiddleware(maxHeaderSize int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			totalHeaderSize := 0
 			for key, values := range r.Header {
-				totalHeaderSize += len(key) + 2 // For colon and space after key
+				totalHeaderSize += len(key) + 2
 				for _, value := range values {
-					totalHeaderSize += len(value) + 2 // For newlines
+					totalHeaderSize += len(value) + 2
 				}
 			}
 			if totalHeaderSize > maxHeaderSize {
-				respondWithBadRequest(w, "Request headers too large")
+				RespondWithBadRequest(w, "Request headers too large")
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -136,42 +154,65 @@ func maxHeaderBytesMiddleware(maxHeaderSize int) func(http.Handler) http.Handler
 	}
 }
 
-func methodNotAllowedMiddleware(next http.Handler) http.Handler {
+func MethodNotAllowedMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		next.ServeHTTP(ww, r)
 		if ww.Status() == http.StatusMethodNotAllowed {
-			respondWithMethodNotAllowed(w, r.Method)
+			RespondWithMethodNotAllowed(w, r.Method)
 			return
 		}
 	})
 }
 
-func notAcceptableMiddleware(supportedContentTypes []string, requireUtf8 bool) func(next http.Handler) http.Handler {
+func NotAcceptableMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			acceptHeader := r.Header.Get("Accept")
-			acceptCharsetHeader := r.Header.Get("Accept-Charset")
-			if acceptHeader != "" && !strings.Contains(acceptHeader, "*/*") {
-				contentTypeSupported := false
-				for _, supportedType := range supportedContentTypes {
-					if strings.Contains(acceptHeader, supportedType) {
-						contentTypeSupported = true
+			if acceptHeader != "" {
+				acceptsAllowedContentType := false
+				for _, allowedContentType := range allowedContentTypes {
+					if strings.Contains(acceptHeader, allowedContentType) {
+						acceptsAllowedContentType = true
 						break
 					}
 				}
-				if !contentTypeSupported {
-					respondWithNotAcceptable(w, "The requested content type is not supported")
-					return
-				}
-			}
-			if requireUtf8 && acceptCharsetHeader != "" && !strings.Contains(acceptCharsetHeader, "*") {
-				if !strings.Contains(strings.ToLower(acceptCharsetHeader), "utf-8") {
-					respondWithNotAcceptable(w, "The requested charset is not supported. Please use UTF-8 charset")
+				if !acceptsAllowedContentType {
+					RespondWithNotAcceptable(w, allowedContentTypes)
 					return
 				}
 			}
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func UnprocessableEntityMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for key, values := range r.Header {
+			if !utf8.ValidString(key) {
+				RespondWithUnprocessableEntity(w, "Header keys must be valid UTF-8. Please use UTF-8 encoding")
+				return
+			}
+			for _, value := range values {
+				if !utf8.ValidString(value) {
+					RespondWithUnprocessableEntity(w, "Header values must be valid UTF-8. Please use UTF-8 encoding")
+					return
+				}
+			}
+		}
+		if r.Body != nil {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				RespondWithInternalServerError(w)
+				return
+			}
+			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			if !utf8.Valid(bodyBytes) {
+				RespondWithUnprocessableEntity(w, "Request body must be valid UTF-8. Please use UTF-8 encoding")
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
