@@ -71,7 +71,7 @@ func setupDefaultRouterSettings(app models.Application) {
 	r.Use(middleware.Logger)       // Logging
 	r.Use(middleware.Compress(5))  // Supports compression
 
-	setupPrometheus(app)               // prometheus routes
+	api_v1.SetupPrometheus(app)        // prometheus routes
 	setupRouterApiVer1(app, "/api/v1") // api version 1 routes
 }
 
@@ -80,11 +80,4 @@ func setupRouterApiVer1(app models.Application, pathPrefix string) {
 		App: &app,
 	}
 	rs.SetupRouterApiVer1(pathPrefix)
-}
-
-func setupPrometheus(app models.Application) {
-	rs := api_v1.Resolver{
-		App: &app,
-	}
-	rs.SetupPrometheus()
 }

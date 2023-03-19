@@ -7,10 +7,6 @@ import (
 	"test-server-go/internal/models"
 )
 
-type Resolver struct {
-	App *models.Application
-}
-
 var (
 	requestsProcessed = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "requests_processed_total",
@@ -23,8 +19,8 @@ var (
 	})
 )
 
-func (rs *Resolver) SetupPrometheus() *chi.Mux {
-	r := rs.App.Router
+func SetupPrometheus(app models.Application) *chi.Mux {
+	r := app.Router
 
 	prometheus.MustRegister(requestsProcessed)
 	prometheus.MustRegister(requestDuration)

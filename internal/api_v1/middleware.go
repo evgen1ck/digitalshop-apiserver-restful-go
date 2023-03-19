@@ -155,27 +155,27 @@ func MethodNotAllowedMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NotAcceptableMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			acceptHeader := r.Header.Get("Accept")
-			if acceptHeader != "" {
-				acceptsAllowedContentType := false
-				for _, allowedContentType := range allowedContentTypes {
-					if strings.Contains(acceptHeader, allowedContentType) {
-						acceptsAllowedContentType = true
-						break
-					}
-				}
-				if !acceptsAllowedContentType {
-					RespondWithNotAcceptable(w, allowedContentTypes)
-					return
-				}
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
+//func NotAcceptableMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
+//	return func(next http.Handler) http.Handler {
+//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//			acceptHeader := r.Header.Get("Accept")
+//			if acceptHeader != "" {
+//				acceptsAllowedContentType := false
+//				for _, allowedContentType := range allowedContentTypes {
+//					if strings.Contains(acceptHeader, allowedContentType) {
+//						acceptsAllowedContentType = true
+//						break
+//					}
+//				}
+//				if !acceptsAllowedContentType {
+//					RespondWithNotAcceptable(w, allowedContentTypes)
+//					return
+//				}
+//			}
+//			next.ServeHTTP(w, r)
+//		})
+//	}
+//}
 
 func UnprocessableEntityMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
