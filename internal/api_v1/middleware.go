@@ -1,7 +1,8 @@
-package api
+package api_v1
 
 import (
 	"bytes"
+	"context"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
@@ -12,6 +13,17 @@ import (
 	"unicode/utf8"
 )
 
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		elapsed := time.Since(start)
+
+		requestDuration.Observe(elapsed.Seconds())
+		requestsProcessed.Inc()
+	})
+}
+
 func CorsMiddleware() func(http.Handler) http.Handler {
 	return cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -21,21 +33,6 @@ func CorsMiddleware() func(http.Handler) http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}).Handler
-}
-
-func ContentTypeCompressMiddleware(level int, allowedContentTypes []string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			for _, allowedContentType := range allowedContentTypes {
-				if strings.Contains(r.Header.Get("Accept"), allowedContentType) {
-					compressMiddleware := middleware.Compress(level, allowedContentType)
-					compressMiddleware(next).ServeHTTP(w, r)
-					return
-				}
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
 }
 
 func NotFoundMiddleware() http.HandlerFunc {
@@ -59,10 +56,22 @@ func UriLengthMiddleware(maxLength int) func(http.Handler) http.Handler {
 func RequestSizeMiddleware(maxSize int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-			err := r.ParseMultipartForm(maxSize)
-			if err != nil && err != http.ErrNotMultipart {
-				RespondWithPayloadTooLarge(w, maxSize)
+			// Calculate total header size
+			totalHeaderSize := int64(0)
+			for key, values := range r.Header {
+				totalHeaderSize += int64(len(key) + 2) // Adding the size of the key, colon and space
+				for _, value := range values {
+					totalHeaderSize += int64(len(value) + 2) // Adding value size and newline characters (CRLF)
+				}
+			}
+			// Check if the sum of header and body size exceeds maxSize
+			contentLength := r.ContentLength
+			if contentLength < 0 {
+				contentLength = 0
+			}
+			totalSize := totalHeaderSize + contentLength
+			if totalSize > maxSize {
+				RespondWithPayloadTooLarge(w, totalSize, maxSize)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -135,25 +144,6 @@ func NotImplementedMiddleware(allowedMethods []string) func(http.Handler) http.H
 	}
 }
 
-func MaxHeaderBytesMiddleware(maxHeaderSize int) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			totalHeaderSize := 0
-			for key, values := range r.Header {
-				totalHeaderSize += len(key) + 2
-				for _, value := range values {
-					totalHeaderSize += len(value) + 2
-				}
-			}
-			if totalHeaderSize > maxHeaderSize {
-				RespondWithBadRequest(w, "Request headers too large")
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
 func MethodNotAllowedMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
@@ -215,4 +205,27 @@ func UnprocessableEntityMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func GatewayTimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(r.Context(), timeout)
+			defer cancel()
+
+			done := make(chan struct{})
+			go func() {
+				next.ServeHTTP(w, r.WithContext(ctx))
+				close(done)
+			}()
+
+			select {
+			case <-ctx.Done():
+				if ctx.Err() == context.DeadlineExceeded {
+					RespondWithGatewayTimeout(w, timeout)
+				}
+			case <-done:
+			}
+		})
+	}
 }

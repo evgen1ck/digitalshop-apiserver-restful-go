@@ -1,4 +1,4 @@
-package api
+package api_v1
 
 import (
 	"encoding/json"
@@ -15,10 +15,15 @@ type errorResponse struct {
 	Description string `json:"description"`
 }
 
+func setStandardHeadersForJson(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+}
+
 // Red responds
 
 func RespondWithTooManyRequests(w http.ResponseWriter, requests int, interval time.Duration) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusTooManyRequests)
 	secondsStr := fmt.Sprintf("%.0f", interval.Seconds())
 	response := errorResponse{
@@ -30,7 +35,7 @@ func RespondWithTooManyRequests(w http.ResponseWriter, requests int, interval ti
 }
 
 func RespondWithNotFound(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusNotFound)
 	response := errorResponse{
 		StatusCode:  http.StatusNotFound,
@@ -41,7 +46,7 @@ func RespondWithNotFound(w http.ResponseWriter) {
 }
 
 func RespondWithInternalServerError(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusInternalServerError)
 	response := errorResponse{
 		StatusCode:  http.StatusInternalServerError,
@@ -52,7 +57,7 @@ func RespondWithInternalServerError(w http.ResponseWriter) {
 }
 
 func RespondWithBadRequest(w http.ResponseWriter, description string) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusBadRequest)
 	if description == "" {
 		description = "Invalid request payload. Please double-check the data you are sending, and if this doesn't help, contact technical support"
@@ -65,19 +70,19 @@ func RespondWithBadRequest(w http.ResponseWriter, description string) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-func RespondWithPayloadTooLarge(w http.ResponseWriter, maxSize int64) {
-	w.Header().Set("Content-Type", "application/json")
+func RespondWithPayloadTooLarge(w http.ResponseWriter, totalSize, maxSize int64) {
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusRequestEntityTooLarge)
 	response := errorResponse{
 		StatusCode:  http.StatusRequestEntityTooLarge,
 		Message:     "Payload too large",
-		Description: "The request payload is too large. A maximum of " + strconv.FormatInt(maxSize/1024/1024, 10) + " megabytes can be sent",
+		Description: "The request payload is too large. A maximum of " + strconv.FormatInt(maxSize/1024/1024, 10) + " megabytes can be sent. You have sent " + strconv.FormatInt(totalSize, 10) + " bytes",
 	}
 	_ = json.NewEncoder(w).Encode(response)
 }
 
 func RespondWithURITooLong(w http.ResponseWriter, maxLen int) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusRequestURITooLong)
 	response := errorResponse{
 		StatusCode:  http.StatusRequestURITooLong,
@@ -88,7 +93,7 @@ func RespondWithURITooLong(w http.ResponseWriter, maxLen int) {
 }
 
 func RespondWithServiceUnavailable(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusServiceUnavailable)
 	response := errorResponse{
 		StatusCode:  http.StatusServiceUnavailable,
@@ -99,29 +104,29 @@ func RespondWithServiceUnavailable(w http.ResponseWriter) {
 }
 
 func RespondWithUnsupportedMediaType(w http.ResponseWriter, allowedContentTypes []string) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusUnsupportedMediaType)
 	response := errorResponse{
 		StatusCode:  http.StatusUnsupportedMediaType,
 		Message:     "Unsupported media type",
-		Description: "The request contains an unsupported media type. Please use " + strings.Join(allowedContentTypes, ", ") + " media type(s)",
+		Description: "The request contains an unsupported media type. Please use one of " + strings.Join(allowedContentTypes, ", ") + " allowed media types",
 	}
 	_ = json.NewEncoder(w).Encode(response)
 }
 
 func RespondWithNotAcceptable(w http.ResponseWriter, allowedContentTypes []string) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusNotAcceptable)
 	response := errorResponse{
 		StatusCode:  http.StatusNotAcceptable,
 		Message:     "Not acceptable",
-		Description: "The provided 'Accept' header does not support the allowed content type. Please use " + strings.Join(allowedContentTypes, ", ") + " content type(s)",
+		Description: "The provided 'Accept' header does not support the allowed content type. Please use one of " + strings.Join(allowedContentTypes, ", ") + " allowed content types",
 	}
 	_ = json.NewEncoder(w).Encode(response)
 }
 
 func RespondWithNotImplemented(w http.ResponseWriter, method string) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusNotImplemented)
 	response := errorResponse{
 		StatusCode:  http.StatusNotImplemented,
@@ -132,7 +137,7 @@ func RespondWithNotImplemented(w http.ResponseWriter, method string) {
 }
 
 func RespondWithMethodNotAllowed(w http.ResponseWriter, method string) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	response := errorResponse{
 		StatusCode:  http.StatusMethodNotAllowed,
@@ -143,7 +148,7 @@ func RespondWithMethodNotAllowed(w http.ResponseWriter, method string) {
 }
 
 func RespondWithUnprocessableEntity(w http.ResponseWriter, description string) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	response := errorResponse{
 		StatusCode:  http.StatusUnprocessableEntity,
@@ -153,10 +158,21 @@ func RespondWithUnprocessableEntity(w http.ResponseWriter, description string) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
+func RespondWithGatewayTimeout(w http.ResponseWriter, time time.Duration) {
+	setStandardHeadersForJson(w)
+	w.WriteHeader(http.StatusGatewayTimeout)
+	response := errorResponse{
+		StatusCode:  http.StatusGatewayTimeout,
+		Message:     "Gateway timeout",
+		Description: "The server did not receive a response within " + strconv.FormatFloat(time.Seconds(), 'f', 0, 64) + " seconds. Please try again later",
+	}
+	_ = json.NewEncoder(w).Encode(response)
+}
+
 // Green responds
 
 func RespondWithCreated(w http.ResponseWriter, result interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(result)
 }

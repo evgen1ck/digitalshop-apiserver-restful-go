@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/go-chi/chi/v5"
 	"test-server-go/internal/config"
 	"test-server-go/internal/database"
 	"test-server-go/internal/logger"
@@ -12,4 +13,5 @@ type Application struct {
 	Postgres *database.Postgres
 	Mailer   *mailer.Mailer
 	Logrus   *logger.Logger
+	Router   *chi.Mux
 }

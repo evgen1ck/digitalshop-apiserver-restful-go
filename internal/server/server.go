@@ -4,14 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
-	"test-server-go/internal/api/handlers"
+	"test-server-go/internal/api_v1"
+	"test-server-go/internal/api_v1/handlers"
 	"test-server-go/internal/config"
 	"test-server-go/internal/database"
 	"test-server-go/internal/logger"
 	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
-	"time"
 )
 
 func Run() {
@@ -33,21 +35,16 @@ func Run() {
 		Postgres: pdb,
 		Mailer:   mailer.NewSmtp(*cfg),
 		Logrus:   logrus,
+		Router:   chi.NewRouter(),
 	}
 
 	fmt.Println(app.Config)
 
-	routeHandler := handlers.RouteHandler{
-		App: &app,
-	}
-	router := routeHandler.SetupRouter()
+	setupDefaultRouterSettings(app)
 
 	srv := &http.Server{
-		Addr:         app.Config.GetURL(),
-		Handler:      router,
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		Addr:    app.Config.GetURL(),
+		Handler: app.Router,
 	}
 
 	if app.Config.App.DebugMode {
@@ -63,4 +60,31 @@ func Run() {
 			app.Logrus.NewErrorWithExit("Server crashed", err)
 		}
 	}
+}
+
+func setupDefaultRouterSettings(app models.Application) {
+	r := app.Router
+
+	r.Use(middleware.RealIP)       // Using user real ip address
+	r.Use(middleware.Recoverer)    // Prevents server from crashing
+	r.Use(middleware.StripSlashes) // Optimizes paths
+	r.Use(middleware.Logger)       // Logging
+	r.Use(middleware.Compress(5))  // Supports compression
+
+	setupPrometheus(app)               // prometheus routes
+	setupRouterApiVer1(app, "/api/v1") // api version 1 routes
+}
+
+func setupRouterApiVer1(app models.Application, pathPrefix string) {
+	rs := handlers.Resolver{
+		App: &app,
+	}
+	rs.SetupRouterApiVer1(pathPrefix)
+}
+
+func setupPrometheus(app models.Application) {
+	rs := api_v1.Resolver{
+		App: &app,
+	}
+	rs.SetupPrometheus()
 }

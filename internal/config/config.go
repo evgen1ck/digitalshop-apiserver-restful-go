@@ -62,7 +62,7 @@ func New(logger *logger.Logger) (*Config, error) {
 	// General settings
 	flag.StringVar(&cfg.App.ServiceName, "service-name", getEnv("APP_SERVICE_NAME", logger), "service name")
 	flag.StringVar(&cfg.App.ServiceUrl, "service-url", getEnv("APP_SERVICE_URL", logger), "service url")
-	flag.StringVar(&cfg.App.ApiServiceUrl, "api-service-url", getEnv("APP_API_SERVICE_URL", logger), "api service url")
+	flag.StringVar(&cfg.App.ApiServiceUrl, "api_v1-service-url", getEnv("APP_API_SERVICE_URL", logger), "api_v1 service url")
 	flag.StringVar(&cfg.App.Host, "app-host", getEnv("APP_HOST", logger), "server host")
 	flag.StringVar(&cfg.App.Port, "app-port", getEnv("APP_PORT", logger), "server port")
 	flag.BoolVar(&cfg.App.DebugMode, "debug-mode", getEnvAsBool("APP_DEBUG_MODE", logger), "debug mode")
