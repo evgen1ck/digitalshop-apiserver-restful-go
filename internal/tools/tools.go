@@ -100,7 +100,7 @@ func ToInt64(i any) (int64, error) {
 	return 0, fmt.Errorf("unable to convert type %T to int", i)
 }
 
-// Slugify generates a URL-friendly version of the input string.
+// Slugify generates a Url-friendly version of the input string.
 // It converts all letters to lowercase and replaces spaces with hyphens.
 // It allows alphanumeric characters, hyphens, and underscores to remain unchanged.
 // It ignores non-ASCII characters.
@@ -123,10 +123,10 @@ func Slugify(s string) string {
 	return buf.String()
 }
 
-// UrlSetParam sets or updates a query parameter in a URL string.
-// It parses the input URL string and sets the specified key-value pair in the query parameters.
-// If the URL string cannot be parsed, an error is returned.
-// The function returns the modified URL string with the updated query parameters.
+// UrlSetParam sets or updates a query parameter in a Url string.
+// It parses the input Url string and sets the specified key-value pair in the query parameters.
+// If the Url string cannot be parsed, an error is returned.
+// The function returns the modified Url string with the updated query parameters.
 func UrlSetParam(u string, key string, value interface{}) (string, error) {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
@@ -140,9 +140,9 @@ func UrlSetParam(u string, key string, value interface{}) (string, error) {
 	return parsedURL.String(), nil
 }
 
-// UrlDelParam removes a query parameter with the specified key from the provided URL string.
-// It parses the URL string, removes the specified parameter, encodes the updated query string, and returns the updated URL string.
-// If there's an error parsing the URL, it returns an empty string and the error.
+// UrlDelParam removes a query parameter with the specified key from the provided Url string.
+// It parses the Url string, removes the specified parameter, encodes the updated query string, and returns the updated Url string.
+// If there's an error parsing the Url, it returns an empty string and the error.
 func UrlDelParam(u string, key string) (string, error) {
 	parsedURL, err := url.Parse(u)
 	if err != nil {

@@ -43,11 +43,11 @@ func Run() {
 	setupDefaultRouterSettings(app)
 
 	srv := &http.Server{
-		Addr:    app.Config.GetURL(),
+		Addr:    app.Config.GetLocalUrlApp(),
 		Handler: app.Router,
 	}
 
-	if app.Config.App.DebugMode {
+	if app.Config.App.Debug {
 		app.Logrus.NewInfo("Server is running in debug mode")
 		err := srv.ListenAndServe()
 		if !errors.Is(err, http.ErrServerClosed) {

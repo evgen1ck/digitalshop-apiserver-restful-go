@@ -84,7 +84,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 4 - generating url and sending url on email
-	_, err = tl.UrlSetParam(rs.App.Config.App.ServiceUrl+"/confirm-registration", "token", confirmationToken)
+	_, err = tl.UrlSetParam(rs.App.Config.App.Service.Url.App+"/confirm-registration", "token", confirmationToken)
 	if err != nil {
 		rs.App.Logrus.NewError("error in url set param", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -148,7 +148,7 @@ func (rs *Resolver) SignupWithToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 4 - generating JWT
-	jwt, err := auth.GenerateJwt(userUuid.String(), rs.App.Config.App.JwtSecret)
+	jwt, err := auth.GenerateJwt(userUuid.String(), rs.App.Config.App.Jwt)
 	if err != nil {
 		rs.App.Logrus.NewError("error in generated jwt", err)
 		api_v1.RespondWithInternalServerError(w)

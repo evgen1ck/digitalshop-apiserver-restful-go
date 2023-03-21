@@ -2,24 +2,34 @@ package config
 
 import (
 	"flag"
-	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v3"
 	"os"
-	"path/filepath"
-	"runtime"
+	"strconv"
 	"test-server-go/internal/logger"
 )
 
 type Config struct {
 	App struct {
-		ServiceName   string // example: flower shop
-		ServiceUrl    string // example: https://example.com
-		ApiServiceUrl string // example: https://api.example.com
-		Host          string // example: localhost
-		Port          string // example: 9990
-		DebugMode     bool   // example: true
-		JwtSecret     string // example: 3d93fe63ff2d2ebc9c0c814f7364fbba1653eddeb63a006b59cf7b2985545242
+		Service struct {
+			Name string
+			Url  struct {
+				App string
+				Api string
+			}
+		}
+		Host  string
+		Port  string
+		Debug bool
+		Jwt   string
 	}
-	Smtp1 struct {
+	MailNoreply struct {
+		Username string
+		Password string
+		Host     string
+		Port     int
+		From     string
+	}
+	MailSupport struct {
 		Username string
 		Password string
 		Host     string
@@ -30,7 +40,7 @@ type Config struct {
 		User     string
 		Password string
 		Ip       string
-		Port     string
+		Port     int
 		Database string
 	}
 	Tls struct {
@@ -42,49 +52,50 @@ type Config struct {
 func New(logger *logger.Logger) (*Config, error) {
 	var cfg Config
 
-	// loads values from .env into the system
-	osName := runtime.GOOS
-	if osName == "linux" {
-		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		if err != nil {
-			logger.NewErrorWithExit("Failed to get project directory", err)
-		}
-		envFilePath := filepath.Join(dir, ".env")
-		if err := godotenv.Load(envFilePath); err != nil {
-			logger.NewErrorWithExit("Failed to load .env file", err)
-		}
-	} else {
-		if err := godotenv.Load(); err != nil {
-			logger.NewErrorWithExit("No .env file found", err)
-		}
+	configPath := flag.String("config", "server.yaml", "Path to the YAML configuration file")
+	yamlFile, err := os.ReadFile(*configPath)
+	if err != nil {
+		logger.NewErrorWithExit("Failed to load server.yaml", err)
+	}
+
+	err = yaml.Unmarshal(yamlFile, &cfg)
+	if err != nil {
+		logger.NewErrorWithExit("Failed to unmarshal server.yaml", err)
 	}
 
 	// General settings
-	flag.StringVar(&cfg.App.ServiceName, "service-name", getEnv("APP_SERVICE_NAME", logger), "service name")
-	flag.StringVar(&cfg.App.ServiceUrl, "service-url", getEnv("APP_SERVICE_URL", logger), "service url")
-	flag.StringVar(&cfg.App.ApiServiceUrl, "api_v1-service-url", getEnv("APP_API_SERVICE_URL", logger), "api_v1 service url")
-	flag.StringVar(&cfg.App.Host, "app-host", getEnv("APP_HOST", logger), "server host")
-	flag.StringVar(&cfg.App.Port, "app-port", getEnv("APP_PORT", logger), "server port")
-	flag.BoolVar(&cfg.App.DebugMode, "debug-mode", getEnvAsBool("APP_DEBUG_MODE", logger), "debug mode")
-	flag.StringVar(&cfg.App.JwtSecret, "jwt-secret", getEnv("APP_JWT_SECRET", logger), "jwt secret")
+	flag.StringVar(&cfg.App.Service.Name, "app-service-name", cfg.App.Service.Name, "service name")
+	flag.StringVar(&cfg.App.Service.Url.App, "app-service-url-app", cfg.App.Service.Url.App, "service url for app")
+	flag.StringVar(&cfg.App.Service.Url.Api, "app-service-url-api", cfg.App.Service.Url.Api, "service url for api")
+	flag.StringVar(&cfg.App.Host, "app-host", cfg.App.Host, "server host")
+	flag.StringVar(&cfg.App.Port, "app-port", cfg.App.Port, "server port")
+	flag.BoolVar(&cfg.App.Debug, "app-debug", cfg.App.Debug, "debug mode")
+	flag.StringVar(&cfg.App.Jwt, "app-jwt", cfg.App.Jwt, "jwt secret")
 
-	// STMP for noreply mail
-	flag.StringVar(&cfg.Smtp1.Username, "mailer-username", getEnv("STMP1_USERNAME", logger), "mailer username")
-	flag.StringVar(&cfg.Smtp1.Password, "mailer-password", getEnv("STMP1_PASSWORD", logger), "mailer password")
-	flag.StringVar(&cfg.Smtp1.Host, "mailer-host", getEnv("STMP1_HOST", logger), "mailer host")
-	flag.IntVar(&cfg.Smtp1.Port, "mailer-port", getEnvAsInt("STMP1_PORT", logger), "mailer port")
-	flag.StringVar(&cfg.Smtp1.From, "mailer-from", getEnv("STMP1_FROM", logger), "mailer sender")
+	// E-mail for noreply@example.com
+	flag.StringVar(&cfg.MailNoreply.Username, "mail-noreply-username", cfg.MailNoreply.Username, "noreply mail username")
+	flag.StringVar(&cfg.MailNoreply.Password, "mail-noreply-password", cfg.MailNoreply.Password, "noreply mail password")
+	flag.StringVar(&cfg.MailNoreply.Host, "mail-noreply-host", cfg.MailNoreply.Host, "noreply mail host")
+	flag.IntVar(&cfg.MailNoreply.Port, "mail-noreply-port", cfg.MailNoreply.Port, "noreply mail port")
+	flag.StringVar(&cfg.MailNoreply.From, "mail-noreply-from", cfg.MailNoreply.From, "noreply mail sender")
 
-	// Postgres DSN
-	flag.StringVar(&cfg.Postgres.User, "database-user", getEnv("POSTGRES_USER", logger), "username for database")
-	flag.StringVar(&cfg.Postgres.Password, "database-password", getEnv("POSTGRES_PASSWORD", logger), "password for database")
-	flag.StringVar(&cfg.Postgres.Ip, "database-ip", getEnv("POSTGRES_IP", logger), "hostname/address for database")
-	flag.StringVar(&cfg.Postgres.Port, "database-port", getEnv("POSTGRES_PORT", logger), "port for database")
-	flag.StringVar(&cfg.Postgres.Database, "database-database", getEnv("POSTGRES_DATABASE", logger), "maintenance database for database")
+	// E-mail for support@example.com
+	flag.StringVar(&cfg.MailSupport.Username, "mail-support-username", cfg.MailNoreply.Username, "support mail username")
+	flag.StringVar(&cfg.MailSupport.Password, "mail-support-password", cfg.MailNoreply.Password, "support mail password")
+	flag.StringVar(&cfg.MailSupport.Host, "mail-support-host", cfg.MailNoreply.Host, "support mail host")
+	flag.IntVar(&cfg.MailSupport.Port, "mail-support-port", cfg.MailNoreply.Port, "support mail port")
+	flag.StringVar(&cfg.MailSupport.From, "mail-support-from", cfg.MailNoreply.From, "support mail sender")
 
-	// TLS files
-	flag.StringVar(&cfg.Tls.CertFile, "tls-cert-file", getEnv("TLS_CERTFILE", logger), "tls certificate file")
-	flag.StringVar(&cfg.Tls.KeyFile, "tls-key-file", getEnv("TLS_KEYFILE", logger), "tls key file")
+	// Postgres
+	flag.StringVar(&cfg.Postgres.User, "postgres-user", cfg.Postgres.User, "username for postgres")
+	flag.StringVar(&cfg.Postgres.Password, "postgres-password", cfg.Postgres.Password, "password for postgres username")
+	flag.StringVar(&cfg.Postgres.Ip, "postgres-ip", cfg.Postgres.Ip, "hostname/address for postgres")
+	flag.IntVar(&cfg.Postgres.Port, "postgres-port", cfg.Postgres.Port, "port for postgres")
+	flag.StringVar(&cfg.Postgres.Database, "postgres-database", cfg.Postgres.Database, "maintenance database for postgres")
+
+	// TLS
+	flag.StringVar(&cfg.Tls.CertFile, "tls-certfile", cfg.Tls.CertFile, "tls certificate file")
+	flag.StringVar(&cfg.Tls.KeyFile, "tls-keyfile", cfg.Tls.KeyFile, "tls key file")
 
 	flag.Parse()
 
@@ -95,10 +106,10 @@ func (cfg *Config) GetPostgresDSN() string {
 	return cfg.Postgres.User + ":" +
 		cfg.Postgres.Password + "@" +
 		cfg.Postgres.Ip + ":" +
-		cfg.Postgres.Port + "/" +
+		strconv.Itoa(cfg.Postgres.Port) + "/" +
 		cfg.Postgres.Database
 }
 
-func (cfg *Config) GetURL() string {
+func (cfg *Config) GetLocalUrlApp() string {
 	return cfg.App.Host + ":" + cfg.App.Port
 }

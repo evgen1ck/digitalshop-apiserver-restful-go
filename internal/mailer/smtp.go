@@ -14,12 +14,12 @@ type Mailer struct {
 }
 
 func NewSmtp(cfg config.Config) *Mailer {
-	dialer := mail.NewDialer(cfg.Smtp1.Host, cfg.Smtp1.Port, cfg.Smtp1.Username, cfg.Smtp1.Password)
+	dialer := mail.NewDialer(cfg.MailNoreply.Host, cfg.MailNoreply.Port, cfg.MailNoreply.Username, cfg.MailNoreply.Password)
 	dialer.Timeout = 5 * time.Second
 
 	return &Mailer{
 		dialer: dialer,
-		from:   cfg.Smtp1.From,
+		from:   cfg.MailNoreply.From,
 	}
 }
 
