@@ -11,42 +11,42 @@ import (
 type Config struct {
 	App struct {
 		Service struct {
-			Name string
+			Name string `yaml:"name"`
 			Url  struct {
-				App string
-				Api string
-			}
-		}
-		Host  string
-		Port  string
-		Debug bool
-		Jwt   string
-	}
+				App string `yaml:"app"`
+				Api string `yaml:"api"`
+			} `yaml:"url"`
+		} `yaml:"service"`
+		Host  string `yaml:"host"`
+		Port  string `yaml:"port"`
+		Debug bool   `yaml:"debug"`
+		Jwt   string `yaml:"jwt"`
+	} `yaml:"app"`
 	MailNoreply struct {
-		Username string
-		Password string
-		Host     string
-		Port     int
-		From     string
-	}
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+		Host     string `yaml:"host"`
+		Port     int    `yaml:"port"`
+		From     string `yaml:"from"`
+	} `yaml:"mailNoreply"`
 	MailSupport struct {
-		Username string
-		Password string
-		Host     string
-		Port     int
-		From     string
-	}
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+		Host     string `yaml:"host"`
+		Port     int    `yaml:"port"`
+		From     string `yaml:"from"`
+	} `yaml:"mailSupport"`
 	Postgres struct {
-		User     string
-		Password string
-		Ip       string
-		Port     int
-		Database string
-	}
+		User     string `yaml:"user"`
+		Password string `yaml:"password"`
+		Ip       string `yaml:"ip"`
+		Port     int    `yaml:"port"`
+		Database string `yaml:"database"`
+	} `yaml:"postgres"`
 	Tls struct {
-		CertFile string
-		KeyFile  string
-	}
+		CertFile string `yaml:"certfile"`
+		KeyFile  string `yaml:"keyfile"`
+	} `yaml:"tls"`
 }
 
 func New(logger *logger.Logger) (*Config, error) {
@@ -80,11 +80,11 @@ func New(logger *logger.Logger) (*Config, error) {
 	flag.StringVar(&cfg.MailNoreply.From, "mail-noreply-from", cfg.MailNoreply.From, "noreply mail sender")
 
 	// E-mail for support@example.com
-	flag.StringVar(&cfg.MailSupport.Username, "mail-support-username", cfg.MailNoreply.Username, "support mail username")
-	flag.StringVar(&cfg.MailSupport.Password, "mail-support-password", cfg.MailNoreply.Password, "support mail password")
-	flag.StringVar(&cfg.MailSupport.Host, "mail-support-host", cfg.MailNoreply.Host, "support mail host")
-	flag.IntVar(&cfg.MailSupport.Port, "mail-support-port", cfg.MailNoreply.Port, "support mail port")
-	flag.StringVar(&cfg.MailSupport.From, "mail-support-from", cfg.MailNoreply.From, "support mail sender")
+	flag.StringVar(&cfg.MailSupport.Username, "mail-support-username", cfg.MailSupport.Username, "support mail username")
+	flag.StringVar(&cfg.MailSupport.Password, "mail-support-password", cfg.MailSupport.Password, "support mail password")
+	flag.StringVar(&cfg.MailSupport.Host, "mail-support-host", cfg.MailSupport.Host, "support mail host")
+	flag.IntVar(&cfg.MailSupport.Port, "mail-support-port", cfg.MailSupport.Port, "support mail port")
+	flag.StringVar(&cfg.MailSupport.From, "mail-support-from", cfg.MailSupport.From, "support mail sender")
 
 	// Postgres
 	flag.StringVar(&cfg.Postgres.User, "postgres-user", cfg.Postgres.User, "username for postgres")
