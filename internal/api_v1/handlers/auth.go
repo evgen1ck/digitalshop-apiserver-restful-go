@@ -102,7 +102,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (rs *Resolver) SignupWithToken(w http.ResponseWriter, r *http.Request) {
+func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Token string `json:"token"`
 	}
@@ -169,3 +169,8 @@ func (rs *Resolver) SignupWithToken(w http.ResponseWriter, r *http.Request) {
 	}
 	api_v1.RespondWithCreated(w, response)
 }
+
+func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request)           {}
+func (rs *Resolver) AuthLoginWithToken(w http.ResponseWriter, r *http.Request)  {}
+func (rs *Resolver) AuthRecoverPassword(w http.ResponseWriter, r *http.Request) {}
+func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request)          {}

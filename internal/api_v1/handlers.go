@@ -109,7 +109,7 @@ package api_v1
 //	w.WriteHeader(http.StatusNoContent)
 //}
 //
-//func (rh *RouteHandler) SignupWithToken(w http.ResponseWriter, r *http.Request) {
+//func (rh *RouteHandler) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) {
 //	var input struct {
 //		Token string `json:"token"`
 //	}
