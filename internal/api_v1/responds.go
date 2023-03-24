@@ -29,6 +29,20 @@ func RedRespond(w http.ResponseWriter, statusCode int, message, description stri
 	_ = json.NewEncoder(w).Encode(response)
 }
 
+func RespondWithBadRequest(w http.ResponseWriter, description string) {
+	setStandardHeadersForJson(w)
+	w.WriteHeader(http.StatusBadRequest)
+	if description == "" {
+		description = "Invalid request payload. Please double-check the data you are sending, and if this doesn't help, contact technical support"
+	}
+	response := errorResponse{
+		StatusCode:  http.StatusBadRequest,
+		Message:     "Bad request",
+		Description: description,
+	}
+	_ = json.NewEncoder(w).Encode(response)
+}
+
 func RespondWithInternalServerError(w http.ResponseWriter) {
 	setStandardHeadersForJson(w)
 	w.WriteHeader(http.StatusInternalServerError)
@@ -40,15 +54,23 @@ func RespondWithInternalServerError(w http.ResponseWriter) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-func RespondWithBadRequest(w http.ResponseWriter, description string) {
+func RespondWithUnprocessableEntity(w http.ResponseWriter, description string) {
 	setStandardHeadersForJson(w)
-	w.WriteHeader(http.StatusBadRequest)
-	if description == "" {
-		description = "Invalid request payload. Please double-check the data you are sending, and if this doesn't help, contact technical support"
-	}
+	w.WriteHeader(http.StatusUnprocessableEntity)
 	response := errorResponse{
-		StatusCode:  http.StatusBadRequest,
-		Message:     "Bad request",
+		StatusCode:  http.StatusUnprocessableEntity,
+		Message:     "Unprocessable entity",
+		Description: description,
+	}
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+func RespondWithConflict(w http.ResponseWriter, description string) {
+	setStandardHeadersForJson(w)
+	w.WriteHeader(http.StatusConflict)
+	response := errorResponse{
+		StatusCode:  http.StatusConflict,
+		Message:     "Conflict",
 		Description: description,
 	}
 	_ = json.NewEncoder(w).Encode(response)

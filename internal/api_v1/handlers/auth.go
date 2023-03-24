@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -30,21 +29,21 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	password := strings.TrimSpace(input.Password)
 
 	if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(5, 32), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
-		api_v1.RespondWithBadRequest(w, "Nickname: "+err.Error())
+		api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
 		return
 	}
 	if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
-		api_v1.RespondWithBadRequest(w, "Email: "+err.Error())
+		api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
 		return
 	}
 	if err := tl.Validate(password, tl.IsNotBlank(), tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace()); err != nil {
-		api_v1.RespondWithBadRequest(w, "Password: "+err.Error())
+		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
 		return
 	}
 
 	emailDomainExists, err := tl.CheckEmailDomainExistence(email)
 	if !emailDomainExists {
-		api_v1.RespondWithBadRequest(w, "Email: the email domain is not exist")
+		api_v1.RespondWithConflict(w, "Email: the email domain is not exist")
 		return
 	}
 	if err != nil {
@@ -59,24 +58,23 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if nicknameExist {
-		api_v1.RespondWithBadRequest(w, "Nickname: this nickname is already in use")
+		api_v1.RespondWithConflict(w, "Nickname: this nickname is already in use")
 		return
 	}
 	if emailExist {
-		api_v1.RespondWithBadRequest(w, "Email: this email is already in use")
+		api_v1.RespondWithConflict(w, "Email: this email is already in use")
 		return
 	}
 
 	// Block 3 - generating token and inserting a temporary account record
-	randomString, err := tl.GenerateRandomString(48)
+	confirmationUrlToken, err := tl.GenerateURLToken(256)
 	if err != nil {
-		rs.App.Logrus.NewError("error in generated random string", err)
+		rs.App.Logrus.NewError("error in generated url token", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
-	confirmationToken := base64.URLEncoding.EncodeToString([]byte(randomString))
 
-	err = queries.InsertRegistrationTemp(context.Background(), rs.App.Postgres.Pool, nickname, email, password, confirmationToken)
+	err = queries.InsertRegistrationTemp(context.Background(), rs.App.Postgres.Pool, nickname, email, password, confirmationUrlToken)
 	if err != nil {
 		rs.App.Logrus.NewError("error in inserted registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -84,19 +82,19 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 4 - generating url and sending url on email
-	_, err = tl.UrlSetParam(rs.App.Config.App.Service.Url.App+"/confirm-registration", "token", confirmationToken)
+	url, err := tl.UrlSetParam(rs.App.Config.App.Service.Url.App+"/confirm-signup", "token", confirmationUrlToken)
 	if err != nil {
 		rs.App.Logrus.NewError("error in url set param", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
-	//err = rs.App.Mailer.SendEmailConfirmation(nickname, email, url)
-	//if err != nil {
-	//	rs.App.Logrus.NewError("error in sent email confirmation", err)
-	//	respondWithInternalServerError(w)
-	//	return
-	//}
+	err = rs.App.Mailer.SendEmailConfirmation(nickname, email, url)
+	if err != nil {
+		rs.App.Logrus.NewError("error in sent email confirmation", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
 
 	// Block 5 - sending the result
 	w.WriteHeader(http.StatusNoContent)
@@ -115,15 +113,15 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	// Block 1 - data validation
 	token := strings.TrimSpace(input.Token)
 
-	if err := tl.Validate(token, tl.IsNotBlank(), tl.IsLen(64), tl.IsNotContainsSpace()); err != nil {
-		api_v1.RespondWithBadRequest(w, "Token: "+err.Error())
+	if err := tl.Validate(token, tl.IsNotBlank(), tl.IsLen(256), tl.IsNotContainsSpace()); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Token: "+err.Error())
 		return
 	}
 
 	// Block 2 - get user data and checking on exist user
 	userData, err := queries.GetRegistrationTemp(context.Background(), rs.App.Postgres.Pool, token)
 	if userData.Email == "" {
-		api_v1.RespondWithBadRequest(w, "User not found")
+		api_v1.RespondWithConflict(w, "User not found")
 		return
 	}
 	if err != nil {

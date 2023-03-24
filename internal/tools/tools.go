@@ -2,8 +2,12 @@ package tools
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"net/url"
@@ -47,12 +51,42 @@ func GenerateRandomString(length int) (string, error) {
 	return string(b), nil
 }
 
+// GenerateURLToken generates a URL-safe token of the specified length.
+func GenerateURLToken(length int) (string, error) {
+	nonce := make([]byte, length)
+	_, err := io.ReadFull(rand.Reader, nonce)
+	if err != nil {
+		return "", err
+	}
+
+	secret, err := GenerateRandomClassicString(64)
+	if err != nil {
+		return "", err
+	}
+
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write(nonce)
+
+	hash := h.Sum(nil)
+	token := base64.RawURLEncoding.EncodeToString(hash)
+
+	for len(token) < length {
+		token = base64.RawURLEncoding.EncodeToString([]byte(token))
+	}
+
+	if len(token) > length {
+		token = token[:length]
+	}
+
+	return token, nil
+}
+
 // GenerateRandomClassicString generates a random string of the specified length with letters and digits.
 // It generates a byte slice with the specified length and fills it with random bytes using the crypto/rand package.
 // It iterates over each byte in the byte slice and replaces it with a character from the specified character set.
 // It returns the byte slice converted to a string.
 func GenerateRandomClassicString(length int) (string, error) {
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 	b := make([]byte, length)
 	_, err := rand.Read(b)

@@ -26,7 +26,7 @@ func CorsMiddleware() func(http.Handler) http.Handler {
 	}).Handler
 }
 
-func prometheusMiddleware(next http.Handler) http.Handler {
+func PrometheusMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
@@ -181,30 +181,30 @@ func MethodNotAllowedMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NotAcceptableMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			acceptHeader := r.Header.Get("Accept")
-			if acceptHeader != "" {
-				acceptsAllowedContentType := false
-				for _, allowedContentType := range allowedContentTypes {
-					if strings.Contains(acceptHeader, allowedContentType) {
-						acceptsAllowedContentType = true
-						break
-					}
-				}
-				if !acceptsAllowedContentType {
-					RedRespond(w,
-						http.StatusNotAcceptable,
-						"Not acceptable",
-						"The provided 'Accept' header does not support the allowed content type. Please use one of "+strings.Join(allowedContentTypes, ", ")+" allowed content types")
-					return
-				}
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
+//func NotAcceptableMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
+//	return func(next http.Handler) http.Handler {
+//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//			acceptHeader := r.Header.Get("Accept")
+//			if acceptHeader != "" {
+//				acceptsAllowedContentType := false
+//				for _, allowedContentType := range allowedContentTypes {
+//					if strings.Contains(acceptHeader, allowedContentType) {
+//						acceptsAllowedContentType = true
+//						break
+//					}
+//				}
+//				if !acceptsAllowedContentType {
+//					RedRespond(w,
+//						http.StatusNotAcceptable,
+//						"Not acceptable",
+//						"The provided 'Accept' header does not support the allowed content type. Please use one of "+strings.Join(allowedContentTypes, ", ")+" allowed content types")
+//					return
+//				}
+//			}
+//			next.ServeHTTP(w, r)
+//		})
+//	}
+//}
 
 func UnprocessableEntityMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

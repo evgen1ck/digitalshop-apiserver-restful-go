@@ -51,15 +51,15 @@ func ParseJwtToken(tokenString string, secret string) (*JwtClaims, error) {
 
 // JwtAuthenticate authenticates a request with a JWT token and extracts the account UUID.
 // If the token is missing or invalid, it returns an HTTP error.
-func JwtAuthenticate(token string, secret string) (string, error) {
+func JwtAuthenticate(token string, secret string) (*JwtClaims, error) {
 	if token == "" {
-		return "", errors.New("missing token")
+		return nil, errors.New("missing token")
 	}
 
 	claims, err := ParseJwtToken(token, secret)
 	if err != nil {
-		return "", fmt.Errorf("invalid token: %v", err)
+		return nil, fmt.Errorf("invalid token: %v", err)
 	}
 
-	return claims.AccountUuid, nil
+	return claims, nil
 }

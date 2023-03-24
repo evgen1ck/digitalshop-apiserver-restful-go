@@ -25,7 +25,7 @@ func SetupPrometheus(app models.Application) *chi.Mux {
 	prometheus.MustRegister(requestsProcessed)
 	prometheus.MustRegister(requestDuration)
 
-	r.Use(prometheusMiddleware)
+	r.Use(PrometheusMiddleware)
 
 	r.Handle("/prometheus/metrics", promhttp.Handler())
 
