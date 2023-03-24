@@ -4,6 +4,7 @@ import (
 	"flag"
 	"gopkg.in/yaml.v3"
 	"os"
+	"path/filepath"
 	"strconv"
 	"test-server-go/internal/logger"
 )
@@ -52,7 +53,8 @@ type Config struct {
 func New(logger *logger.Logger) (*Config, error) {
 	var cfg Config
 
-	configPath := flag.String("config", "server.yaml", "Path to the YAML configuration file")
+	path, _ := os.Getwd()
+	configPath := flag.String("config", filepath.Join(path, "server.yaml"), "Path to the YAML configuration file")
 	yamlFile, err := os.ReadFile(*configPath)
 	if err != nil {
 		logger.NewErrorWithExit("Failed to load server.yaml", err)

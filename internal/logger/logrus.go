@@ -14,7 +14,11 @@ type Logger struct {
 // New creates a new Logger instance with a logrus logger and sets its output to os.Stdout
 func New() *Logger {
 	logger := logrus.New()
-	logger.SetOutput(os.Stdout)
+	file, err := os.OpenFile("myLogFile.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		logrus.Fatalf("Failed to open log file %s for output: %s", "myLogFile.log", err)
+	}
+	logger.SetOutput(file)
 	logger.SetFormatter(&logrus.JSONFormatter{})
 	return &Logger{logger}
 }
