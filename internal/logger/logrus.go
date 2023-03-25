@@ -9,6 +9,7 @@ import (
 // Logger is a struct that embeds logrus.Logger
 type Logger struct {
 	*logrus.Logger
+	file *os.File
 }
 
 // New creates a new Logger instance with a logrus logger and sets its output to os.Stdout
@@ -16,11 +17,20 @@ func New() *Logger {
 	logger := logrus.New()
 	file, err := os.OpenFile("myLogFile.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		logrus.Fatalf("Failed to open log file %s for output: %s", "myLogFile.log", err)
+		logger.Errorf("Failed to open log file %s for output: %s", "myLogFile.log", err)
+		logger.SetOutput(os.Stdout)
+	} else {
+		logger.SetOutput(file)
 	}
-	logger.SetOutput(file)
 	logger.SetFormatter(&logrus.JSONFormatter{})
-	return &Logger{logger}
+	return &Logger{Logger: logger, file: file}
+}
+
+// Close closes the log file if it was opened
+func (l *Logger) Close() {
+	if l.file != nil {
+		l.file.Close()
+	}
 }
 
 // NewInfo logs an informational message with the given message

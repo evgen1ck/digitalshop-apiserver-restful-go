@@ -18,6 +18,7 @@ import (
 
 func Run() {
 	logrus := logger.New()
+	defer logrus.Close()
 
 	cfg, err := config.New(logrus)
 	if err != nil {
