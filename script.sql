@@ -51,6 +51,8 @@ CREATE TABLE account.registration_temp
 select * from account.registration_temp;
 select * from account.user;
 
+delete from account.user where email = '77lm@mail.ru'
+
 DROP TABLE IF EXISTS account.account CASCADE;
 CREATE TABLE account.account
 (
