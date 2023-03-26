@@ -93,7 +93,7 @@ func CheckUserExistence(ctx context.Context, pool *pgxpool.Pool, nickname, email
 
 	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx,
-			"SELECT EXISTS(SELECT 1 FROM account.user WHERE nickname = $1)::boolean AS username_exists, EXISTS(SELECT 1 FROM account.user WHERE email = $2)::boolean AS email_exists",
+			"SELECT EXISTS(SELECT 1 FROM account.user WHERE lower(nickname) = lower($1))::boolean AS username_exists, EXISTS(SELECT 1 FROM account.user WHERE lower(email) = lower($2))::boolean AS email_exists",
 			nickname, email).Scan(&nicknameExist, &emailExist)
 		return err
 	})
