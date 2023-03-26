@@ -212,3 +212,13 @@ func CheckEmailDomainExistence(addr string) (bool, error) {
 
 	return false, nil
 }
+
+func CapitalizeFirst(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	lower := strings.ToLower(s)
+	firstUpper := unicode.ToUpper(rune(lower[0]))
+	return string(firstUpper) + lower[1:]
+}

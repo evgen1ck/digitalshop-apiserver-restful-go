@@ -12,6 +12,6 @@ type Application struct {
 	Config   *config.Config
 	Postgres *database.Postgres
 	Mailer   *mailer.Mailer
-	Logrus   *logger.Logger
+	Logger   *logger.Logger
 	Router   *chi.Mux
 }

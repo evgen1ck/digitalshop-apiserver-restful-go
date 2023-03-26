@@ -3,3 +3,6 @@ vendor
 .idea
 server.yaml
 *.log
+*.log.gz
+*.zip
+*.gz

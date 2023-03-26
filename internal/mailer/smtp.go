@@ -9,8 +9,8 @@ import (
 )
 
 type Mailer struct {
-	dialer *mail.Dialer
-	from   string
+	*mail.Dialer
+	from string
 }
 
 func NewSmtp(cfg config.Config) *Mailer {
@@ -18,7 +18,7 @@ func NewSmtp(cfg config.Config) *Mailer {
 	dialer.Timeout = 5 * time.Second
 
 	return &Mailer{
-		dialer: dialer,
+		Dialer: dialer,
 		from:   cfg.MailNoreply.From,
 	}
 }
@@ -31,7 +31,7 @@ func (m *Mailer) sendEmail(to []string, title, body string) error {
 	msg.SetHeader("Subject", title)
 	msg.SetBody("text/plain", body)
 
-	if err := m.dialer.DialAndSend(msg); err != nil {
+	if err := m.DialAndSend(msg); err != nil {
 		return err
 	}
 

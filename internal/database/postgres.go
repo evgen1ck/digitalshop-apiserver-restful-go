@@ -24,6 +24,7 @@ func NewPostgres(ctx context.Context, dsn string) (*Postgres, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer pool.Close()
 
 	return &Postgres{pool}, nil
 }

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"test-server-go/internal/logger"
 )
 
 type Config struct {
@@ -50,19 +49,19 @@ type Config struct {
 	} `yaml:"tls"`
 }
 
-func New(logger *logger.Logger) (*Config, error) {
+func New() (*Config, error) {
 	var cfg Config
 
 	path, _ := os.Getwd()
 	configPath := flag.String("config", filepath.Join(path, "server.yaml"), "Path to the YAML configuration file")
 	yamlFile, err := os.ReadFile(*configPath)
 	if err != nil {
-		logger.NewErrorWithExit("Failed to load server.yaml", err)
+		return nil, err
 	}
 
 	err = yaml.Unmarshal(yamlFile, &cfg)
 	if err != nil {
-		logger.NewErrorWithExit("Failed to unmarshal server.yaml", err)
+		return nil, err
 	}
 
 	// General settings

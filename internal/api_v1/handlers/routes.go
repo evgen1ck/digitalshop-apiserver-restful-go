@@ -42,8 +42,8 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r.Use(api_v1.NotImplementedMiddleware(allowedMethods))                  // Error 501 - Not implemented
 	r.Use(api_v1.MethodNotAllowedMiddleware)                                // Error 405 - Method Not Allowed
 	r.Use(api_v1.GatewayTimeoutMiddleware(timeout))                         // Error 504 - Gateway Timeout
-	r.Use(api_v1.HttpVersionCheckMiddleware(supportedHttpVersions))
-	r.NotFound(api_v1.NotFoundMiddleware()) // Error 404 - Not Found
+	r.Use(api_v1.HttpVersionCheckMiddleware(supportedHttpVersions))         // Error 505 - HTTP Version Not Supported
+	r.NotFound(api_v1.NotFoundMiddleware())                                 // Error 404 - Not Found
 	//r.Use(api_v1.NotAcceptableMiddleware(allowedContentTypes))            // Error 406 - Not Acceptable (inactive)
 
 	rs.registerRoutes(r)
@@ -58,6 +58,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Post("/login", rs.AuthLogin)
 		r.Post("/login-with-token", rs.AuthLoginWithToken)
 		r.Post("/recover-password", rs.AuthRecoverPassword)
+		r.Post("/recover-password-with-token", rs.AuthRecoverPasswordWithToken)
 		r.Post("/logout", rs.AuthLogout)
 	})
 	r.Route("/goods", func(r chi.Router) {

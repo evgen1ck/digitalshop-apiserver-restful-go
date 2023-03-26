@@ -47,13 +47,13 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		rs.App.Logrus.NewWarn("Error in checked the email domain: " + err.Error())
+		rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
 	}
 
 	// Block 2 - checking for an existing nickname and email
 	nicknameExist, emailExist, err := queries.CheckUserExistence(context.Background(), rs.App.Postgres.Pool, nickname, email)
 	if err != nil {
-		rs.App.Logrus.NewError("error in checked the user existence", err)
+		rs.App.Logger.NewError("error in checked the user existence", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -69,14 +69,14 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	// Block 3 - generating token and inserting a temporary account record
 	confirmationUrlToken, err := tl.GenerateURLToken(256)
 	if err != nil {
-		rs.App.Logrus.NewError("error in generated url token", err)
+		rs.App.Logger.NewError("error in generated url token", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
 	err = queries.InsertRegistrationTemp(context.Background(), rs.App.Postgres.Pool, nickname, email, password, confirmationUrlToken)
 	if err != nil {
-		rs.App.Logrus.NewError("error in inserted registration temp record", err)
+		rs.App.Logger.NewError("error in inserted registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -84,14 +84,14 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	// Block 4 - generating url and sending url on email
 	url, err := tl.UrlSetParam(rs.App.Config.App.Service.Url.App+"/confirm-signup", "token", confirmationUrlToken)
 	if err != nil {
-		rs.App.Logrus.NewError("error in url set param", err)
+		rs.App.Logger.NewError("error in url set param", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
 	err = rs.App.Mailer.SendEmailConfirmation(nickname, email, url)
 	if err != nil {
-		rs.App.Logrus.NewError("error in sent email confirmation", err)
+		rs.App.Logger.NewError("error in sent email confirmation", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -125,7 +125,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err != nil {
-		rs.App.Logrus.NewError("error in checked registration temp record", err)
+		rs.App.Logger.NewError("error in checked registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -133,14 +133,14 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	// Block 3 - hashing password and adding a user
 	base64PasswordHash, base64Salt, err := auth.HashPassword(userData.Password, "")
 	if err != nil {
-		rs.App.Logrus.NewError("error in generated hash password", err)
+		rs.App.Logger.NewError("error in generated hash password", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
 	userUuid, err := queries.RegistrationUser(context.Background(), rs.App.Postgres.Pool, userData.Nickname, userData.Email, base64PasswordHash, base64Salt)
 	if err != nil {
-		rs.App.Logrus.NewError("error in registration user", err)
+		rs.App.Logger.NewError("error in registration user", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -148,7 +148,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	// Block 4 - generating JWT
 	jwt, err := auth.GenerateJwt(userUuid.String(), rs.App.Config.App.Jwt)
 	if err != nil {
-		rs.App.Logrus.NewError("error in generated jwt", err)
+		rs.App.Logger.NewError("error in generated jwt", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -168,7 +168,8 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	api_v1.RespondWithCreated(w, response)
 }
 
-func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request)           {}
-func (rs *Resolver) AuthLoginWithToken(w http.ResponseWriter, r *http.Request)  {}
-func (rs *Resolver) AuthRecoverPassword(w http.ResponseWriter, r *http.Request) {}
-func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request)          {}
+func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request)                    {}
+func (rs *Resolver) AuthLoginWithToken(w http.ResponseWriter, r *http.Request)           {}
+func (rs *Resolver) AuthRecoverPassword(w http.ResponseWriter, r *http.Request)          {}
+func (rs *Resolver) AuthRecoverPasswordWithToken(w http.ResponseWriter, r *http.Request) {}
+func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request)                   {}
