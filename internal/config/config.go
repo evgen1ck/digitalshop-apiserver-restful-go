@@ -49,7 +49,7 @@ type Config struct {
 	} `yaml:"tls"`
 }
 
-func New() (*Config, error) {
+func SetupYaml() (*Config, error) {
 	var cfg Config
 
 	path, _ := os.Getwd()

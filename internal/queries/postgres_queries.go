@@ -83,11 +83,6 @@ func InsertRegistrationTemp(ctx context.Context, pool *pgxpool.Pool, nickname, e
 	return nil
 }
 
-type ExistsNicknameEmail struct {
-	NicknameExists bool
-	EmailExists    bool
-}
-
 func CheckUserExistence(ctx context.Context, pool *pgxpool.Pool, nickname, email string) (bool, bool, error) {
 	var nicknameExist, emailExist bool
 

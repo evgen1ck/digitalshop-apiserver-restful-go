@@ -17,7 +17,7 @@ type Logger struct {
 	*zap.Logger
 }
 
-func New(format string) (*Logger, error) {
+func NewZap(format string) (*Logger, error) {
 	logPath := "logs"
 	if err := os.MkdirAll(logPath, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %v", err)
@@ -59,7 +59,7 @@ func (l *Logger) NewWarn(message string, error error) {
 		zap.String("line", strconv.Itoa(line)),
 	}
 
-	l.Logger.Error(tl.CapitalizeFirst(message)+": "+strings.ToLower(error.Error()), fields...)
+	l.Logger.Warn(tl.CapitalizeFirst(message)+": "+strings.ToLower(error.Error()), fields...)
 }
 
 func (l *Logger) NewError(message string, error error) {

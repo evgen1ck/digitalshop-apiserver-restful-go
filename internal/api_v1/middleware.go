@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"test-server-go/internal/auth"
 	"time"
 	"unicode/utf8"
 )
@@ -18,8 +19,7 @@ import (
 func CorsMiddleware() func(http.Handler) http.Handler {
 	return cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -181,31 +181,6 @@ func MethodNotAllowedMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-//func NotAcceptableMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
-//	return func(next http.Handler) http.Handler {
-//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			acceptHeader := r.Header.Get("Accept")
-//			if acceptHeader != "" {
-//				acceptsAllowedContentType := false
-//				for _, allowedContentType := range allowedContentTypes {
-//					if strings.Contains(acceptHeader, allowedContentType) {
-//						acceptsAllowedContentType = true
-//						break
-//					}
-//				}
-//				if !acceptsAllowedContentType {
-//					RedRespond(w,
-//						http.StatusNotAcceptable,
-//						"Not acceptable",
-//						"The provided 'Accept' header does not support the allowed content type. Please use one of "+strings.Join(allowedContentTypes, ", ")+" allowed content types")
-//					return
-//				}
-//			}
-//			next.ServeHTTP(w, r)
-//		})
-//	}
-//}
-
 func UnprocessableEntityMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for key, values := range r.Header {
@@ -284,6 +259,35 @@ func HttpVersionCheckMiddleware(supportedHttpVersions []string) func(http.Handle
 				http.StatusHTTPVersionNotSupported,
 				"HTTP version not supported",
 				"HTTP version not supported. Please use one of "+strings.Join(supportedHttpVersions, ", ")+" supported http versions")
+		})
+	}
+}
+
+func AuthUserMiddleware(secret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "No Authorization header provided")
+				return
+			}
+
+			tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
+
+			if tokenString == "" {
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "No token provided")
+				return
+			}
+
+			claims, err := auth.ParseJwtToken(tokenString, secret)
+			if err != nil {
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Invalid token")
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), "jwt_claims", claims)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

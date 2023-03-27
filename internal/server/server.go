@@ -21,12 +21,12 @@ import (
 )
 
 func Run() {
-	cfg, err := config.New()
+	cfg, err := config.SetupYaml()
 	if err != nil {
 		log.Fatalf("Config build error %s", err.Error())
 	}
 
-	zapLogger, err := logger.New("zip")
+	zapLogger, err := logger.NewZap("zip")
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +47,7 @@ func Run() {
 
 	fmt.Println(app.Config)
 
-	setupRouterSettings(app)
+	setupRouter(app)
 
 	srv := &http.Server{
 		Addr:    app.Config.GetLocalUrlApp(),
@@ -70,8 +70,6 @@ func shutdownServer(srv *http.Server, logger *logger.Logger) {
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	<-signalChan
 
-	logger.NewInfo("Server is shutting down")
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -83,7 +81,7 @@ func shutdownServer(srv *http.Server, logger *logger.Logger) {
 	logger.NewInfo("Server stopped")
 }
 
-func setupRouterSettings(app models.Application) {
+func setupRouter(app models.Application) {
 	r := app.Router
 
 	r.Use(middleware.RealIP)       // Using user real ip address
