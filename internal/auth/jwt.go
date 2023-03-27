@@ -33,6 +33,10 @@ func GenerateJwt(accountUuid string, secret string) (string, error) {
 // ParseJwtToken parses a JWT token string and returns the custom claims or an error.
 // It verifies the token signature using the secret key and checks for token expiration.
 func ParseJwtToken(tokenString string, secret string) (*JwtClaims, error) {
+	if tokenString == "" {
+		return nil, errors.New("missing token")
+	}
+
 	claims := &JwtClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS384.Alg() {
@@ -46,20 +50,5 @@ func ParseJwtToken(tokenString string, secret string) (*JwtClaims, error) {
 	if !token.Valid {
 		return nil, jwt.ErrSignatureInvalid
 	}
-	return claims, nil
-}
-
-// JwtAuthenticate authenticates a request with a JWT token and extracts the account UUID.
-// If the token is missing or invalid, it returns an HTTP error.
-func JwtAuthenticate(token string, secret string) (*JwtClaims, error) {
-	if token == "" {
-		return nil, errors.New("missing token")
-	}
-
-	claims, err := ParseJwtToken(token, secret)
-	if err != nil {
-		return nil, fmt.Errorf("invalid token: %v", err)
-	}
-
 	return claims, nil
 }
