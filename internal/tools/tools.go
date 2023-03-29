@@ -134,7 +134,7 @@ func ToInt64(i any) (int64, error) {
 	return 0, fmt.Errorf("unable to convert type %T to int", i)
 }
 
-// Slugify generates a Url-friendly version of the input string.
+// Slugify generates an Url-friendly version of the input string.
 // It converts all letters to lowercase and replaces spaces with hyphens.
 // It allows alphanumeric characters, hyphens, and underscores to remain unchanged.
 // It ignores non-ASCII characters.
@@ -214,11 +214,30 @@ func CheckEmailDomainExistence(addr string) (bool, error) {
 }
 
 func CapitalizeFirst(s string) string {
-	if len(s) == 0 {
-		return s
-	}
-
 	lower := strings.ToLower(s)
 	firstUpper := unicode.ToUpper(rune(lower[0]))
 	return string(firstUpper) + lower[1:]
+}
+
+func UncapitalizeFirst(s string) string {
+	firstLower := unicode.ToLower(rune(s[0]))
+	return string(firstLower) + s[1:]
+}
+
+func StringInSlice(s string, list []string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
+func ContainsStringInSlice(s string, list []string) bool {
+	for _, v := range list {
+		if strings.Contains(v, s) {
+			return true
+		}
+	}
+	return false
 }

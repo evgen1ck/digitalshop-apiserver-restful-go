@@ -12,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"test-server-go/internal/auth"
+	"test-server-go/internal/models"
+	"test-server-go/internal/storage"
+	tl "test-server-go/internal/tools"
 	"time"
 	"unicode/utf8"
 )
@@ -259,6 +262,78 @@ func HttpVersionCheckMiddleware(supportedHttpVersions []string) func(http.Handle
 				http.StatusHTTPVersionNotSupported,
 				"HTTP version not supported",
 				"HTTP version not supported. Please use one of "+strings.Join(supportedHttpVersions, ", ")+" supported http versions")
+		})
+	}
+}
+
+func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfHeaderName string, csrfCookieName string, csrfCookieDuration time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			safeMethods := []string{"GET", "HEAD", "OPTIONS", "TRACE"}
+
+			if !tl.StringInSlice(r.Method, safeMethods) {
+				// Get CSRF token from request header
+				requestToken := r.Header.Get(csrfHeaderName)
+				if requestToken == "" {
+					RedRespond(w, http.StatusForbidden, "Forbidden", "CSRF token not found in header")
+					return
+				}
+
+				// Get CSRF token from request cookie
+				cookie, err := r.Cookie(csrfCookieName)
+				if err != nil {
+					RedRespond(w, http.StatusForbidden, "Forbidden", "CSRF token not found in cookie")
+					return
+				}
+
+				// Check if the CSRF tokens match and is valid in the server-side store
+				existsCsrfToken, err := storage.CheckCsrfTokenExists(context.Background(), app.Postgres.Pool, requestToken)
+				if err != nil {
+					RespondWithInternalServerError(w)
+				}
+				if requestToken != cookie.Value || !existsCsrfToken {
+					RedRespond(w, http.StatusForbidden, "Forbidden", "Invalid CSRF token")
+					return
+				}
+
+				// Remove the used token from the server-side store
+				err = storage.DeleteCsrfToken(context.Background(), app.Postgres.Pool, requestToken)
+				if err != nil {
+					RespondWithInternalServerError(w)
+				}
+			}
+
+			// Generate a new CSRF token
+			token, err := tl.GenerateRandomString(csrfTokenLength)
+			if err != nil {
+				RespondWithInternalServerError(w)
+				return
+			}
+
+			// Save the generated token in the server-side store
+			err = storage.CreateCsrfToken(context.Background(), app.Postgres.Pool, token)
+			if err != nil {
+				RespondWithInternalServerError(w)
+			}
+
+			// Create a CSRF cookie with the new token
+			csrfCookie := &http.Cookie{
+				Name:     csrfCookieName,
+				Value:    token,
+				Path:     "/",
+				Expires:  time.Now().Add(csrfCookieDuration),
+				HttpOnly: true,
+				Secure:   true, // Send the cookie only over HTTPS
+			}
+
+			// Set the CSRF cookie
+			http.SetCookie(w, csrfCookie)
+
+			// Set the CSRF token header for the response
+			w.Header().Set(csrfHeaderName, token)
+
+			// Call the next handler in the chain
+			next.ServeHTTP(w, r)
 		})
 	}
 }

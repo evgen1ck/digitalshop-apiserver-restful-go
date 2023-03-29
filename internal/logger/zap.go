@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	tl "test-server-go/internal/tools"
 	"time"
 )
@@ -59,7 +58,7 @@ func (l *Logger) NewWarn(message string, error error) {
 		zap.String("line", strconv.Itoa(line)),
 	}
 
-	l.Logger.Warn(tl.CapitalizeFirst(message)+": "+strings.ToLower(error.Error()), fields...)
+	l.Logger.Warn(tl.CapitalizeFirst(message)+": "+tl.UncapitalizeFirst(error.Error()), fields...)
 }
 
 func (l *Logger) NewError(message string, error error) {
@@ -69,6 +68,6 @@ func (l *Logger) NewError(message string, error error) {
 		zap.String("line", strconv.Itoa(line)),
 	}
 
-	l.Logger.Error(tl.CapitalizeFirst(message)+": "+strings.ToLower(error.Error()), fields...)
+	l.Logger.Error(tl.CapitalizeFirst(message)+": "+tl.UncapitalizeFirst(error.Error()), fields...)
 	os.Exit(1)
 }

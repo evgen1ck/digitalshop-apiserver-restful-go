@@ -1,4 +1,4 @@
-package queries
+package storage
 
 import (
 	"context"
@@ -14,56 +14,14 @@ type User struct {
 	Password string
 }
 
-// execInTx executes a given function inside a transaction.
-// It receives a context, a database connection pool, and a function that accepts a transaction and returns an interface and an error.
-// It returns the interface result of the function and an error.
-//
-// Example:
-//
-//	result, err := execInTx(ctx, db, func(tx pgx.Tx) (interface{}, error) {
-//	    // Perform some logic using the transaction
-//	    return "some result", nil
-//	})
-//	if err != nil {
-//	    // Handle error
-//	}
-//
-// // Handle result
-func execInTx(ctx context.Context, pool *pgxpool.Pool, f func(pgx.Tx) error) error {
-	// Start a new transaction.
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		// If an error occurred while starting the transaction, return the error.
-		return err
-	}
+// Names style:
+// For creating a record: Create<Type>
+// For checking the existence of a record: Check<Type>Exists
+// For getting a record: Get<Type>
+// For updating a record: Update<Type>
+// For deleting a record: Delete<Type>
 
-	// Defer a function that will be executed when this function returns. It will roll back the transaction if it was not committed yet.
-	defer func() {
-		if tx != nil {
-			tx.Rollback(ctx)
-		}
-	}()
-
-	// Execute the function, passing the transaction as an argument.
-	err = f(tx)
-	if err != nil {
-		// If an error occurred while executing the function, rollback the transaction and return the error.
-		return err
-	}
-
-	// Commit the transaction.
-	err = tx.Commit(ctx)
-	if err != nil {
-		// If an error occurred while committing the transaction, return the error.
-		return err
-	}
-
-	// Set the transaction variable to nil and return the result.
-	tx = nil
-	return nil
-}
-
-func InsertRegistrationTemp(ctx context.Context, pool *pgxpool.Pool, nickname, email, password, confirmationToken string) error {
+func CreateTempRegistration(ctx context.Context, pool *pgxpool.Pool, nickname, email, password, confirmationToken string) error {
 	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
 		res, err := tx.Exec(ctx,
 			"INSERT INTO account.registration_temp(confirmation_token, nickname, email, password) VALUES ($1, $2, $3, $4)",
@@ -83,7 +41,7 @@ func InsertRegistrationTemp(ctx context.Context, pool *pgxpool.Pool, nickname, e
 	return nil
 }
 
-func CheckUserExistence(ctx context.Context, pool *pgxpool.Pool, nickname, email string) (bool, bool, error) {
+func CheckUserExists(ctx context.Context, pool *pgxpool.Pool, nickname, email string) (bool, bool, error) {
 	var nicknameExist, emailExist bool
 
 	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
@@ -99,7 +57,7 @@ func CheckUserExistence(ctx context.Context, pool *pgxpool.Pool, nickname, email
 	return nicknameExist, emailExist, nil
 }
 
-func GetRegistrationTemp(ctx context.Context, pool *pgxpool.Pool, token string) (User, error) {
+func GetTempRegistration(ctx context.Context, pool *pgxpool.Pool, token string) (User, error) {
 	var result User
 
 	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
@@ -115,7 +73,7 @@ func GetRegistrationTemp(ctx context.Context, pool *pgxpool.Pool, token string) 
 	return result, nil
 }
 
-func RegistrationUser(ctx context.Context, pool *pgxpool.Pool, nickname, email, base64PasswordHash, base64Salt string) (uuid.UUID, error) {
+func CreateUser(ctx context.Context, pool *pgxpool.Pool, nickname, email, base64PasswordHash, base64Salt string) (uuid.UUID, error) {
 	var result uuid.UUID
 
 	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
@@ -151,4 +109,16 @@ func RegistrationUser(ctx context.Context, pool *pgxpool.Pool, nickname, email, 
 	}
 
 	return result, nil
+}
+
+func CheckCsrfTokenExists(ctx context.Context, pool *pgxpool.Pool, csrfToken string) (bool, error) {
+	var result bool
+
+	return result, nil
+}
+func DeleteCsrfToken(ctx context.Context, pool *pgxpool.Pool, csrfToken string) error {
+	return nil
+}
+func CreateCsrfToken(ctx context.Context, pool *pgxpool.Pool, csrfToken string) error {
+	return nil
 }

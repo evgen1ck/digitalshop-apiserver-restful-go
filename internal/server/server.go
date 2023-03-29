@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/api_v1/handlers"
@@ -49,23 +50,30 @@ func Run() {
 
 	setupRouter(app)
 
-	srv := &http.Server{
-		Addr:    app.Config.GetLocalUrlApp(),
+	prometheusServer := &http.Server{
+		Addr:    "localhost:" + strconv.Itoa(app.Config.App.Port),
+		Handler: app.Router,
+	}
+	apiV1Server := &http.Server{
+		Addr:    "localhost:" + strconv.Itoa(app.Config.App.Port),
 		Handler: app.Router,
 	}
 
-	go shutdownServer(srv, zapLogger)
+	go shutdownServer(prometheusServer, zapLogger, "Prometheus API")
+	go shutdownServer(apiV1Server, zapLogger, "Service API v1")
 
 	if app.Config.App.Debug {
 		app.Logger.NewInfo("Server is running in debug mode")
-		_ = srv.ListenAndServe()
+		go prometheusServer.ListenAndServe()
+		go apiV1Server.ListenAndServe()
 	} else {
 		app.Logger.NewInfo("Server is running in tls mode")
-		_ = srv.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
+		go prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
+		go apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
 	}
 }
 
-func shutdownServer(srv *http.Server, logger *logger.Logger) {
+func shutdownServer(srv *http.Server, logger *logger.Logger, serviceName string) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	<-signalChan
@@ -75,10 +83,10 @@ func shutdownServer(srv *http.Server, logger *logger.Logger) {
 
 	srv.SetKeepAlivesEnabled(false)
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.NewError("Could not gracefully shutdown the server", err)
+		logger.NewError("Could not gracefully shutdown the "+serviceName, err)
 	}
 
-	logger.NewInfo("Server stopped")
+	logger.NewInfo(serviceName + " stopped")
 }
 
 func setupRouter(app models.Application) {

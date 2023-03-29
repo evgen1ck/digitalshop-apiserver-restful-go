@@ -17,11 +17,13 @@ type Config struct {
 				Api string `yaml:"api"`
 			} `yaml:"url"`
 		} `yaml:"service"`
-		Host  string `yaml:"host"`
-		Port  string `yaml:"port"`
+		Port  int    `yaml:"port"`
 		Debug bool   `yaml:"debug"`
 		Jwt   string `yaml:"jwt"`
 	} `yaml:"app"`
+	Prometheus struct {
+		Port int `yaml:"port"`
+	} `yaml:"prometheus"`
 	MailNoreply struct {
 		Username string `yaml:"username"`
 		Password string `yaml:"password"`
@@ -68,10 +70,12 @@ func SetupYaml() (*Config, error) {
 	flag.StringVar(&cfg.App.Service.Name, "app-service-name", cfg.App.Service.Name, "service name")
 	flag.StringVar(&cfg.App.Service.Url.App, "app-service-url-app", cfg.App.Service.Url.App, "service url for app")
 	flag.StringVar(&cfg.App.Service.Url.Api, "app-service-url-api", cfg.App.Service.Url.Api, "service url for api")
-	flag.StringVar(&cfg.App.Host, "app-host", cfg.App.Host, "server host")
-	flag.StringVar(&cfg.App.Port, "app-port", cfg.App.Port, "server port")
+	flag.IntVar(&cfg.App.Port, "app-port", cfg.App.Port, "server port")
 	flag.BoolVar(&cfg.App.Debug, "app-debug", cfg.App.Debug, "debug mode")
 	flag.StringVar(&cfg.App.Jwt, "app-jwt", cfg.App.Jwt, "jwt secret")
+
+	// Prometheus settings
+	flag.IntVar(&cfg.Prometheus.Port, "prometheus-port", cfg.Prometheus.Port, "prometheus port")
 
 	// E-mail for noreply@example.com
 	flag.StringVar(&cfg.MailNoreply.Username, "mail-noreply-username", cfg.MailNoreply.Username, "noreply mail username")
@@ -109,8 +113,4 @@ func (cfg *Config) GetPostgresDSN() string {
 		cfg.Postgres.Ip + ":" +
 		strconv.Itoa(cfg.Postgres.Port) + "/" +
 		cfg.Postgres.Database
-}
-
-func (cfg *Config) GetLocalUrlApp() string {
-	return cfg.App.Host + ":" + cfg.App.Port
 }

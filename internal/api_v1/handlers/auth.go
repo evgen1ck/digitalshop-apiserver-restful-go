@@ -7,7 +7,7 @@ import (
 	"strings"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/auth"
-	"test-server-go/internal/queries"
+	"test-server-go/internal/storage"
 	tl "test-server-go/internal/tools"
 )
 
@@ -51,7 +51,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 2 - checking for an existing nickname and email
-	nicknameExist, emailExist, err := queries.CheckUserExistence(context.Background(), rs.App.Postgres.Pool, nickname, email)
+	nicknameExist, emailExist, err := storage.CheckUserExists(context.Background(), rs.App.Postgres.Pool, nickname, email)
 	if err != nil {
 		rs.App.Logger.NewError("error in checked the user existence", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -74,7 +74,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = queries.InsertRegistrationTemp(context.Background(), rs.App.Postgres.Pool, nickname, email, password, confirmationUrlToken)
+	err = storage.CreateTempRegistration(context.Background(), rs.App.Postgres.Pool, nickname, email, password, confirmationUrlToken)
 	if err != nil {
 		rs.App.Logger.NewError("error in inserted registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -119,7 +119,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Block 2 - get user data and checking on exist user
-	userData, err := queries.GetRegistrationTemp(context.Background(), rs.App.Postgres.Pool, token)
+	userData, err := storage.GetTempRegistration(context.Background(), rs.App.Postgres.Pool, token)
 	if userData.Email == "" {
 		api_v1.RespondWithConflict(w, "User not found")
 		return
@@ -138,7 +138,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	userUuid, err := queries.RegistrationUser(context.Background(), rs.App.Postgres.Pool, userData.Nickname, userData.Email, base64PasswordHash, base64Salt)
+	userUuid, err := storage.CreateUser(context.Background(), rs.App.Postgres.Pool, userData.Nickname, userData.Email, base64PasswordHash, base64Salt)
 	if err != nil {
 		rs.App.Logger.NewError("error in registration user", err)
 		api_v1.RespondWithInternalServerError(w)
