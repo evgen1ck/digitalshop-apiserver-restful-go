@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,15 +29,20 @@ func NewZap() (*Logger, error) {
 	}
 
 	logFileName := fmt.Sprintf("%s.%s", time.Now().Format(fileFormat), fileExtension)
-	logFile, err := os.OpenFile(filepath.Join(folderName, logFileName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %v", err)
+	logFilePath := filepath.Join(folderName, logFileName)
+
+	lumberjackLogger := &lumberjack.Logger{
+		Filename:   logFilePath,
+		MaxSize:    64, // Maximum file size in megabytes
+		MaxBackups: 3,  // Maximum number of rotated files to be saved
+		MaxAge:     7,  // The maximum number of days during which the rotated files are stored
+		Compress:   true,
 	}
 
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoder := zapcore.NewJSONEncoder(encoderConfig)
-	core := zapcore.NewCore(encoder, zapcore.AddSync(logFile), zapcore.InfoLevel)
+	core := zapcore.NewCore(encoder, zapcore.AddSync(lumberjackLogger), zapcore.InfoLevel)
 	logger := zap.New(core)
 
 	return &Logger{Logger: logger}, nil
