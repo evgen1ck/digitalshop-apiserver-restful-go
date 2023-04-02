@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -22,21 +21,22 @@ import (
 )
 
 func Run() {
-	cfg, err := config.SetupYaml()
-	if err != nil {
-		log.Fatalf("Config build error %s", err.Error())
-	}
-
-	zapLogger, err := logger.NewZap("zip")
+	zapLogger, err := logger.NewZap()
 	if err != nil {
 		panic(err)
 	}
 	defer zapLogger.Sync()
 
+	cfg, err := config.SetupYaml()
+	if err != nil {
+		zapLogger.NewError("Error creating data config", err)
+	}
+
 	pdb, err := database.NewPostgres(context.Background(), cfg.GetPostgresDSN())
 	if err != nil {
 		zapLogger.NewError("Error connecting to the database database", err)
 	}
+	defer pdb.Close()
 
 	app := models.Application{
 		Config:   cfg,
@@ -64,8 +64,8 @@ func Run() {
 
 	if app.Config.App.Debug {
 		app.Logger.NewInfo("Server is running in debug mode")
-		go prometheusServer.ListenAndServe()
-		go apiV1Server.ListenAndServe()
+		_ = prometheusServer.ListenAndServe()
+		_ = apiV1Server.ListenAndServe()
 	} else {
 		app.Logger.NewInfo("Server is running in tls mode")
 		go prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)

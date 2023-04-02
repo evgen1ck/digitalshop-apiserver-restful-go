@@ -126,16 +126,7 @@ func UnsupportedMediaTypeMiddleware(allowedContentTypes []string) func(http.Hand
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			contentType := r.Header.Get("Content-Type")
-			allowed := false
-			if contentType != "" {
-				for _, allowedContentType := range allowedContentTypes {
-					if strings.HasPrefix(contentType, allowedContentType) {
-						allowed = true
-						break
-					}
-				}
-			}
-			if !allowed {
+			if !tl.ContainsStringInSlice(contentType, allowedContentTypes) {
 				RedRespond(w,
 					http.StatusUnsupportedMediaType,
 					"Unsupported media type",
@@ -151,14 +142,7 @@ func NotImplementedMiddleware(allowedMethods []string) func(http.Handler) http.H
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			method := r.Method
-			allowed := false
-			for _, allowedMethod := range allowedMethods {
-				if method == allowedMethod {
-					allowed = true
-					break
-				}
-			}
-			if !allowed {
+			if !tl.StringInSlice(method, allowedMethods) {
 				RedRespond(w,
 					http.StatusNotImplemented,
 					"Not implemented",
@@ -252,16 +236,14 @@ func GatewayTimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Han
 func HttpVersionCheckMiddleware(supportedHttpVersions []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			for _, version := range supportedHttpVersions {
-				if r.Proto == version {
-					next.ServeHTTP(w, r)
-					return
-				}
+			if !tl.StringInSlice(r.Proto, supportedHttpVersions) {
+				RedRespond(w,
+					http.StatusHTTPVersionNotSupported,
+					"HTTP version not supported",
+					"HTTP version not supported. Please use one of "+strings.Join(supportedHttpVersions, ", ")+" supported http versions")
+				return
 			}
-			RedRespond(w,
-				http.StatusHTTPVersionNotSupported,
-				"HTTP version not supported",
-				"HTTP version not supported. Please use one of "+strings.Join(supportedHttpVersions, ", ")+" supported http versions")
+			next.ServeHTTP(w, r)
 		})
 	}
 }

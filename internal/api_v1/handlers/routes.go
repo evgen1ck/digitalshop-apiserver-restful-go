@@ -74,15 +74,15 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Post("/logout", rs.AuthLogout)
 	})
 	r.Route("/products", func(r chi.Router) {
-		r.Get("/data", rs.ProductsData)
+		r.Get("/", rs.ProductsData)
 	})
 	r.Route("/user", func(r chi.Router) {
 		r.Use(api_v1.AuthUserMiddleware(rs.App.Config.App.Jwt))
 		r.Route("/profile", func(r chi.Router) {
-			r.Get("/data", rs.UserProfileData)
+			r.Get("/", rs.UserProfileData)
 			r.Post("/dump", rs.UserProfileDump)
-			r.Patch("/update", rs.UserProfileUpdate)
-			r.Delete("/delete", rs.UserProfileDelete)
+			r.Patch("/", rs.UserProfileUpdate)
+			r.Delete("/", rs.UserProfileDelete)
 			r.Get("/orders", rs.UserProfileOrders)
 		})
 	})
@@ -90,8 +90,8 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Route("/products", func(r chi.Router) {
 			r.Get("/", rs.SellerGetProducts)
 			r.Post("/", rs.SellerCreateProduct)
-			r.Patch("/update/{id}", rs.SellerProductsUpdate)
-			r.Delete("/delete/{id}", rs.SellerProductsDelete)
+			r.Patch("/{id}", rs.SellerProductsUpdate)
+			r.Delete("/{id}", rs.SellerProductsDelete)
 		})
 		r.Route("/profile", func(r chi.Router) {
 			// routes

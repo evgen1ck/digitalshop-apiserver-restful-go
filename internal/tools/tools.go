@@ -214,9 +214,8 @@ func CheckEmailDomainExistence(addr string) (bool, error) {
 }
 
 func CapitalizeFirst(s string) string {
-	lower := strings.ToLower(s)
-	firstUpper := unicode.ToUpper(rune(lower[0]))
-	return string(firstUpper) + lower[1:]
+	firstLower := unicode.ToUpper(rune(s[0]))
+	return string(firstLower) + s[1:]
 }
 
 func UncapitalizeFirst(s string) string {

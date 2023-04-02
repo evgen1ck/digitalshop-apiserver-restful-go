@@ -12,24 +12,23 @@ import (
 	"time"
 )
 
+const (
+	folderName    = "logs"
+	fileFormat    = "02.01.06"
+	fileExtension = "log"
+)
+
 type Logger struct {
 	*zap.Logger
 }
 
-func NewZap(format string) (*Logger, error) {
-	logPath := "logs"
-	if err := os.MkdirAll(logPath, os.ModePerm); err != nil {
+func NewZap() (*Logger, error) {
+	if err := os.MkdirAll(folderName, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %v", err)
 	}
 
-	logFileName := fmt.Sprintf("%s", time.Now().Format("02.01.06"))
-	if format == "gz" {
-		logFileName += ".log.gz"
-	} else {
-		logFileName += ".log.zip"
-	}
-
-	logFile, err := os.OpenFile(filepath.Join(logPath, logFileName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logFileName := fmt.Sprintf("%s.%s", time.Now().Format(fileFormat), fileExtension)
+	logFile, err := os.OpenFile(filepath.Join(folderName, logFileName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file: %v", err)
 	}
