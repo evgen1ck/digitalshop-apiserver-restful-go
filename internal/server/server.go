@@ -21,17 +21,20 @@ import (
 )
 
 func Run() {
+	// Getting logger
 	zapLogger, err := logger.NewZap()
 	if err != nil {
 		panic(err)
 	}
 	defer zapLogger.Sync()
 
+	// Getting data config
 	cfg, err := config.SetupYaml()
 	if err != nil {
 		zapLogger.NewError("Error creating data config", err)
 	}
 
+	// Getting postgresql
 	pdb, err := database.NewPostgres(context.Background(), cfg.GetPostgresDSN())
 	if err != nil {
 		zapLogger.NewError("Error connecting to the database database", err)
@@ -68,8 +71,8 @@ func Run() {
 		_ = apiV1Server.ListenAndServe()
 	} else {
 		app.Logger.NewInfo("Server is running in tls mode")
-		go prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
-		go apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
+		_ = prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
+		_ = apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
 	}
 }
 

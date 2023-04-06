@@ -107,10 +107,10 @@ func RateLimitMiddleware(requests int, interval time.Duration) func(http.Handler
 	)
 }
 
-func ServiceUnavailableMiddleware(enable bool) func(http.Handler) http.Handler {
+func ServiceUnavailableMiddleware(unavailable bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if enable {
+			if unavailable {
 				RedRespond(w,
 					http.StatusServiceUnavailable,
 					"Service unavailable",
@@ -248,21 +248,21 @@ func HttpVersionCheckMiddleware(supportedHttpVersions []string) func(http.Handle
 	}
 }
 
-func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfHeaderName string, csrfCookieName string, csrfCookieDuration time.Duration) func(http.Handler) http.Handler {
+func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName string, csrfCookieDuration time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			safeMethods := []string{"GET", "HEAD", "OPTIONS", "TRACE"}
 
 			if !tl.StringInSlice(r.Method, safeMethods) {
 				// Get CSRF token from request header
-				requestToken := r.Header.Get(csrfHeaderName)
+				requestToken := r.Header.Get(csrfName)
 				if requestToken == "" {
 					RedRespond(w, http.StatusForbidden, "Forbidden", "CSRF token not found in header")
 					return
 				}
 
 				// Get CSRF token from request cookie
-				cookie, err := r.Cookie(csrfCookieName)
+				cookie, err := r.Cookie(csrfName)
 				if err != nil {
 					RedRespond(w, http.StatusForbidden, "Forbidden", "CSRF token not found in cookie")
 					return
@@ -300,7 +300,7 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfHeaderName
 
 			// Create a CSRF cookie with the new token
 			csrfCookie := &http.Cookie{
-				Name:     csrfCookieName,
+				Name:     csrfName,
 				Value:    token,
 				Path:     "/",
 				Expires:  time.Now().Add(csrfCookieDuration),
@@ -312,7 +312,7 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfHeaderName
 			http.SetCookie(w, csrfCookie)
 
 			// Set the CSRF token header for the response
-			w.Header().Set(csrfHeaderName, token)
+			w.Header().Set(csrfName, token)
 
 			// Call the next handler in the chain
 			next.ServeHTTP(w, r)

@@ -1,7 +1,6 @@
 package api_v1
 
 import (
-	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"test-server-go/internal/models"
@@ -19,15 +18,11 @@ var (
 	})
 )
 
-func SetupPrometheus(app models.Application) *chi.Mux {
-	r := app.Router
-
+func SetupPrometheus(app models.Application) {
 	prometheus.MustRegister(requestsProcessed)
 	prometheus.MustRegister(requestDuration)
 
-	r.Use(PrometheusMiddleware)
+	app.Router.Use(PrometheusMiddleware)
 
-	r.Handle("/prometheus/metrics", promhttp.Handler())
-
-	return r
+	app.Router.Handle("/prometheus/metrics", promhttp.Handler())
 }
