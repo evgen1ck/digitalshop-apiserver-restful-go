@@ -22,10 +22,13 @@ func ContextSetAuthenticatedUser(r *http.Request, data *auth.JwtClaims) error {
 }
 
 func ContextGetAuthenticatedUser(r *http.Request) (*auth.JwtClaims, error) {
-	user, ok := r.Context().Value(AuthenticatedUserContextKey).(*auth.JwtClaims)
+	value, ok := r.Context().Value(AuthenticatedUserContextKey).(*auth.JwtClaims)
 	if !ok {
 		return nil, errors.New("user context key not found")
 	}
+	if value == nil {
+		return nil, errors.New("user context key is null")
+	}
 
-	return user, nil
+	return value, nil
 }

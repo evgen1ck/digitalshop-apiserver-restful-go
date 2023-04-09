@@ -145,7 +145,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Block 4 - generating JWT
-	jwt, err := auth.GenerateJwt(userUuid.String(), rs.App.Config.App.Jwt)
+	jwt, err := auth.GenerateJwt(userUuid, rs.App.Config.App.Jwt)
 	if err != nil {
 		rs.App.Logger.NewError("error in generated jwt", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -160,7 +160,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		Email    string `json:"email"`
 	}{
 		Token:    jwt,
-		Uuid:     userUuid.String(),
+		Uuid:     userUuid,
 		Nickname: nickname,
 		Email:    email,
 	}

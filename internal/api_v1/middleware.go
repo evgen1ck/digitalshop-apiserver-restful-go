@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"test-server-go/internal/auth"
-	"test-server-go/internal/database"
 	"test-server-go/internal/logger"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
@@ -322,7 +321,7 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName strin
 	}
 }
 
-func AuthUserMiddleware(pg *database.Postgres, secret string, logger *logger.Logger) func(http.Handler) http.Handler {
+func AuthUserMiddleware(pg *storage.Postgres, secret string, logger *logger.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -347,7 +346,7 @@ func AuthUserMiddleware(pg *database.Postgres, secret string, logger *logger.Log
 				return
 			}
 
-			isUser, err := storage.CheckUserUuidExists(r.Context(), pg, claims.AccountUuid)
+			isUser, err := storage.CheckRoleOnUuidExists(r.Context(), pg, claims.AccountUuid, storage.RoleUser)
 			if err != nil {
 				RespondWithInternalServerError(w)
 				return

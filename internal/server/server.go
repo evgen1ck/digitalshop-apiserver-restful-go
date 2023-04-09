@@ -13,10 +13,10 @@ import (
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/api_v1/handlers"
 	"test-server-go/internal/config"
-	"test-server-go/internal/database"
 	"test-server-go/internal/logger"
 	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
+	"test-server-go/internal/storage"
 	"time"
 )
 
@@ -35,7 +35,7 @@ func Run() {
 	}
 
 	// Getting postgresql
-	pdb, err := database.NewPostgres(context.Background(), cfg.GetPostgresDSN())
+	pdb, err := storage.NewPostgres(context.Background(), cfg.GetPostgresDSN())
 	if err != nil {
 		zapLogger.NewError("Error connecting to the database database", err)
 	}
