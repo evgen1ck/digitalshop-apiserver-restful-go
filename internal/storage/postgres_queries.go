@@ -5,14 +5,8 @@ import (
 	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"test-server-go/internal/database"
 )
-
-type User struct {
-	Nickname string
-	Email    string
-	Password string
-}
 
 // Names style:
 // For creating a record: Create<Type>
@@ -21,8 +15,8 @@ type User struct {
 // For updating a record: Update<Type>
 // For deleting a record: Delete<Type>
 
-func CreateTempRegistration(ctx context.Context, pool *pgxpool.Pool, nickname, email, password, confirmationToken string) error {
-	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
+func CreateTempRegistration(ctx context.Context, pg *database.Postgres, nickname, email, password, confirmationToken string) error {
+	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
 		res, err := tx.Exec(ctx,
 			"INSERT INTO account.registration_temp(confirmation_token, nickname, email, password) VALUES ($1, $2, $3, $4)",
 			confirmationToken, nickname, email, password)
@@ -41,42 +35,42 @@ func CreateTempRegistration(ctx context.Context, pool *pgxpool.Pool, nickname, e
 	return nil
 }
 
-func CheckUserExists(ctx context.Context, pool *pgxpool.Pool, nickname, email string) (bool, bool, error) {
-	var nicknameExist, emailExist bool
+func CheckUserExists(ctx context.Context, pg *database.Postgres, nickname, email string) (bool, bool, error) {
+	var nicknameExists, emailExists bool
 
-	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
+	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx,
 			"SELECT EXISTS(SELECT 1 FROM account.user WHERE lower(nickname) = lower($1))::boolean AS username_exists, EXISTS(SELECT 1 FROM account.user WHERE lower(email) = lower($2))::boolean AS email_exists",
-			nickname, email).Scan(&nicknameExist, &emailExist)
+			nickname, email).Scan(&nicknameExists, &emailExists)
 		return err
 	})
 	if err != nil {
-		return nicknameExist, emailExist, err
+		return nicknameExists, emailExists, err
 	}
 
-	return nicknameExist, emailExist, nil
+	return nicknameExists, emailExists, nil
 }
 
-func GetTempRegistration(ctx context.Context, pool *pgxpool.Pool, token string) (User, error) {
-	var result User
+func GetTempRegistration(ctx context.Context, pg *database.Postgres, token string) (string, string, string, error) {
+	var nickname, email, password string
 
-	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
+	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx,
 			"SELECT nickname, email, password FROM account.registration_temp WHERE confirmation_token = $1",
-			token).Scan(&result.Nickname, &result.Email, &result.Password)
+			token).Scan(&nickname, &email, &password)
 		return err
 	})
 	if err != nil {
-		return result, err
+		return nickname, email, password, err
 	}
 
-	return result, nil
+	return nickname, email, password, nil
 }
 
-func CreateUser(ctx context.Context, pool *pgxpool.Pool, nickname, email, base64PasswordHash, base64Salt string) (uuid.UUID, error) {
+func CreateUser(ctx context.Context, pg *database.Postgres, nickname, email, base64PasswordHash, base64Salt string) (uuid.UUID, error) {
 	var result uuid.UUID
 
-	err := execInTx(ctx, pool, func(tx pgx.Tx) error {
+	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
 		res, err := tx.Exec(ctx,
 			"DELETE FROM account.registration_temp WHERE lower(nickname) = lower($1) OR email = $2",
 			nickname, email)
@@ -111,14 +105,30 @@ func CreateUser(ctx context.Context, pool *pgxpool.Pool, nickname, email, base64
 	return result, nil
 }
 
-func CheckCsrfTokenExists(ctx context.Context, pool *pgxpool.Pool, csrfToken string) (bool, error) {
+func CheckUserUuidExists(ctx context.Context, pg *database.Postgres, uuid string) (bool, error) {
+	var userExists bool
+
+	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
+		err := tx.QueryRow(ctx,
+			"SELECT EXISTS(select account_id from account.account where account_id = '$1' and account_status = '1')",
+			uuid).Scan(&userExists)
+		return err
+	})
+	if err != nil {
+		return userExists, err
+	}
+
+	return userExists, nil
+}
+
+func CheckCsrfTokenExists(ctx context.Context, pg *database.Postgres, csrfToken string) (bool, error) {
 	var result bool
 
 	return result, nil
 }
-func DeleteCsrfToken(ctx context.Context, pool *pgxpool.Pool, csrfToken string) error {
+func DeleteCsrfToken(ctx context.Context, pg *database.Postgres, csrfToken string) error {
 	return nil
 }
-func CreateCsrfToken(ctx context.Context, pool *pgxpool.Pool, csrfToken string) error {
+func CreateCsrfToken(ctx context.Context, pg *database.Postgres, csrfToken string) error {
 	return nil
 }

@@ -6,8 +6,6 @@ CREATE SCHEMA IF NOT EXISTS payment;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA account;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA product;
 
-
-
 DROP TABLE IF EXISTS account.status CASCADE;
 CREATE TABLE account.status
 (
@@ -50,8 +48,10 @@ CREATE TABLE account.registration_temp
 
 select * from account.registration_temp;
 select * from account.user;
+select * from account.account;
 
-delete from account.user where email = '77lm@mail.ru'
+
+delete from account.user where email = '';
 
 DROP TABLE IF EXISTS account.account CASCADE;
 CREATE TABLE account.account

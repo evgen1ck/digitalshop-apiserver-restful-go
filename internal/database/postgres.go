@@ -14,7 +14,7 @@ type Postgres struct {
 //
 // Example:
 //
-//	pdb, err := database.NewPostgres(context.Background(), "postgres://user:password@localhost:5432/databaseName?sslmode=disable")
+//	pdb, err := database.NewPostgres(r.Context(), "postgres://user:password@localhost:5432/databaseName?sslmode=disable")
 //	if err != nil {
 //		// Handle error
 //	}

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -51,7 +50,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 2 - checking for an existing nickname and email
-	nicknameExist, emailExist, err := storage.CheckUserExists(context.Background(), rs.App.Postgres.Pool, nickname, email)
+	nicknameExist, emailExist, err := storage.CheckUserExists(r.Context(), rs.App.Postgres, nickname, email)
 	if err != nil {
 		rs.App.Logger.NewError("error in checked the user existence", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -74,7 +73,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = storage.CreateTempRegistration(context.Background(), rs.App.Postgres.Pool, nickname, email, password, confirmationUrlToken)
+	err = storage.CreateTempRegistration(r.Context(), rs.App.Postgres, nickname, email, password, confirmationUrlToken)
 	if err != nil {
 		rs.App.Logger.NewError("error in inserted registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -119,8 +118,8 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Block 2 - get user data and checking on exist user
-	userData, err := storage.GetTempRegistration(context.Background(), rs.App.Postgres.Pool, token)
-	if userData.Email == "" {
+	nickname, email, password, err := storage.GetTempRegistration(r.Context(), rs.App.Postgres, token)
+	if password == "" {
 		api_v1.RespondWithConflict(w, "User not found")
 		return
 	}
@@ -131,14 +130,14 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Block 3 - hashing password and adding a user
-	base64PasswordHash, base64Salt, err := auth.HashPassword(userData.Password, "")
+	base64PasswordHash, base64Salt, err := auth.HashPassword(password, "")
 	if err != nil {
 		rs.App.Logger.NewError("error in generated hash password", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
-	userUuid, err := storage.CreateUser(context.Background(), rs.App.Postgres.Pool, userData.Nickname, userData.Email, base64PasswordHash, base64Salt)
+	userUuid, err := storage.CreateUser(r.Context(), rs.App.Postgres, nickname, email, base64PasswordHash, base64Salt)
 	if err != nil {
 		rs.App.Logger.NewError("error in registration user", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -162,8 +161,8 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	}{
 		Token:    jwt,
 		Uuid:     userUuid.String(),
-		Nickname: userData.Nickname,
-		Email:    userData.Email,
+		Nickname: nickname,
+		Email:    email,
 	}
 	api_v1.RespondWithCreated(w, response)
 }

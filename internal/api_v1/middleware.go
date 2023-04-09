@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"test-server-go/internal/auth"
+	"test-server-go/internal/database"
+	"test-server-go/internal/logger"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
 	tl "test-server-go/internal/tools"
@@ -269,7 +271,7 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName strin
 				}
 
 				// Check if the CSRF tokens match and is valid in the server-side store
-				existsCsrfToken, err := storage.CheckCsrfTokenExists(context.Background(), app.Postgres.Pool, requestToken)
+				existsCsrfToken, err := storage.CheckCsrfTokenExists(r.Context(), app.Postgres, requestToken)
 				if err != nil {
 					RespondWithInternalServerError(w)
 				}
@@ -279,7 +281,7 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName strin
 				}
 
 				// Remove the used token from the server-side store
-				err = storage.DeleteCsrfToken(context.Background(), app.Postgres.Pool, requestToken)
+				err = storage.DeleteCsrfToken(r.Context(), app.Postgres, requestToken)
 				if err != nil {
 					RespondWithInternalServerError(w)
 				}
@@ -293,7 +295,7 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName strin
 			}
 
 			// Save the generated token in the server-side store
-			err = storage.CreateCsrfToken(context.Background(), app.Postgres.Pool, token)
+			err = storage.CreateCsrfToken(r.Context(), app.Postgres, token)
 			if err != nil {
 				RespondWithInternalServerError(w)
 			}
@@ -320,19 +322,22 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName strin
 	}
 }
 
-func AuthUserMiddleware(secret string) func(http.Handler) http.Handler {
+func AuthUserMiddleware(pg *database.Postgres, secret string, logger *logger.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "No Authorization header provided")
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "No authorization header provided")
+				return
+			}
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "No bearer in header provided")
 				return
 			}
 
-			tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
-
+			tokenString := strings.Replace(strings.TrimSpace(authHeader), "Bearer ", "", 1)
 			if tokenString == "" {
-				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "No token provided")
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "No token header provided")
 				return
 			}
 
@@ -342,9 +347,22 @@ func AuthUserMiddleware(secret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "jwt_claims", claims)
+			isUser, err := storage.CheckUserUuidExists(r.Context(), pg, claims.AccountUuid)
+			if err != nil {
+				RespondWithInternalServerError(w)
+				return
+			}
+			if !isUser {
+				RedRespond(w, http.StatusForbidden, "Forbidden", "The account is not a user")
+				return
+			}
 
-			next.ServeHTTP(w, r.WithContext(ctx))
+			err = ContextSetAuthenticatedUser(r, claims)
+			if err != nil {
+				logger.NewError("Error in setting user auth context key", err)
+			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }

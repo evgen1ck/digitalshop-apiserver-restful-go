@@ -36,18 +36,18 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r.Use(api_v1.CorsMiddleware())
 
 	// Error handling
-	r.Use(api_v1.ServiceUnavailableMiddleware(serviceUnavailable))                            // Error 503 - Service Unavailable
-	r.Use(api_v1.RateLimitMiddleware(rateLimitRequests, rateLimitInterval))                   // Error 429 - Too Many Requests
-	r.Use(api_v1.UriLengthMiddleware(uriMaxLength))                                           // Error 414 - URI Too Long
-	r.Use(api_v1.RequestSizeMiddleware(requestMaxSize))                                       // Error 413 - Payload Too Large
-	r.Use(api_v1.UnprocessableEntityMiddleware)                                               // Error 422 - Unprocessable Entity
-	r.Use(api_v1.UnsupportedMediaTypeMiddleware(allowedContentTypes))                         // Error 415 - Unsupported Media Type
-	r.Use(api_v1.NotImplementedMiddleware(allowedMethods))                                    // Error 501 - Not implemented
-	r.Use(api_v1.MethodNotAllowedMiddleware)                                                  // Error 405 - Method Not Allowed
-	r.Use(api_v1.HttpVersionCheckMiddleware(supportedHttpVersions))                           // Error 505 - HTTP Version Not Supported
-	r.Use(api_v1.GatewayTimeoutMiddleware(timeout))                                           // Error 504 - Gateway Timeout
-	r.Use(api_v1.CsrfMiddleware(rs.App, csrfTokenLength, csrfHeaderName, csrfCookieDuration)) // Error 403 - Forbidden
-	r.NotFound(api_v1.NotFoundMiddleware())                                                   // Error 404 - Not Found
+	r.Use(api_v1.ServiceUnavailableMiddleware(serviceUnavailable))          // Error 503 - Service Unavailable
+	r.Use(api_v1.RateLimitMiddleware(rateLimitRequests, rateLimitInterval)) // Error 429 - Too Many Requests
+	r.Use(api_v1.UriLengthMiddleware(uriMaxLength))                         // Error 414 - URI Too Long
+	r.Use(api_v1.RequestSizeMiddleware(requestMaxSize))                     // Error 413 - Payload Too Large
+	r.Use(api_v1.UnprocessableEntityMiddleware)                             // Error 422 - Unprocessable Entity
+	r.Use(api_v1.UnsupportedMediaTypeMiddleware(allowedContentTypes))       // Error 415 - Unsupported Media Type
+	r.Use(api_v1.NotImplementedMiddleware(allowedMethods))                  // Error 501 - Not implemented
+	r.Use(api_v1.MethodNotAllowedMiddleware)                                // Error 405 - Method Not Allowed
+	r.Use(api_v1.HttpVersionCheckMiddleware(supportedHttpVersions))         // Error 505 - HTTP Version Not Supported
+	r.Use(api_v1.GatewayTimeoutMiddleware(timeout))                         // Error 504 - Gateway Timeout
+	r.NotFound(api_v1.NotFoundMiddleware())                                 // Error 404 - Not Found
+	//r.Use(api_v1.CsrfMiddleware(rs.App, csrfTokenLength, csrfHeaderName, csrfCookieDuration)) // Error 403 - Forbidden
 
 	rs.registerRoutes(r)
 
@@ -76,7 +76,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Get("/", rs.ProductsData)
 	})
 	r.Route("/user", func(r chi.Router) {
-		r.Use(api_v1.AuthUserMiddleware(rs.App.Config.App.Jwt))
+		r.Use(api_v1.AuthUserMiddleware(rs.App.Postgres, rs.App.Config.App.Jwt, rs.App.Logger))
 		r.Route("/profile", func(r chi.Router) {
 			r.Get("/", rs.UserProfileData)
 			r.Post("/dump", rs.UserProfileDump)
