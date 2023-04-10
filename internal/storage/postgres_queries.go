@@ -2,8 +2,7 @@ package storage
 
 import (
 	"context"
-	"errors"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -14,14 +13,6 @@ import (
 // For updating a record: Update<Type>
 // For deleting a record: Delete<Type>
 
-const (
-	FailedInsert = "failed to insert data"
-	FailedDelete = "failed to delete data"
-
-	RoleUser  = 1
-	RoleAdmin = 2
-)
-
 func CreateTempRegistration(ctx context.Context, pg *Postgres, nickname, email, password, confirmationToken string) error {
 	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
 		res, err := tx.Exec(ctx,
@@ -31,7 +22,7 @@ func CreateTempRegistration(ctx context.Context, pg *Postgres, nickname, email, 
 			return err
 		}
 		if res.RowsAffected() < 1 {
-			return errors.New(FailedInsert)
+			return FailedInsert
 		}
 		return err
 	})
@@ -85,7 +76,7 @@ func CreateUser(ctx context.Context, pg *Postgres, nickname, email, base64Passwo
 			return err
 		}
 		if res.RowsAffected() < 1 {
-			return errors.New(FailedDelete)
+			return FailedDelete
 		}
 
 		err = tx.QueryRow(ctx,
@@ -101,7 +92,7 @@ func CreateUser(ctx context.Context, pg *Postgres, nickname, email, base64Passwo
 			return err
 		}
 		if res.RowsAffected() < 1 {
-			return errors.New(FailedInsert)
+			return FailedInsert
 		}
 		return err
 	})
@@ -112,20 +103,41 @@ func CreateUser(ctx context.Context, pg *Postgres, nickname, email, base64Passwo
 	return result.String(), nil
 }
 
-func CheckRoleOnUuidExists(ctx context.Context, pg *Postgres, uuid string, role int) (bool, error) {
-	var roleExists bool
+func GetStateAccount(ctx context.Context, pg *Postgres, uuid, role string) (string, error) {
+	var state string
 
 	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx,
-			"SELECT EXISTS(select account_id from account.account where account_id = '$1' and account_state = '$2')",
-			uuid, role).Scan(&roleExists)
+			"select ast.state_name from account.account aa left join account.role ar on aa.account_role = ar.role_no left join account.state ast on aa.account_state = ast.state_no where aa.account_id = $1 and ar.role_name = $2",
+			uuid, role).Scan(&state)
 		return err
 	})
 	if err != nil {
-		return roleExists, err
+		return state, err
 	}
 
-	return roleExists, nil
+	return state, nil
+}
+
+func UpdateLastAccountActivity(ctx context.Context, pg *Postgres, uuid string) error {
+	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
+		res, err := tx.Exec(ctx,
+			"UPDATE account.account SET last_activity = CURRENT_TIMESTAMP where account.account_id = $1",
+			uuid)
+		if err != nil {
+			return err
+		}
+		if res.RowsAffected() < 1 {
+			return FailedUpdate
+		}
+
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func CheckCsrfTokenExists(ctx context.Context, pg *Postgres, csrfToken string) (bool, error) {

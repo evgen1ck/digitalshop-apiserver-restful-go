@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"math/big"
 	"net"
@@ -239,4 +240,18 @@ func ContainsStringInSlice(s string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func UuidToStringNoDashes(s uuid.UUID) string {
+	return strings.ReplaceAll(s.String(), "-", "")
+}
+
+func StringNoDashesToUuid(s string) (uuid.UUID, error) {
+	return uuid.Parse(strings.Join([]string{
+		s[0:8],
+		s[8:12],
+		s[12:16],
+		s[16:20],
+		s[20:32],
+	}, "-"))
 }

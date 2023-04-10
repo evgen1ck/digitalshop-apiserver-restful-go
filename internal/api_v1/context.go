@@ -8,21 +8,16 @@ import (
 )
 
 const (
-	AuthenticatedUserContextKey = "jwt_data"
+	AuthenticatedContextKey = "jwt_data"
 )
 
-func ContextSetAuthenticatedUser(r *http.Request, data *auth.JwtClaims) error {
-	if _, ok := r.Context().Value(AuthenticatedUserContextKey).(*auth.JwtClaims); ok {
-		return errors.New("authenticated user context key already exists")
-	}
-
-	context.WithValue(r.Context(), AuthenticatedUserContextKey, data)
-
+func ContextSetAuthenticated(r *http.Request, data *auth.JwtClaims) error {
+	context.WithValue(r.Context(), AuthenticatedContextKey, data)
 	return nil
 }
 
-func ContextGetAuthenticatedUser(r *http.Request) (*auth.JwtClaims, error) {
-	value, ok := r.Context().Value(AuthenticatedUserContextKey).(*auth.JwtClaims)
+func ContextGetAuthenticated(r *http.Request) (*auth.JwtClaims, error) {
+	value, ok := r.Context().Value(AuthenticatedContextKey).(*auth.JwtClaims)
 	if !ok {
 		return nil, errors.New("user context key not found")
 	}

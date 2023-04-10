@@ -49,7 +49,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
 	}
 
-	// Block 2 - checking for an existing nickname and email
+	// Block 2 - check for an exists nickname and email
 	nicknameExist, emailExist, err := storage.CheckUserExists(r.Context(), rs.App.Postgres, nickname, email)
 	if err != nil {
 		rs.App.Logger.NewError("error in checked the user existence", err)
@@ -65,7 +65,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Block 3 - generating token and inserting a temporary account record
+	// Block 3 - generate token and insert a temporary account record
 	confirmationUrlToken, err := tl.GenerateURLToken(256)
 	if err != nil {
 		rs.App.Logger.NewError("error in generated url token", err)
@@ -80,7 +80,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Block 4 - generating url and sending url on email
+	// Block 4 - generate url and send url on email
 	url, err := tl.UrlSetParam(rs.App.Config.App.Service.Url.App+"/confirm-signup", "token", confirmationUrlToken)
 	if err != nil {
 		rs.App.Logger.NewError("error in url set param", err)
@@ -95,7 +95,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Block 5 - sending the result
+	// Block 5 - send the result
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -117,7 +117,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Block 2 - get user data and checking on exist user
+	// Block 2 - get user data and check on exist user
 	nickname, email, password, err := storage.GetTempRegistration(r.Context(), rs.App.Postgres, token)
 	if password == "" {
 		api_v1.RespondWithConflict(w, "User not found")
@@ -129,7 +129,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Block 3 - hashing password and adding a user
+	// Block 3 - hash password and add a user
 	base64PasswordHash, base64Salt, err := auth.HashPassword(password, "")
 	if err != nil {
 		rs.App.Logger.NewError("error in generated hash password", err)
@@ -144,7 +144,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Block 4 - generating JWT
+	// Block 4 - generate JWT
 	jwt, err := auth.GenerateJwt(userUuid, rs.App.Config.App.Jwt)
 	if err != nil {
 		rs.App.Logger.NewError("error in generated jwt", err)
@@ -152,7 +152,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Block 5 - sending the result
+	// Block 5 - send the result
 	response := struct {
 		Token    string `json:"token"`
 		Uuid     string `json:"uuid"`

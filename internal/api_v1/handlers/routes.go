@@ -4,6 +4,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/models"
+	"test-server-go/internal/storage"
 	"time"
 )
 
@@ -14,9 +15,9 @@ const (
 	requestMaxSize     = 12 * 1024 * 1024 // 12 MB
 	uriMaxLength       = 1024             // 1024 runes
 	serviceUnavailable = false
-	csrfTokenLength    = 32
-	csrfHeaderName     = "X-CSRF-Token"
-	csrfCookieDuration = 30 * time.Minute
+	//csrfTokenLength    = 32
+	//csrfHeaderName     = "X-CSRF-Token"
+	//csrfCookieDuration = 30 * time.Minute
 )
 
 var (
@@ -76,7 +77,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Get("/", rs.ProductsData)
 	})
 	r.Route("/user", func(r chi.Router) {
-		r.Use(api_v1.AuthUserMiddleware(rs.App.Postgres, rs.App.Config.App.Jwt, rs.App.Logger))
+		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleUser))
 		r.Route("/profile", func(r chi.Router) {
 			r.Get("/", rs.UserProfileData)
 			r.Post("/dump", rs.UserProfileDump)
@@ -86,6 +87,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		})
 	})
 	r.Route("/admin", func(r chi.Router) {
+		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
 		r.Route("/products", func(r chi.Router) {
 			r.Get("/", rs.AdminGetProducts)
 			r.Post("/", rs.AdminCreateProduct)
@@ -95,5 +97,10 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Route("/profile", func(r chi.Router) {
 			// routes
 		})
+	})
+	r.Route("/resources", func(r chi.Router) {
+		r.Get("/profile_image/{id}", rs.ResourcesGetAvatarImage)
+		r.Get("/product_image/{id}", rs.ResourcesGetProductImage)
+		r.Get("/svg_file/{id}", rs.ResourcesGetSvgFile)
 	})
 }

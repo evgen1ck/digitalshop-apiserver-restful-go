@@ -163,7 +163,7 @@ func MethodNotAllowedMiddleware(next http.Handler) http.Handler {
 			RedRespond(w,
 				http.StatusMethodNotAllowed,
 				"Method not allowed",
-				"The requested method ("+strings.ToUpper(r.Method)+") is not allowed for the specified resource")
+				"The requested method ("+r.Method+") is not allowed for the specified resource")
 			return
 		}
 	})
@@ -321,7 +321,7 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName strin
 	}
 }
 
-func AuthUserMiddleware(pg *storage.Postgres, secret string, logger *logger.Logger) func(http.Handler) http.Handler {
+func JwtAuthMiddleware(pg *storage.Postgres, logger *logger.Logger, secret, role string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -334,32 +334,48 @@ func AuthUserMiddleware(pg *storage.Postgres, secret string, logger *logger.Logg
 				return
 			}
 
+			// Get token
 			tokenString := strings.Replace(strings.TrimSpace(authHeader), "Bearer ", "", 1)
 			if tokenString == "" {
 				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "No token header provided")
 				return
 			}
 
+			// Parse jwt token
 			claims, err := auth.ParseJwtToken(tokenString, secret)
 			if err != nil {
 				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Invalid token")
 				return
 			}
 
-			isUser, err := storage.CheckRoleOnUuidExists(r.Context(), pg, claims.AccountUuid, storage.RoleUser)
-			if err != nil {
+			// Get account state and check on exists
+			state, err := storage.GetStateAccount(r.Context(), pg, claims.AccountUuid, role)
+			if err == storage.NoResults {
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of "+role+"s")
+				return
+			} else if err != nil {
 				RespondWithInternalServerError(w)
 				return
 			}
-			if !isUser {
-				RedRespond(w, http.StatusForbidden, "Forbidden", "The account is not a user")
+
+			// Check account on state (blocked, deleted...)
+			switch state {
+			case storage.AccountStateBlocked:
+				RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been blocked")
+				return
+			case storage.AccountStateDeleted:
+				RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been deleted")
 				return
 			}
 
-			err = ContextSetAuthenticatedUser(r, claims)
+			// Set context key
+			err = ContextSetAuthenticated(r, claims)
 			if err != nil {
-				logger.NewError("Error in setting user auth context key", err)
+				logger.NewError("Error in setting auth context key", err)
 			}
+
+			// Update last account activity
+			storage.UpdateLastAccountActivity(r.Context(), pg, claims.AccountUuid)
 
 			next.ServeHTTP(w, r)
 		})

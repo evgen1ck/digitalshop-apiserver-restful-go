@@ -14,12 +14,11 @@ select * from account.account;
 DROP TABLE IF EXISTS account.state CASCADE;
 CREATE TABLE account.state
 (
-	state_no	smallserial	,
+	state_no	smallserial	PRIMARY KEY,
 	state_name  text 		NOT NULL UNIQUE,
     created_at  timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary	text		NULL,
-	PRIMARY KEY (state_no)
+    commentary	text		NULL
 );
 INSERT INTO account.state(state_name) VALUES ('active'), ('blocked'), ('deleted');
 
@@ -28,25 +27,24 @@ INSERT INTO account.state(state_name) VALUES ('active'), ('blocked'), ('deleted'
 DROP TABLE IF EXISTS account.registration_method CASCADE;
 CREATE TABLE account.registration_method
 (
-    registration_method_no	    smallserial	,
+    registration_method_no	    smallserial	PRIMARY KEY,
     registration_method_name    text        NOT NULL UNIQUE,
     created_at                  timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at         	    timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary			        text		NULL,
-    PRIMARY KEY (registration_method_no)
+    commentary			        text		NULL
 );
 INSERT INTO account.registration_method(registration_method_name) VALUES ('web application'), ('telegram account'), ('google account');
 
 
 
+DROP TABLE IF EXISTS account.role CASCADE;
 CREATE TABLE account.role
 (
-    role_no      smallserial ,
+    role_no      smallserial PRIMARY KEY,
     role_name    text        NOT NULL UNIQUE,
     created_at   timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at  timestamp	 NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary   text		 NULL,
-    PRIMARY KEY (role_no)
+    commentary   text		 NULL
 );
 INSERT INTO account.role(role_name) VALUES ('user'), ('admin');
 
@@ -55,12 +53,11 @@ INSERT INTO account.role(role_name) VALUES ('user'), ('admin');
 DROP TABLE IF EXISTS account.registration_temp_data CASCADE;
 CREATE TABLE account.registration_temp_data
 (
-    confirmation_token      text        ,
+    confirmation_token      text        PRIMARY KEY,
     nickname                text        NOT NULL,
     email                   text        NOT NULL,
     password                text        NOT NULL,
-    expiration              timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP + interval '10 minute',
-    PRIMARY KEY (confirmation_token)
+    expiration              timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP + interval '10 minute'
 );
 
 
@@ -68,21 +65,22 @@ CREATE TABLE account.registration_temp_data
 DROP TABLE IF EXISTS account.account CASCADE;
 CREATE TABLE account.account
 (
-    account_id              uuid        DEFAULT account.UUID_GENERATE_V4(),
+    account_id              uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
     account_state   	    smallint 	NOT NULL DEFAULT 1,
     account_role            smallint    NOT NULL DEFAULT 1,
     last_change_state       timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     registration_method     smallint    NOT NULL DEFAULT 1,
-	timestamp_last_activity	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	last_activity	        timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at              timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at         	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary			    text		NULL,
-    PRIMARY KEY (account_id),
-    FOREIGN KEY (account_state) REFERENCES account.status(status_no),
+    FOREIGN KEY (account_state) REFERENCES account.state(state_no),
     FOREIGN KEY (account_role) REFERENCES account.role(role_no),
     FOREIGN KEY (registration_method) REFERENCES account.registration_method(registration_method_no)
 );
-SELECT EXISTS(select account_id from account.account aa inner join account.role ar on AA.account_role = ar.role_no where account_id = '' and account_role = '2');
+
+
+
 DROP TABLE IF EXISTS account.user CASCADE;
 CREATE TABLE account.user
 (
@@ -115,7 +113,7 @@ CREATE TABLE account.employee
     surname                 text        NOT NULL,
     name                    text        NOT NULL,
     patronymic              text        NULL,
-    password 				bytea		NOT NULL,
+    password 				text		NOT NULL,
     salt_for_password       text        NOT NULL,
     modified_at         	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary			    text		NULL,
@@ -134,26 +132,24 @@ CREATE TABLE account.employee
 DROP TABLE IF EXISTS product.state CASCADE;
 CREATE TABLE product.state
 (
-    state_no	smallserial	,
+    state_no	smallserial	PRIMARY KEY,
     state_name  text 	    NOT NULL UNIQUE,
     created_at  timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary	text		NULL,
-    PRIMARY KEY (state_no)
+    commentary	text		NULL
 );
-INSERT INTO account.state(state_name) VALUES ('active'), ('temporarily unavailable'), ('blocked'), ('deleted');
+INSERT INTO product.state(state_name) VALUES ('active'), ('temporarily unavailable'), ('blocked'), ('deleted');
 
 
 
 DROP TABLE IF EXISTS product.type CASCADE;
 CREATE TABLE product.type
 (
-    type_no	    smallserial	,
+    type_no	    smallserial	PRIMARY KEY,
     type_name   text 		NOT NULL UNIQUE,
     created_at  timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary  text		NULL,
-    PRIMARY KEY (type_no)
+    commentary  text		NULL
 );
 INSERT INTO product.type(type_name) VALUES ('game'), ('other');
 
@@ -162,12 +158,11 @@ INSERT INTO product.type(type_name) VALUES ('game'), ('other');
 DROP TABLE IF EXISTS product.category CASCADE;
 CREATE TABLE product.category
 (
-    category_no	    smallserial	,
+    category_no	    smallserial	PRIMARY KEY,
     category_name   text 		NOT NULL UNIQUE,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary      text		NULL,
-    PRIMARY KEY (category_no)
+    commentary      text		NULL
 );
 INSERT INTO product.category(category_name) VALUES ('key'), ('gift'), ('text'), ('link'), ('code');
 
@@ -176,12 +171,11 @@ INSERT INTO product.category(category_name) VALUES ('key'), ('gift'), ('text'), 
 DROP TABLE IF EXISTS product.service CASCADE;
 CREATE TABLE product.service
 (
-    service_no	    smallserial	,
+    service_no	    smallserial	PRIMARY KEY,
     service_name    text 		NOT NULL UNIQUE,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at    	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary	    text		NULL,
-    PRIMARY KEY (service_no)
+    commentary	    text		NULL
 );
 INSERT INTO product.service(service_name) VALUES ('Steam'), ('Ubisoft'), ('Epic Games'), ('Electronic Arts'), ('Ozon'), ('Wildberries'), ('Ivi'), ('YouTube');
 
@@ -190,14 +184,13 @@ INSERT INTO product.service(service_name) VALUES ('Steam'), ('Ubisoft'), ('Epic 
 DROP TABLE IF EXISTS product.product CASCADE;
 CREATE TABLE product.product
 (
-    product_id      uuid        DEFAULT account.UUID_GENERATE_V4(),
+    product_id      uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
     product_type    smallint    NOT NULL,
     product_name    text        NOT NULL UNIQUE,
     product_desc    text        NOT NULL,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary		text		NULL,
-    PRIMARY KEY (product_id),
     FOREIGN KEY (product_type) REFERENCES product.type(type_no)
 );
 
@@ -206,8 +199,8 @@ CREATE TABLE product.product
 DROP TABLE IF EXISTS product.variant CASCADE;
 CREATE TABLE product.variant
 (
-    product_id          uuid        NOT NULL,
-    variant_name        text        NOT NULL UNIQUE,
+    product_id          uuid        ,
+    variant_name        text        ,
     variant_desc        text        NOT NULL,
     product_service     smallint    NOT NULL,
     product_category    smallint    NOT NULL,
