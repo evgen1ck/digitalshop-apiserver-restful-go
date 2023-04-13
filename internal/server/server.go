@@ -21,6 +21,36 @@ import (
 )
 
 func Run() {
+	app := setupConfig()
+
+	setupRouter(*app)
+
+	prometheusServer := &http.Server{
+		Addr:    "localhost:" + strconv.Itoa(app.Config.Prometheus.Port),
+		Handler: app.Router,
+	}
+	apiV1Server := &http.Server{
+		Addr:    "localhost:" + strconv.Itoa(app.Config.App.Port),
+		Handler: app.Router,
+	}
+
+	go shutdownServer(prometheusServer, app.Logger, "Prometheus API")
+	go shutdownServer(apiV1Server, app.Logger, "Service API v1")
+
+	if app.Config.App.Debug {
+		app.Logger.NewInfo("Prometheus API will be running in debug mode on " + prometheusServer.Addr)
+		app.Logger.NewInfo("Service API v1 will be running in debug mode on " + apiV1Server.Addr)
+		_ = prometheusServer.ListenAndServe()
+		_ = apiV1Server.ListenAndServe()
+	} else {
+		app.Logger.NewInfo("Prometheus API will be running in tls mode on" + prometheusServer.Addr)
+		app.Logger.NewInfo("Service API v1 will be running in tls mode on" + apiV1Server.Addr)
+		_ = prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
+		_ = apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
+	}
+}
+
+func setupConfig() *models.Application {
 	// Getting logger
 	zapLogger, err := logger.NewZap()
 	if err != nil {
@@ -49,31 +79,11 @@ func Run() {
 		Router:   chi.NewRouter(),
 	}
 
-	fmt.Println(app.Config)
-
-	setupRouter(app)
-
-	prometheusServer := &http.Server{
-		Addr:    "localhost:" + strconv.Itoa(app.Config.App.Port),
-		Handler: app.Router,
-	}
-	apiV1Server := &http.Server{
-		Addr:    "localhost:" + strconv.Itoa(app.Config.App.Port),
-		Handler: app.Router,
-	}
-
-	go shutdownServer(prometheusServer, zapLogger, "Prometheus API")
-	go shutdownServer(apiV1Server, zapLogger, "Service API v1")
-
 	if app.Config.App.Debug {
-		app.Logger.NewInfo("Server is running in debug mode")
-		_ = prometheusServer.ListenAndServe()
-		_ = apiV1Server.ListenAndServe()
-	} else {
-		app.Logger.NewInfo("Server is running in tls mode")
-		_ = prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
-		_ = apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
+		fmt.Println(app.Config)
 	}
+
+	return &app
 }
 
 func shutdownServer(srv *http.Server, logger *logger.Logger, serviceName string) {
