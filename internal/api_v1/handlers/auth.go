@@ -8,7 +8,30 @@ import (
 	"test-server-go/internal/auth"
 	"test-server-go/internal/storage"
 	tl "test-server-go/internal/tools"
+	"time"
 )
+
+type authResponse struct {
+	Token     string `json:"token"`
+	Role      string `json:"role"`
+	Uuid      string `json:"uuid"`
+	Nickname  string `json:"nickname"`
+	Email     string `json:"email"`
+	AvatarUrl string `json:"avatar_url"`
+}
+
+func returnAuthResponse(token, uuid, nickname, email, role, apiUrl string) *authResponse {
+	response := authResponse{
+		Token:     token,
+		Role:      role,
+		Uuid:      uuid,
+		Nickname:  nickname,
+		Email:     email,
+		AvatarUrl: apiUrl + storage.ResourcesAvatarImage,
+	}
+
+	return &response
+}
 
 func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	var input struct {
@@ -52,7 +75,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	// Block 2 - check for an exists nickname and email
 	nicknameExist, emailExist, err := storage.CheckUserExists(r.Context(), rs.App.Postgres, nickname, email)
 	if err != nil {
-		rs.App.Logger.NewError("error in checked the user existence", err)
+		rs.App.Logger.NewWarn("error in checked the user existence", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -68,14 +91,14 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	// Block 3 - generate token and insert a temporary account record
 	confirmationUrlToken, err := tl.GenerateURLToken(256)
 	if err != nil {
-		rs.App.Logger.NewError("error in generated url token", err)
+		rs.App.Logger.NewWarn("error in generated url token", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
 	err = storage.CreateTempRegistration(r.Context(), rs.App.Postgres, nickname, email, password, confirmationUrlToken)
 	if err != nil {
-		rs.App.Logger.NewError("error in inserted registration temp record", err)
+		rs.App.Logger.NewWarn("error in inserted registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -83,14 +106,14 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	// Block 4 - generate url and send url on email
 	url, err := tl.UrlSetParam(rs.App.Config.App.Service.Url.App+"/confirm-signup", "token", confirmationUrlToken)
 	if err != nil {
-		rs.App.Logger.NewError("error in url set param", err)
+		rs.App.Logger.NewWarn("error in url set param", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
 	err = rs.App.Mailer.SendEmailConfirmation(nickname, email, url)
 	if err != nil {
-		rs.App.Logger.NewError("error in sent email confirmation", err)
+		rs.App.Logger.NewWarn("error in sent email confirmation", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -124,7 +147,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err != nil {
-		rs.App.Logger.NewError("error in checked registration temp record", err)
+		rs.App.Logger.NewWarn("error in checked registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -132,38 +155,29 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	// Block 3 - hash password and add a user
 	base64PasswordHash, base64Salt, err := auth.HashPassword(password, "")
 	if err != nil {
-		rs.App.Logger.NewError("error in generated hash password", err)
+		rs.App.Logger.NewWarn("error in generated hash password", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
 	userUuid, err := storage.CreateUser(r.Context(), rs.App.Postgres, nickname, email, base64PasswordHash, base64Salt)
 	if err != nil {
-		rs.App.Logger.NewError("error in registration user", err)
+		rs.App.Logger.NewWarn("error in registration user", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
 	// Block 4 - generate JWT
-	jwt, err := auth.GenerateJwt(userUuid, rs.App.Config.App.Jwt)
+	jwtToken, err := auth.GenerateJwt(userUuid, rs.App.Config.App.Jwt)
 	if err != nil {
-		rs.App.Logger.NewError("error in generated jwt", err)
+		rs.App.Logger.NewWarn("error in generated jwt", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
 	// Block 5 - send the result
-	response := struct {
-		Token    string `json:"token"`
-		Uuid     string `json:"uuid"`
-		Nickname string `json:"nickname"`
-		Email    string `json:"email"`
-	}{
-		Token:    jwt,
-		Uuid:     userUuid,
-		Nickname: nickname,
-		Email:    email,
-	}
+	response := returnAuthResponse(jwtToken, userUuid, nickname, email, storage.AccountRoleUser, rs.App.Config.App.Service.Url.Api)
+
 	api_v1.RespondWithCreated(w, response)
 }
 
@@ -171,4 +185,16 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request)           
 func (rs *Resolver) AuthLoginWithToken(w http.ResponseWriter, r *http.Request)           {}
 func (rs *Resolver) AuthRecoverPassword(w http.ResponseWriter, r *http.Request)          {}
 func (rs *Resolver) AuthRecoverPasswordWithToken(w http.ResponseWriter, r *http.Request) {}
-func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request)                   {}
+
+func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
+	token, data, err := api_v1.ContextGetAuthenticated(r)
+	if err != nil {
+		api_v1.RespondWithInternalServerError(w)
+		rs.App.Logger.NewWarn("error in took jwt data", err)
+		return
+	}
+	ttl := data.ExpiresAt.Sub(time.Now())
+	storage.CreateBlockedToken(r.Context(), rs.App.Redis, token, ttl)
+
+	w.WriteHeader(http.StatusNoContent)
+}

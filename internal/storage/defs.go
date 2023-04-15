@@ -12,6 +12,8 @@ const (
 	AccountStateActive  = "active"
 	AccountStateBlocked = "blocked"
 	AccountStateDeleted = "deleted"
+
+	ResourcesAvatarImage = "/resources/profile_image/"
 )
 
 var (

@@ -321,7 +321,7 @@ func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName strin
 	}
 }
 
-func JwtAuthMiddleware(pg *storage.Postgres, logger *logger.Logger, secret, role string) func(http.Handler) http.Handler {
+func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger.Logger, secret, role string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -342,19 +342,38 @@ func JwtAuthMiddleware(pg *storage.Postgres, logger *logger.Logger, secret, role
 			}
 
 			// Parse jwt token
-			claims, err := auth.ParseJwtToken(tokenString, secret)
+			jwtData, err := auth.ParseJwtToken(tokenString, secret)
 			if err != nil {
 				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Invalid token")
 				return
 			}
 
+			// Check token expiration
+			if jwtData.ExpiresAt != nil && jwtData.ExpiresAt.Time.Before(time.Now()) {
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Token expired")
+				return
+			}
+
+			// Check if token is in blacklist
+			tokenInBlacklist, err := storage.CheckBlockedTokenExists(r.Context(), rdb, tokenString)
+			if err != nil {
+				RespondWithInternalServerError(w)
+				logger.NewWarn("Error in founding account in the list", err)
+				return
+			}
+			if tokenInBlacklist {
+				RedRespond(w, http.StatusForbidden, "Forbidden", "This token is blocked")
+				return
+			}
+
 			// Get account state and check on exists
-			state, err := storage.GetStateAccount(r.Context(), pg, claims.AccountUuid, role)
+			state, err := storage.GetStateAccount(r.Context(), pdb, jwtData.AccountUuid, role)
 			if err == storage.NoResults {
 				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of "+role+"s")
 				return
 			} else if err != nil {
 				RespondWithInternalServerError(w)
+				logger.NewWarn("Error in founding account in the list", err)
 				return
 			}
 
@@ -369,13 +388,15 @@ func JwtAuthMiddleware(pg *storage.Postgres, logger *logger.Logger, secret, role
 			}
 
 			// Set context key
-			err = ContextSetAuthenticated(r, claims)
+			err = ContextSetAuthenticated(r, tokenString, jwtData)
 			if err != nil {
-				logger.NewError("Error in setting auth context key", err)
+				RespondWithInternalServerError(w)
+				logger.NewWarn("Error in setting auth context key", err)
+				return
 			}
 
 			// Update last account activity
-			storage.UpdateLastAccountActivity(r.Context(), pg, claims.AccountUuid)
+			storage.UpdateLastAccountActivity(r.Context(), pdb, jwtData.AccountUuid)
 
 			next.ServeHTTP(w, r)
 		})

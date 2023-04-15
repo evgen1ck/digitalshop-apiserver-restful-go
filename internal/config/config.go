@@ -5,7 +5,6 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
-	"strconv"
 )
 
 type Config struct {
@@ -45,6 +44,12 @@ type Config struct {
 		Port     int    `yaml:"port"`
 		Database string `yaml:"database"`
 	} `yaml:"postgres"`
+	Redis struct {
+		Password string `yaml:"password"`
+		Ip       string `yaml:"ip"`
+		Port     int    `yaml:"port"`
+		Database int    `yaml:"database"`
+	} `yaml:"redis"`
 	Tls struct {
 		CertFile string `yaml:"certfile"`
 		KeyFile  string `yaml:"keyfile"`
@@ -93,10 +98,16 @@ func SetupYaml() (*Config, error) {
 
 	// Postgres
 	flag.StringVar(&cfg.Postgres.User, "postgres-user", cfg.Postgres.User, "username for postgres")
-	flag.StringVar(&cfg.Postgres.Password, "postgres-password", cfg.Postgres.Password, "password for postgres username")
+	flag.StringVar(&cfg.Postgres.Password, "postgres-password", cfg.Postgres.Password, "password for postgres password")
 	flag.StringVar(&cfg.Postgres.Ip, "postgres-ip", cfg.Postgres.Ip, "hostname/address for postgres")
 	flag.IntVar(&cfg.Postgres.Port, "postgres-port", cfg.Postgres.Port, "port for postgres")
 	flag.StringVar(&cfg.Postgres.Database, "postgres-database", cfg.Postgres.Database, "maintenance database for postgres")
+
+	// Redis
+	flag.StringVar(&cfg.Redis.Password, "redis-password", cfg.Redis.Password, "password for redis password")
+	flag.StringVar(&cfg.Redis.Ip, "redis-ip", cfg.Redis.Ip, "hostname/address for redis")
+	flag.IntVar(&cfg.Redis.Port, "redis-port", cfg.Redis.Port, "port for redis")
+	flag.IntVar(&cfg.Redis.Database, "redis-database", cfg.Redis.Database, "maintenance database for redis")
 
 	// TLS
 	flag.StringVar(&cfg.Tls.CertFile, "tls-certfile", cfg.Tls.CertFile, "tls certificate file")
@@ -105,12 +116,4 @@ func SetupYaml() (*Config, error) {
 	flag.Parse()
 
 	return &cfg, nil
-}
-
-func (cfg *Config) GetPostgresDSN() string {
-	return cfg.Postgres.User + ":" +
-		cfg.Postgres.Password + "@" +
-		cfg.Postgres.Ip + ":" +
-		strconv.Itoa(cfg.Postgres.Port) + "/" +
-		cfg.Postgres.Database
 }

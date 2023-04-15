@@ -13,8 +13,8 @@ import (
 // For updating a record: Update<Type>
 // For deleting a record: Delete<Type>
 
-func CreateTempRegistration(ctx context.Context, pg *Postgres, nickname, email, password, confirmationToken string) error {
-	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
+func CreateTempRegistration(ctx context.Context, pdb *Postgres, nickname, email, password, confirmationToken string) error {
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
 		res, err := tx.Exec(ctx,
 			"INSERT INTO account.registration_temp_data(confirmation_token, nickname, email, password) VALUES ($1, $2, $3, $4)",
 			confirmationToken, nickname, email, password)
@@ -33,10 +33,10 @@ func CreateTempRegistration(ctx context.Context, pg *Postgres, nickname, email, 
 	return nil
 }
 
-func CheckUserExists(ctx context.Context, pg *Postgres, nickname, email string) (bool, bool, error) {
+func CheckUserExists(ctx context.Context, pdb *Postgres, nickname, email string) (bool, bool, error) {
 	var nicknameExists, emailExists bool
 
-	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx,
 			"SELECT EXISTS(SELECT 1 FROM account.user WHERE lower(nickname) = lower($1))::boolean, EXISTS(SELECT 1 FROM account.user WHERE lower(email) = lower($2))::boolean",
 			nickname, email).Scan(&nicknameExists, &emailExists)
@@ -49,10 +49,10 @@ func CheckUserExists(ctx context.Context, pg *Postgres, nickname, email string) 
 	return nicknameExists, emailExists, nil
 }
 
-func GetTempRegistration(ctx context.Context, pg *Postgres, token string) (string, string, string, error) {
+func GetTempRegistration(ctx context.Context, pdb *Postgres, token string) (string, string, string, error) {
 	var nickname, email, password string
 
-	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx,
 			"SELECT nickname, email, password FROM account.registration_temp_data WHERE confirmation_token = $1",
 			token).Scan(&nickname, &email, &password)
@@ -65,10 +65,10 @@ func GetTempRegistration(ctx context.Context, pg *Postgres, token string) (strin
 	return nickname, email, password, nil
 }
 
-func CreateUser(ctx context.Context, pg *Postgres, nickname, email, base64PasswordHash, base64Salt string) (string, error) {
+func CreateUser(ctx context.Context, pdb *Postgres, nickname, email, base64PasswordHash, base64Salt string) (string, error) {
 	var result uuid.UUID
 
-	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
 		res, err := tx.Exec(ctx,
 			"DELETE FROM account.registration_temp_data WHERE lower(nickname) = lower($1) OR email = $2",
 			nickname, email)
@@ -103,10 +103,10 @@ func CreateUser(ctx context.Context, pg *Postgres, nickname, email, base64Passwo
 	return result.String(), nil
 }
 
-func GetStateAccount(ctx context.Context, pg *Postgres, uuid, role string) (string, error) {
+func GetStateAccount(ctx context.Context, pdb *Postgres, uuid, role string) (string, error) {
 	var state string
 
-	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx,
 			"select ast.state_name from account.account aa left join account.role ar on aa.account_role = ar.role_no left join account.state ast on aa.account_state = ast.state_no where aa.account_id = $1 and ar.role_name = $2",
 			uuid, role).Scan(&state)
@@ -119,8 +119,8 @@ func GetStateAccount(ctx context.Context, pg *Postgres, uuid, role string) (stri
 	return state, nil
 }
 
-func UpdateLastAccountActivity(ctx context.Context, pg *Postgres, uuid string) error {
-	err := execInTx(ctx, pg.Pool, func(tx pgx.Tx) error {
+func UpdateLastAccountActivity(ctx context.Context, pdb *Postgres, uuid string) error {
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
 		res, err := tx.Exec(ctx,
 			"UPDATE account.account SET last_activity = CURRENT_TIMESTAMP where account.account_id = $1",
 			uuid)
@@ -140,14 +140,14 @@ func UpdateLastAccountActivity(ctx context.Context, pg *Postgres, uuid string) e
 	return nil
 }
 
-func CheckCsrfTokenExists(ctx context.Context, pg *Postgres, csrfToken string) (bool, error) {
+func CheckCsrfTokenExists(ctx context.Context, pdb *Postgres, csrfToken string) (bool, error) {
 	var result bool
 
 	return result, nil
 }
-func DeleteCsrfToken(ctx context.Context, pg *Postgres, csrfToken string) error {
+func DeleteCsrfToken(ctx context.Context, pdb *Postgres, csrfToken string) error {
 	return nil
 }
-func CreateCsrfToken(ctx context.Context, pg *Postgres, csrfToken string) error {
+func CreateCsrfToken(ctx context.Context, pdb *Postgres, csrfToken string) error {
 	return nil
 }

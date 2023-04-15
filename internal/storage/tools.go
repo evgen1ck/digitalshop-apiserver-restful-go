@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 // execInTx executes a given function inside a transaction.
@@ -52,5 +53,27 @@ func execInTx(ctx context.Context, pool *pgxpool.Pool, f func(pgx.Tx) error) err
 
 	// Set the transaction variable to nil and return the result.
 	tx = nil
+	return nil
+}
+
+func execInPipeline(ctx context.Context, rdb *redis.Client, f func(pipe redis.Pipeliner) error) error {
+	// Start a new pipeline.
+	pipe := rdb.TxPipeline()
+
+	// Execute the function, passing the pipeline as an argument.
+	err := f(pipe)
+	if err != nil {
+		// If an error occurred while executing the function, discard the pipeline and return the error.
+		pipe.Discard()
+		return err
+	}
+
+	// Execute the pipeline.
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		// If an error occurred while executing the pipeline, return the error.
+		return err
+	}
+
 	return nil
 }

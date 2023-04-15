@@ -77,7 +77,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Get("/", rs.ProductsData)
 	})
 	r.Route("/user", func(r chi.Router) {
-		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleUser))
+		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleUser))
 		r.Route("/profile", func(r chi.Router) {
 			r.Get("/", rs.UserProfileData)
 			r.Post("/dump", rs.UserProfileDump)
@@ -87,7 +87,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		})
 	})
 	r.Route("/admin", func(r chi.Router) {
-		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
+		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
 		r.Route("/products", func(r chi.Router) {
 			r.Get("/", rs.AdminGetProducts)
 			r.Post("/", rs.AdminCreateProduct)

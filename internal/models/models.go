@@ -11,6 +11,7 @@ import (
 type Application struct {
 	Config   *config.Config
 	Postgres *storage.Postgres
+	Redis    *storage.Redis
 	Mailer   *mailer.Mailer
 	Logger   *logger.Logger
 	Router   *chi.Mux

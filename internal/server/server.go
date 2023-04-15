@@ -51,6 +51,8 @@ func Run() {
 }
 
 func setupConfig() *models.Application {
+	ctx := context.Background()
+
 	// Getting logger
 	zapLogger, err := logger.NewZap()
 	if err != nil {
@@ -64,26 +66,33 @@ func setupConfig() *models.Application {
 		zapLogger.NewError("Error creating data config", err)
 	}
 
-	// Getting postgresql
-	pdb, err := storage.NewPostgres(context.Background(), cfg.GetPostgresDSN())
+	// Getting PostgreSQL
+	pdb, err := storage.NewPostgres(ctx, *cfg)
 	if err != nil {
-		zapLogger.NewError("Error connecting to the database database", err)
+		zapLogger.NewError("Error connecting to the PostgreSQL database", err)
 	}
 	defer pdb.Close()
 
-	app := models.Application{
+	// Getting Redis
+	rdb, err := storage.NewRedis(ctx, *cfg)
+	if err != nil {
+		zapLogger.NewError("Error connecting to the Redis database", err)
+	}
+
+	application := models.Application{
 		Config:   cfg,
 		Postgres: pdb,
+		Redis:    rdb,
 		Mailer:   mailer.NewSmtp(*cfg),
 		Logger:   zapLogger,
 		Router:   chi.NewRouter(),
 	}
 
-	if app.Config.App.Debug {
-		fmt.Println(app.Config)
+	if application.Config.App.Debug {
+		fmt.Println(application.Config)
 	}
 
-	return &app
+	return &application
 }
 
 func shutdownServer(srv *http.Server, logger *logger.Logger, serviceName string) {
