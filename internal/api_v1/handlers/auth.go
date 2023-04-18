@@ -20,19 +20,6 @@ type authResponse struct {
 	AvatarUrl string `json:"avatar_url"`
 }
 
-func returnAuthResponse(token, uuid, nickname, email, role, apiUrl string) *authResponse {
-	response := authResponse{
-		Token:     token,
-		Role:      role,
-		Uuid:      uuid,
-		Nickname:  nickname,
-		Email:     email,
-		AvatarUrl: apiUrl + storage.ResourcesAvatarImage,
-	}
-
-	return &response
-}
-
 func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Nickname string `json:"nickname"`
@@ -50,15 +37,15 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(strings.ToLower(input.Email))
 	password := strings.TrimSpace(input.Password)
 
-	if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(5, 32), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
+	if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
 		return
 	}
-	if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
+	if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
 		return
 	}
-	if err := tl.Validate(password, tl.IsNotBlank(), tl.IsMinMaxLen(6, 64), tl.IsNotContainsSpace()); err != nil {
+	if err := tl.Validate(password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
 		return
 	}
@@ -89,15 +76,14 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 3 - generate token and insert a temporary account record
-	confirmationUrlToken, err := tl.GenerateURLToken(256)
+	confirmationUrlToken, err := tl.GenerateURLToken(TokenLength)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in generated url token", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
-	err = storage.CreateTempRegistration(r.Context(), rs.App.Postgres, nickname, email, password, confirmationUrlToken)
-	if err != nil {
+	if err := storage.CreateTempRegistration(r.Context(), rs.App.Redis, nickname, email, password, confirmationUrlToken, TempRegistrationExpiration); err != nil {
 		rs.App.Logger.NewWarn("error in inserted registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
@@ -111,8 +97,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = rs.App.Mailer.SendEmailConfirmation(nickname, email, url)
-	if err != nil {
+	if err = rs.App.Mailer.SendEmailConfirmation(nickname, email, url); err != nil {
 		rs.App.Logger.NewWarn("error in sent email confirmation", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
@@ -135,13 +120,13 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	// Block 1 - data validation
 	token := strings.TrimSpace(input.Token)
 
-	if err := tl.Validate(token, tl.IsNotBlank(), tl.IsLen(256), tl.IsNotContainsSpace()); err != nil {
+	if err := tl.Validate(token, tl.IsNotBlank(), tl.IsLen(TokenLength), tl.IsNotContainsSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Token: "+err.Error())
 		return
 	}
 
 	// Block 2 - get user data and check on exist user
-	nickname, email, password, err := storage.GetTempRegistration(r.Context(), rs.App.Postgres, token)
+	nickname, email, password, err := storage.GetTempRegistration(r.Context(), rs.App.Redis, token)
 	if password == "" {
 		api_v1.RespondWithConflict(w, "User not found")
 		return
@@ -160,7 +145,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	userUuid, err := storage.CreateUser(r.Context(), rs.App.Postgres, nickname, email, base64PasswordHash, base64Salt)
+	userUuid, err := storage.CreateUser(r.Context(), rs.App.Postgres, rs.App.Redis, nickname, email, base64PasswordHash, base64Salt, token)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in registration user", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -176,21 +161,116 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Block 5 - send the result
-	response := returnAuthResponse(jwtToken, userUuid, nickname, email, storage.AccountRoleUser, rs.App.Config.App.Service.Url.Api)
+	response := authResponse{
+		Token:     jwtToken,
+		Role:      storage.AccountRoleUser,
+		Uuid:      userUuid,
+		Nickname:  nickname,
+		Email:     email,
+		AvatarUrl: rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + tl.UuidToStringNoDashes(userUuid),
+	}
 
 	api_v1.RespondWithCreated(w, response)
 }
 
-func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request)                    {}
-func (rs *Resolver) AuthLoginWithToken(w http.ResponseWriter, r *http.Request)           {}
-func (rs *Resolver) AuthRecoverPassword(w http.ResponseWriter, r *http.Request)          {}
-func (rs *Resolver) AuthRecoverPasswordWithToken(w http.ResponseWriter, r *http.Request) {}
+func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Nickname *string `json:"nickname,omitempty"`
+		Email    *string `json:"email,omitempty"`
+		Password string  `json:"password"`
+	}
+	decodeErr := json.NewDecoder(r.Body).Decode(&input)
+	if decodeErr != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	// Block 1 - data validation
+	nickname := strings.TrimSpace(strings.ToLower(*input.Nickname))
+	email := strings.TrimSpace(strings.ToLower(*input.Email))
+	password := strings.TrimSpace(input.Password)
+
+	if err := tl.Validate(password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace()); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
+		return
+	}
+
+	if nickname == "" && email == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Nickname and Email: the values is empty")
+		return
+	} else if nickname != "" {
+		if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
+			return
+		}
+	} else {
+		if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
+			return
+		}
+
+		emailDomainExists, err := tl.CheckEmailDomainExistence(email)
+		if !emailDomainExists {
+			api_v1.RespondWithConflict(w, "Email: the email domain is not exist")
+			return
+		}
+		if err != nil {
+			rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
+		}
+	}
+
+	// Block 2 - check for an exists nickname and email
+	nicknameExist, emailExist, err := storage.CheckUserExists(r.Context(), rs.App.Postgres, nickname, email)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in checked the user existence", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+	if !nicknameExist && !emailExist {
+		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "There is no user with this nickname and email address")
+		return
+	} else {
+		userUuid, base64PasswordHash, base64Salt, err := storage.GetUserPasswordAndSalt(r.Context(), rs.App.Postgres, nickname, email)
+		if err != nil {
+			rs.App.Logger.NewWarn("error in get user password and salt", err)
+			api_v1.RespondWithInternalServerError(w)
+			return
+		}
+
+		result, err := auth.CompareHashPasswords(password, base64PasswordHash, base64Salt)
+		if result == false {
+			rs.App.Logger.NewWarn("error in compare hash passwords", err)
+			api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Invalid password")
+			return
+		}
+
+		// Block 4 - generate JWT
+		jwtToken, err := auth.GenerateJwt(userUuid, rs.App.Config.App.Jwt)
+		if err != nil {
+			rs.App.Logger.NewWarn("error in generated jwt", err)
+			api_v1.RespondWithInternalServerError(w)
+			return
+		}
+
+		// Block 5 - send the result
+		response := authResponse{
+			Token:     jwtToken,
+			Role:      storage.AccountRoleUser,
+			Uuid:      userUuid,
+			Nickname:  nickname,
+			Email:     email,
+			AvatarUrl: rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + tl.UuidToStringNoDashes(userUuid),
+		}
+
+		api_v1.RespondWithCreated(w, response)
+	}
+}
 
 func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
 	token, data, err := api_v1.ContextGetAuthenticated(r)
 	if err != nil {
-		api_v1.RespondWithInternalServerError(w)
 		rs.App.Logger.NewWarn("error in took jwt data", err)
+		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 	ttl := data.ExpiresAt.Sub(time.Now())
@@ -198,3 +278,7 @@ func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (rs *Resolver) AuthLoginWithToken(w http.ResponseWriter, r *http.Request)           {}
+func (rs *Resolver) AuthRecoverPassword(w http.ResponseWriter, r *http.Request)          {}
+func (rs *Resolver) AuthRecoverPasswordWithToken(w http.ResponseWriter, r *http.Request) {}

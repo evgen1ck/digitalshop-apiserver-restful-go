@@ -12,18 +12,17 @@ const (
 	timeout            = 5 * time.Second
 	rateLimitRequests  = 80
 	rateLimitInterval  = 1 * time.Minute
-	requestMaxSize     = 12 * 1024 * 1024 // 12 MB
-	uriMaxLength       = 1024             // 1024 runes
+	requestMaxSize     = 4 * 1024 * 1024 // 4 MB
+	uriMaxLength       = 1024            // 1024 runes
 	serviceUnavailable = false
+
 	//csrfTokenLength    = 32
 	//csrfHeaderName     = "X-CSRF-Token"
 	//csrfCookieDuration = 30 * time.Minute
 )
 
 var (
-	allowedMethods        = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	allowedContentTypes   = []string{"application/json", "text/plain"}
-	supportedHttpVersions = []string{"HTTP/1.1", "HTTP/2.0"}
+	allowedContentTypes = []string{"application/json", "text/plain"}
 )
 
 type Resolver struct {
@@ -43,10 +42,9 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r.Use(api_v1.RequestSizeMiddleware(requestMaxSize))                     // Error 413 - Payload Too Large
 	r.Use(api_v1.UnprocessableEntityMiddleware)                             // Error 422 - Unprocessable Entity
 	r.Use(api_v1.UnsupportedMediaTypeMiddleware(allowedContentTypes))       // Error 415 - Unsupported Media Type
-	r.Use(api_v1.NotImplementedMiddleware(allowedMethods))                  // Error 501 - Not implemented
 	r.Use(api_v1.MethodNotAllowedMiddleware)                                // Error 405 - Method Not Allowed
-	r.Use(api_v1.HttpVersionCheckMiddleware(supportedHttpVersions))         // Error 505 - HTTP Version Not Supported
 	r.Use(api_v1.GatewayTimeoutMiddleware(timeout))                         // Error 504 - Gateway Timeout
+	r.Use(api_v1.BlockPrometheusMetricsMiddleware())                        // Blocking prometheus metrics on this router
 	r.NotFound(api_v1.NotFoundMiddleware())                                 // Error 404 - Not Found
 	//r.Use(api_v1.CsrfMiddleware(rs.App, csrfTokenLength, csrfHeaderName, csrfCookieDuration)) // Error 403 - Forbidden
 

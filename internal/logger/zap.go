@@ -24,12 +24,30 @@ type Logger struct {
 }
 
 func NewZap() (*Logger, error) {
-	if err := os.MkdirAll(folderName, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("failed to create log directory: %v", err)
-	}
+	var logFilePath string
 
-	logFileName := fmt.Sprintf("%s.%s", time.Now().Format(fileFormat), fileExtension)
-	logFilePath := filepath.Join(folderName, logFileName)
+	if runtime.GOOS == "windows" {
+		if err := os.MkdirAll(folderName, os.ModePerm); err != nil {
+			return nil, fmt.Errorf("failed to create log directory: %v", err)
+		}
+
+		logFileName := fmt.Sprintf("%s.%s", time.Now().Format(fileFormat), fileExtension)
+		logFilePath = filepath.Join(folderName, logFileName)
+	} else {
+		executablePath, err := os.Executable()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get executable path: %v", err)
+		}
+		executableDir := filepath.Dir(executablePath)
+
+		logsPath := filepath.Join(executableDir, folderName)
+		if err := os.MkdirAll(logsPath, os.ModePerm); err != nil {
+			return nil, fmt.Errorf("failed to create log directory: %v", err)
+		}
+
+		logFileName := fmt.Sprintf("%s.%s", time.Now().Format(fileFormat), fileExtension)
+		logFilePath = filepath.Join(logsPath, logFileName)
+	}
 
 	lumberjackLogger := &lumberjack.Logger{
 		Filename:   logFilePath,

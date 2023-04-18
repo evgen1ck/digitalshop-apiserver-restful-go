@@ -40,14 +40,32 @@ func Run() {
 	if app.Config.App.Debug {
 		app.Logger.NewInfo("Prometheus API will be running in debug mode on " + prometheusServer.Addr)
 		app.Logger.NewInfo("Service API v1 will be running in debug mode on " + apiV1Server.Addr)
-		_ = prometheusServer.ListenAndServe()
-		_ = apiV1Server.ListenAndServe()
+		go func() {
+			if err := prometheusServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				app.Logger.NewError("Error starting Prometheus API", err)
+			}
+		}()
+		go func() {
+			if err := apiV1Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				app.Logger.NewError("Error starting Service API v1", err)
+			}
+		}()
 	} else {
 		app.Logger.NewInfo("Prometheus API will be running in tls mode on" + prometheusServer.Addr)
 		app.Logger.NewInfo("Service API v1 will be running in tls mode on" + apiV1Server.Addr)
-		_ = prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
-		_ = apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile)
+		go func() {
+			if err := prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile); err != nil && err != http.ErrServerClosed {
+				app.Logger.NewError("Error starting Prometheus API", err)
+			}
+		}()
+		go func() {
+			if err := apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile); err != nil && err != http.ErrServerClosed {
+				app.Logger.NewError("Error starting Service API v1", err)
+			}
+		}()
 	}
+
+	select {}
 }
 
 func setupConfig() *models.Application {

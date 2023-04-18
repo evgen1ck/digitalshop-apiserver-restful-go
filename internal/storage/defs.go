@@ -13,7 +13,9 @@ const (
 	AccountStateBlocked = "blocked"
 	AccountStateDeleted = "deleted"
 
-	ResourcesAvatarImage = "/resources/profile_image/"
+	ResourcesProfileImagePath = "/resources/profile_image/"
+	ResourcesProductImagePath = "/resources/product_image/"
+	ResourcesSvgFilePath      = "/resources/svg_file/"
 )
 
 var (

@@ -139,22 +139,6 @@ func UnsupportedMediaTypeMiddleware(allowedContentTypes []string) func(http.Hand
 	}
 }
 
-func NotImplementedMiddleware(allowedMethods []string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			method := r.Method
-			if !tl.StringInSlice(method, allowedMethods) {
-				RedRespond(w,
-					http.StatusNotImplemented,
-					"Not implemented",
-					"The requested method ("+strings.ToUpper(method)+") is not implemented by the server")
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
 func MethodNotAllowedMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
@@ -230,21 +214,6 @@ func GatewayTimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Han
 				}
 			case <-done:
 			}
-		})
-	}
-}
-
-func HttpVersionCheckMiddleware(supportedHttpVersions []string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !tl.StringInSlice(r.Proto, supportedHttpVersions) {
-				RedRespond(w,
-					http.StatusHTTPVersionNotSupported,
-					"HTTP version not supported",
-					"HTTP version not supported. Please use one of "+strings.Join(supportedHttpVersions, ", ")+" supported http versions")
-				return
-			}
-			next.ServeHTTP(w, r)
 		})
 	}
 }
@@ -349,26 +318,26 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 			}
 
 			// Check token expiration
-			if jwtData.ExpiresAt != nil && jwtData.ExpiresAt.Time.Before(time.Now()) {
+			if jwtData.ExpiresAt.Time.Before(time.Now()) {
 				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Token expired")
 				return
 			}
 
 			// Check if token is in blacklist
-			tokenInBlacklist, err := storage.CheckBlockedTokenExists(r.Context(), rdb, tokenString)
+			tokenInStopList, err := storage.CheckBlockedTokenExists(r.Context(), rdb, tokenString)
 			if err != nil {
 				RespondWithInternalServerError(w)
 				logger.NewWarn("Error in founding account in the list", err)
 				return
 			}
-			if tokenInBlacklist {
-				RedRespond(w, http.StatusForbidden, "Forbidden", "This token is blocked")
+			if tokenInStopList {
+				RedRespond(w, http.StatusForbidden, "Forbidden", "This token in stop-list")
 				return
 			}
 
 			// Get account state and check on exists
 			state, err := storage.GetStateAccount(r.Context(), pdb, jwtData.AccountUuid, role)
-			if err == storage.NoResults {
+			if state == "" {
 				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of "+role+"s")
 				return
 			} else if err != nil {
@@ -397,6 +366,19 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 
 			// Update last account activity
 			storage.UpdateLastAccountActivity(r.Context(), pdb, jwtData.AccountUuid)
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func BlockPrometheusMetricsMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/prometheus/metrics" {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
 
 			next.ServeHTTP(w, r)
 		})

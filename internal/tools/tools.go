@@ -242,8 +242,8 @@ func ContainsStringInSlice(s string, list []string) bool {
 	return false
 }
 
-func UuidToStringNoDashes(s uuid.UUID) string {
-	return strings.ReplaceAll(s.String(), "-", "")
+func UuidToStringNoDashes(s string) string {
+	return strings.ReplaceAll(s, "-", "")
 }
 
 func StringNoDashesToUuid(s string) (uuid.UUID, error) {

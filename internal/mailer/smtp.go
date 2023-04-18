@@ -39,7 +39,9 @@ func (m *Mailer) sendEmail(to []string, title, body string) error {
 }
 
 func (m *Mailer) SendEmailConfirmation(nickname, email, confirmationUrl string) error {
-	tmpl, err := template.ParseFiles("mailConfirmationEmail.tmpl")
+	templateFile := "mailConfirmationEmail.tmpl"
+
+	tmpl, err := template.ParseFiles(templateFile)
 	if err != nil {
 		return err
 	}
@@ -51,13 +53,11 @@ func (m *Mailer) SendEmailConfirmation(nickname, email, confirmationUrl string) 
 	}
 
 	var buf bytes.Buffer
-	err = tmpl.ExecuteTemplate(&buf, "mailConfirmationEmail.tmpl", resources)
-	if err != nil {
+	if err := tmpl.Execute(&buf, resources); err != nil {
 		return err
 	}
 
-	err = m.sendEmail([]string{email}, "Evgenick's Digitals: подтверждение учётной записи", buf.String())
-	if err != nil {
+	if err := m.sendEmail([]string{email}, "Evgenick's Digitals: подтверждение учётной записи", buf.String()); err != nil {
 		return err
 	}
 
