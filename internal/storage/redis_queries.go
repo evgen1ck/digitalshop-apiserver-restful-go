@@ -2,8 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -24,9 +22,8 @@ func CreateBlockedToken(ctx context.Context, rdb *Redis, token string, expiratio
 	exists, err := rdb.Client.Exists(ctx, BlockedTokenPath+token).Result()
 	if err != nil {
 		return err
-	}
-	if exists > 0 {
-		return fmt.Errorf("jwt in stop-list already exists")
+	} else if exists > 0 {
+		return QueryExists
 	}
 
 	if err := rdb.Client.Set(ctx, BlockedTokenPath+token, "true", expiration).Err(); err != nil {
@@ -36,9 +33,9 @@ func CreateBlockedToken(ctx context.Context, rdb *Redis, token string, expiratio
 }
 
 func CheckBlockedTokenExists(ctx context.Context, rdb *Redis, token string) (bool, error) {
-	result, err := rdb.Client.Get(ctx, "jwt_blacklist:"+token).Result()
+	result, err := rdb.Client.Get(ctx, BlockedTokenPath+token).Result()
 	if err == redis.Nil {
-		return false, nil
+		return false, NoResults
 	} else if err != nil {
 		return false, err
 	} else {
@@ -50,9 +47,8 @@ func CreateTempRegistration(ctx context.Context, rdb *Redis, nickname, email, pa
 	exists, err := rdb.Client.Exists(ctx, TempRegistrationPath+confirmationToken).Result()
 	if err != nil {
 		return err
-	}
-	if exists > 0 {
-		return fmt.Errorf("confirmation token already exists")
+	} else if exists > 0 {
+		return QueryExists
 	}
 
 	if err = execInPipeline(ctx, rdb.Client, func(pipe redis.Pipeliner) error {
@@ -80,7 +76,7 @@ func GetTempRegistration(ctx context.Context, rdb *Redis, confirmationToken stri
 	}
 
 	if len(data) == 0 {
-		return nickname, email, password, errors.New("temp registration not found")
+		return nickname, email, password, NoResults
 	}
 
 	nickname = data["nickname"]
@@ -94,8 +90,7 @@ func DeleteTempRegistration(ctx context.Context, rdb *Redis, confirmationToken s
 	exists, err := rdb.Client.Exists(ctx, TempRegistrationPath+confirmationToken).Result()
 	if err != nil {
 		return err
-	}
-	if exists == 0 {
+	} else if exists == 0 {
 		return NoResults
 	}
 

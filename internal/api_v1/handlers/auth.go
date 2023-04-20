@@ -283,8 +283,15 @@ func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
+
 	ttl := data.ExpiresAt.Sub(time.Now())
-	storage.CreateBlockedToken(r.Context(), rs.App.Redis, token, ttl)
+	if err := storage.CreateBlockedToken(r.Context(), rs.App.Redis, token, ttl); err == storage.QueryExists {
+		api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Token has already been deactivated")
+		return
+	} else {
+		rs.App.Logger.NewWarn("error in took jwt data", err)
+		api_v1.RespondWithInternalServerError(w)
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"errors"
-	"github.com/jackc/pgx/v4"
 )
 
 const (
@@ -27,5 +26,6 @@ var (
 	FailedInsert = errors.New("failed to insert data")
 	FailedDelete = errors.New("failed to delete data")
 
-	NoResults = pgx.ErrNoRows
+	NoResults   = errors.New("no results")
+	QueryExists = errors.New("value already exists")
 )
