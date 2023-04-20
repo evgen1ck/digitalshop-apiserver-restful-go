@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -75,6 +76,10 @@ func (l *Logger) NewInfo(message string) {
 }
 
 func (l *Logger) NewWarn(message string, error error) {
+	if error == nil {
+		error = errors.New("warn from zap logger")
+	}
+
 	_, file, line, _ := runtime.Caller(1)
 	fields := []zapcore.Field{
 		zap.String("file", file),
@@ -85,6 +90,10 @@ func (l *Logger) NewWarn(message string, error error) {
 }
 
 func (l *Logger) NewError(message string, error error) {
+	if error == nil {
+		error = errors.New("error from zap logger")
+	}
+
 	_, file, line, _ := runtime.Caller(1)
 	fields := []zapcore.Field{
 		zap.String("file", file),

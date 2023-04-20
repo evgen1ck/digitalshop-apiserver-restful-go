@@ -5,7 +5,6 @@ CREATE SCHEMA IF NOT EXISTS product;
 CREATE SCHEMA IF NOT EXISTS payment;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA account;
 
-select * from account.registration_temp;
 select * from account.user;
 select * from account.account;
 
@@ -35,7 +34,7 @@ CREATE TABLE account.registration_method
 );
 INSERT INTO account.registration_method(registration_method_name) VALUES ('web application'), ('telegram account'), ('google account');
 
-
+select account_id, nickname, email, password, salt_for_password from account.user where nickname = '' or email = '77lm@mail.ru'
 
 DROP TABLE IF EXISTS account.role CASCADE;
 CREATE TABLE account.role
@@ -47,18 +46,6 @@ CREATE TABLE account.role
     commentary   text		 NULL
 );
 INSERT INTO account.role(role_name) VALUES ('user'), ('admin');
-
-
-
-DROP TABLE IF EXISTS account.registration_temp_data CASCADE;
-CREATE TABLE account.registration_temp_data
-(
-    confirmation_token      text        PRIMARY KEY,
-    nickname                text        NOT NULL,
-    email                   text        NOT NULL,
-    password                text        NOT NULL,
-    expiration              timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP + interval '10 minute'
-);
 
 
 
@@ -94,17 +81,21 @@ CREATE TABLE account.user
     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
 );
 
--- DROP TABLE IF EXISTS account.telegram_user CASCADE;
--- CREATE TABLE account.telegram_user
--- (
---     account_id               uuid        NOT NULL UNIQUE,
---     telegram_id              text        NOT NULL UNIQUE,
---     username                 text        NOT NULL,
---     photo_url                text        NOT NULL,
---     modified_at         	    timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
---     commentary			    text		NULL,
---     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
--- );
+
+
+DROP TABLE IF EXISTS account.telegram_user CASCADE;
+CREATE TABLE account.telegram_user
+(
+    account_id               uuid        NOT NULL UNIQUE,
+    telegram_id              text        NOT NULL UNIQUE,
+    username                 text        NOT NULL,
+    photo_url                text        NOT NULL,
+    modified_at         	    timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    commentary			    text		NULL,
+    FOREIGN KEY (account_id) REFERENCES account.account(account_id)
+);
+
+
 
 DROP TABLE IF EXISTS account.employee CASCADE;
 CREATE TABLE account.employee
@@ -138,7 +129,7 @@ CREATE TABLE product.state
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary	text		NULL
 );
-INSERT INTO product.state(state_name) VALUES ('active'), ('temporarily unavailable'), ('blocked'), ('deleted');
+INSERT INTO product.state(state_name) VALUES ('unavailable'), ('active'), ('blocked'), ('deleted');
 
 
 
@@ -151,20 +142,36 @@ CREATE TABLE product.type
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary  text		NULL
 );
-INSERT INTO product.type(type_name) VALUES ('game'), ('other');
+INSERT INTO product.type(type_name) VALUES ('games'), ('software'), ('media content'), ('e-tickets'), ('virtual gifts');
 
 
 
-DROP TABLE IF EXISTS product.category CASCADE;
-CREATE TABLE product.category
+DROP TABLE IF EXISTS product.subtype CASCADE;
+CREATE TABLE product.subtype
 (
-    category_no	    smallserial	PRIMARY KEY,
-    category_name   text 		NOT NULL UNIQUE,
+    type_no         smallint    ,
+    subtype_no      smallserial UNIQUE ,
+    subtype_name    text        NOT NULL UNIQUE,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary      text		NULL
+    commentary      text		NULL,
+    PRIMARY KEY (type_no, subtype_no),
+    FOREIGN KEY (type_no) REFERENCES product.type(type_no)
 );
-INSERT INTO product.category(category_name) VALUES ('key'), ('gift'), ('text'), ('link'), ('code');
+INSERT INTO product.subtype(type_no, subtype_name) VALUES
+                                                       ('1', 'computer games'),
+                                                       ('1', 'mobile games'),
+                                                       ('1', 'console games'),
+                                                       ('2', 'office applications'),
+                                                       ('2', 'antivirus software'),
+                                                       ('2', 'design software'),
+                                                       ('2', 'video editing software'),
+                                                       ('2', 'audio recording software'),
+                                                       ('3', 'music'),
+                                                       ('3', 'movies'),
+                                                       ('3', 'books'),
+                                                       ('3', 'audiobooks'),
+                                                       ('3', 'magazines');
 
 
 
@@ -177,7 +184,20 @@ CREATE TABLE product.service
     modified_at    	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary	    text		NULL
 );
-INSERT INTO product.service(service_name) VALUES ('Steam'), ('Ubisoft'), ('Epic Games'), ('Electronic Arts'), ('Ozon'), ('Wildberries'), ('Ivi'), ('YouTube');
+INSERT INTO product.service(service_name) VALUES ('steam'), ('ubisoft'), ('epic games'), ('electronic arts'), ('ozon'), ('wildberries'), ('ivi'), ('youtube');
+
+
+
+DROP TABLE IF EXISTS product.item CASCADE;
+CREATE TABLE product.item
+(
+    item_no         smallserial	PRIMARY KEY,
+    item_name       text 		NOT NULL UNIQUE,
+    created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at    	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    commentary	    text		NULL
+);
+INSERT INTO product.item(item_name) VALUES ('key'), ('code'), ('usual link'), ('gift as link');
 
 
 
@@ -185,13 +205,13 @@ DROP TABLE IF EXISTS product.product CASCADE;
 CREATE TABLE product.product
 (
     product_id      uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
-    product_type    smallint    NOT NULL,
+    product_subtype smallint    NOT NULL,
     product_name    text        NOT NULL UNIQUE,
-    product_desc    text        NOT NULL,
+    description     text        NOT NULL,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary		text		NULL,
-    FOREIGN KEY (product_type) REFERENCES product.type(type_no)
+    FOREIGN KEY (product_subtype) REFERENCES product.subtype(subtype_no)
 );
 
 
@@ -200,40 +220,44 @@ DROP TABLE IF EXISTS product.variant CASCADE;
 CREATE TABLE product.variant
 (
     product_id          uuid        ,
+    variant_id          uuid        UNIQUE DEFAULT account.UUID_GENERATE_V4(),
     variant_name        text        ,
-    variant_desc        text        NOT NULL,
     product_service     smallint    NOT NULL,
-    product_category    smallint    NOT NULL,
-    product_state       smallint    NOT NULL,
+    product_state       smallint    NOT NULL DEFAULT 1,
+    product_item        smallint    NOT NULL,
+    mask                text        NOT NULL,
     last_change_state   timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     quantity            integer     NOT NULL CHECK ( quantity >= -1 ) DEFAULT 0,
+    price               money       NOT NULL CHECK ( price >= 0::money ),
+    discount_money      money       NOT NULL DEFAULT 0,
+    discount_percent    smallint    NOT NULL DEFAULT 0,
+    account_id          uuid        NOT NULL,
     created_at          timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at         timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary		    text		NULL,
-    PRIMARY KEY (product_id, variant_name),
+    PRIMARY KEY (product_id, variant_id),
     FOREIGN KEY (product_id) REFERENCES product.product(product_id),
     FOREIGN KEY (product_state) REFERENCES product.state(state_no),
     FOREIGN KEY (product_service) REFERENCES product.service(service_no),
-    FOREIGN KEY (product_category) REFERENCES product.category(category_no)
+    FOREIGN KEY (product_item) REFERENCES product.item(item_no),
+    FOREIGN KEY (account_id) REFERENCES account.account(account_id),
+    CHECK (
+            (discount_money = 0::money AND discount_percent > 0::smallint)
+            OR
+            (discount_money > 0::money AND discount_percent = 0::smallint)
+        )
 );
 
 
 
+GRANT USAGE ON SCHEMA account TO user_alpha;
+GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA account TO user_alpha;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA account TO user_alpha;
 
+GRANT USAGE ON SCHEMA product TO user_alpha;
+GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA product TO user_alpha;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA product TO user_alpha;
 
 --GRANT USAGE ON SCHEMA xxxx TO user;
 --GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA xxxx TO user;
 --GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA xxxx TO user;
-
-
-ALTER SYSTEM SET max_wal_size = '1GB';
-ALTER SYSTEM SET autovacuum_vacuum_scale_factor = 0.0;
-ALTER SYSTEM SET autovacuum_analyze_scale_factor = 0.0;
-ALTER SYSTEM SET autovacuum_vacuum_cost_limit = 10000;
-ALTER SYSTEM SET autovacuum_vacuum_cost_delay = 0;
-
-CREATE OR REPLACE FUNCTION account.cleanup_registration_temp() RETURNS VOID AS $$
-BEGIN
-    DELETE FROM account.registration_temp WHERE expiration < NOW();
-END;
-$$ LANGUAGE plpgsql;

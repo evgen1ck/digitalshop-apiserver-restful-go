@@ -12,27 +12,30 @@ const (
 	AuthenticatedJwtDataContextKey  = "jwt_data"
 )
 
-func ContextSetAuthenticated(r *http.Request, token string, data *auth.JwtData) error {
-	context.WithValue(r.Context(), AuthenticatedJwtTokenContextKey, token)
-	context.WithValue(r.Context(), AuthenticatedJwtDataContextKey, data)
-	return nil
+func ContextSetAuthenticated(r *http.Request, token string, data *auth.JwtData) *http.Request {
+	ctx := context.WithValue(r.Context(), AuthenticatedJwtTokenContextKey, token)
+	ctx = context.WithValue(ctx, AuthenticatedJwtDataContextKey, data)
+
+	return r.WithContext(ctx)
 }
 
 func ContextGetAuthenticated(r *http.Request) (string, *auth.JwtData, error) {
-	token, ok := r.Context().Value(AuthenticatedJwtTokenContextKey).(string)
-	if !ok {
+	tokenValue := r.Context().Value(AuthenticatedJwtTokenContextKey)
+	if tokenValue == nil {
 		return "", nil, errors.New("user context jwt token key not found")
 	}
-	if token == "" {
-		return "", nil, errors.New("user context jwt token key is null")
+	token, ok := tokenValue.(string)
+	if !ok {
+		return "", nil, errors.New("user context jwt token key is not a string")
 	}
 
-	data, ok := r.Context().Value(AuthenticatedJwtDataContextKey).(*auth.JwtData)
-	if !ok {
+	dataValue := r.Context().Value(AuthenticatedJwtDataContextKey)
+	if dataValue == nil {
 		return "", nil, errors.New("user context jwt data key not found")
 	}
-	if data == nil {
-		return "", nil, errors.New("user context jwt data key is null")
+	data, ok := dataValue.(*auth.JwtData)
+	if !ok {
+		return "", nil, errors.New("user context jwt data key is not of expected type")
 	}
 
 	return token, data, nil

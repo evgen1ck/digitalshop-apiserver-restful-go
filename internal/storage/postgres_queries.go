@@ -59,18 +59,18 @@ func CheckUserExists(ctx context.Context, pdb *Postgres, nickname, email string)
 	return nicknameExists, emailExists, nil
 }
 
-func GetUserPasswordAndSalt(ctx context.Context, pdb *Postgres, nickname, email string) (string, string, string, error) {
-	var userUuid, password, salt string
+func GetUserData(ctx context.Context, pdb *Postgres, nickname, email string) (string, string, string, string, string, error) {
+	var userUuid, scannedNickname, scannedEmail, password, salt string
 	nickname = strings.ToLower(nickname)
 	email = strings.ToLower(email)
 
 	if err := pdb.Pool.QueryRow(ctx,
-		"select account_id, password, salt_for_password from account.user where nickname = $1 or email = $2",
-		nickname, email).Scan(&userUuid, &password, &salt); err != nil {
-		return userUuid, password, salt, err
+		"select account_id, nickname, email, password, salt_for_password from account.user where nickname = $1 or email = $2",
+		nickname, email).Scan(&userUuid, &scannedNickname, &scannedEmail, &password, &salt); err != nil {
+		return userUuid, scannedNickname, scannedEmail, password, salt, err
 	}
 
-	return userUuid, password, salt, nil
+	return userUuid, scannedNickname, scannedEmail, password, salt, nil
 }
 
 func GetStateAccount(ctx context.Context, pdb *Postgres, uuid, role string) (string, error) {
@@ -97,6 +97,33 @@ func UpdateLastAccountActivity(ctx context.Context, pdb *Postgres, uuid string) 
 	}
 
 	return nil
+}
+
+func DeleteUser(ctx context.Context, pdb *Postgres, nickname, email, base64PasswordHash, base64Salt, token string) (string, error) {
+	var result uuid.UUID
+
+	if err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
+		err := tx.QueryRow(ctx,
+			"DELETE ").Scan(&result)
+		if err != nil {
+			return err
+		}
+
+		res, err := tx.Exec(ctx,
+			"INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5)",
+			result, email, nickname, base64PasswordHash, base64Salt)
+		if err != nil {
+			return err
+		}
+		if res.RowsAffected() < 1 {
+			return FailedInsert
+		}
+		return err
+	}); err != nil {
+		return result.String(), err
+	}
+
+	return result.String(), nil
 }
 
 func CheckCsrfTokenExists(ctx context.Context, pdb *Postgres, csrfToken string) (bool, error) {

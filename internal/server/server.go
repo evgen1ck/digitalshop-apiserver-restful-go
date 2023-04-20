@@ -34,8 +34,12 @@ func Run() {
 		Handler: app.Router,
 	}
 
-	go shutdownServer(prometheusServer, app.Logger, "Prometheus API")
-	go shutdownServer(apiV1Server, app.Logger, "Service API v1")
+	done := make(chan struct{})
+	go func() {
+		shutdownServer(prometheusServer, app.Logger, "Prometheus API")
+		shutdownServer(apiV1Server, app.Logger, "Service API v1")
+		close(done)
+	}()
 
 	if app.Config.App.Debug {
 		app.Logger.NewInfo("Prometheus API will be running in debug mode on " + prometheusServer.Addr)
@@ -65,7 +69,9 @@ func Run() {
 		}()
 	}
 
-	select {}
+	<-done
+	app.Postgres.Pool.Close()
+	app.Logger.Logger.Sync()
 }
 
 func setupConfig() *models.Application {
@@ -76,7 +82,6 @@ func setupConfig() *models.Application {
 	if err != nil {
 		panic(err)
 	}
-	defer zapLogger.Sync()
 
 	// Getting data config
 	cfg, err := config.SetupYaml()
@@ -89,7 +94,6 @@ func setupConfig() *models.Application {
 	if err != nil {
 		zapLogger.NewError("Error connecting to the PostgreSQL database", err)
 	}
-	defer pdb.Close()
 
 	// Getting Redis
 	rdb, err := storage.NewRedis(ctx, *cfg)
@@ -127,6 +131,7 @@ func shutdownServer(srv *http.Server, logger *logger.Logger, serviceName string)
 	}
 
 	logger.NewInfo(serviceName + " stopped")
+
 }
 
 func setupRouter(app models.Application) {

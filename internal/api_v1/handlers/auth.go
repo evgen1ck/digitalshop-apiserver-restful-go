@@ -12,12 +12,13 @@ import (
 )
 
 type authResponse struct {
-	Token     string `json:"token"`
-	Role      string `json:"role"`
-	Uuid      string `json:"uuid"`
-	Nickname  string `json:"nickname"`
-	Email     string `json:"email"`
-	AvatarUrl string `json:"avatar_url"`
+	Token              string `json:"token"`
+	Role               string `json:"role"`
+	Uuid               string `json:"uuid"`
+	Nickname           string `json:"nickname"`
+	Email              string `json:"email"`
+	RegistrationMethod string `json:"registration_method"`
+	AvatarUrl          string `json:"avatar_url"`
 }
 
 func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
@@ -162,12 +163,13 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 
 	// Block 5 - send the result
 	response := authResponse{
-		Token:     jwtToken,
-		Role:      storage.AccountRoleUser,
-		Uuid:      userUuid,
-		Nickname:  nickname,
-		Email:     email,
-		AvatarUrl: rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + tl.UuidToStringNoDashes(userUuid),
+		Token:              jwtToken,
+		Role:               storage.AccountRoleUser,
+		Uuid:               userUuid,
+		Nickname:           nickname,
+		Email:              email,
+		RegistrationMethod: storage.AccountRegistrationMethodWebApplication,
+		AvatarUrl:          rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + tl.UuidToStringNoDashes(userUuid),
 	}
 
 	api_v1.RespondWithCreated(w, response)
@@ -175,8 +177,8 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 
 func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Nickname *string `json:"nickname,omitempty"`
-		Email    *string `json:"email,omitempty"`
+		Nickname *string `json:"nickname"`
+		Email    *string `json:"email"`
 		Password string  `json:"password"`
 	}
 	decodeErr := json.NewDecoder(r.Body).Decode(&input)
@@ -186,8 +188,13 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 1 - data validation
-	nickname := strings.TrimSpace(strings.ToLower(*input.Nickname))
-	email := strings.TrimSpace(strings.ToLower(*input.Email))
+	var nickname, email string
+	if input.Nickname != nil {
+		nickname = strings.TrimSpace(strings.ToLower(*input.Nickname))
+	}
+	if input.Email != nil {
+		email = strings.TrimSpace(strings.ToLower(*input.Email))
+	}
 	password := strings.TrimSpace(input.Password)
 
 	if err := tl.Validate(password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace()); err != nil {
@@ -213,8 +220,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		if !emailDomainExists {
 			api_v1.RespondWithConflict(w, "Email: the email domain is not exist")
 			return
-		}
-		if err != nil {
+		} else if err != nil {
 			rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
 		}
 	}
@@ -230,7 +236,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "There is no user with this nickname and email address")
 		return
 	} else {
-		userUuid, base64PasswordHash, base64Salt, err := storage.GetUserPasswordAndSalt(r.Context(), rs.App.Postgres, nickname, email)
+		userUuid, scannedNickname, scannedEmail, base64PasswordHash, base64Salt, err := storage.GetUserData(r.Context(), rs.App.Postgres, nickname, email)
 		if err != nil {
 			rs.App.Logger.NewWarn("error in get user password and salt", err)
 			api_v1.RespondWithInternalServerError(w)
@@ -238,8 +244,11 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		result, err := auth.CompareHashPasswords(password, base64PasswordHash, base64Salt)
-		if result == false {
+		if err != nil {
 			rs.App.Logger.NewWarn("error in compare hash passwords", err)
+			api_v1.RespondWithInternalServerError(w)
+			return
+		} else if result == false {
 			api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Invalid password")
 			return
 		}
@@ -254,12 +263,13 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 
 		// Block 5 - send the result
 		response := authResponse{
-			Token:     jwtToken,
-			Role:      storage.AccountRoleUser,
-			Uuid:      userUuid,
-			Nickname:  nickname,
-			Email:     email,
-			AvatarUrl: rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + tl.UuidToStringNoDashes(userUuid),
+			Token:              jwtToken,
+			Role:               storage.AccountRoleUser,
+			Uuid:               userUuid,
+			Nickname:           scannedNickname,
+			Email:              scannedEmail,
+			RegistrationMethod: storage.AccountRegistrationMethodWebApplication,
+			AvatarUrl:          rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + userUuid,
 		}
 
 		api_v1.RespondWithCreated(w, response)

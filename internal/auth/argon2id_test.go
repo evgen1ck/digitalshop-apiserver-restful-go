@@ -24,9 +24,9 @@ func TestHashPassword(t *testing.T) {
 }
 
 func TestCompareHashPasswords(t *testing.T) {
-	password := "password123"
-	base64PasswordHash := "dQ6IluEKycDJTJ/4q5MddItNX78Tpvrj84Dex6Kgu18"
-	base64Salt := "4F6M7rm8AdF8puDrwoGsPg"
+	password := "dawdawd$$@#wada$%DD33"
+	base64PasswordHash := "aYbu27f3ubbO61MCg2Mu2tUswepdX/0HVZ3olapSiBc"
+	base64Salt := "jRho+4SIsja+bEf72Z6AfQ"
 
 	result, err := CompareHashPasswords(password, base64PasswordHash, base64Salt)
 	if err != nil {

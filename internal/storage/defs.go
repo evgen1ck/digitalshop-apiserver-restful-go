@@ -13,7 +13,11 @@ const (
 	AccountStateBlocked = "blocked"
 	AccountStateDeleted = "deleted"
 
-	ResourcesProfileImagePath = "/resources/profile_image/"
+	AccountRegistrationMethodWebApplication  = "web application"
+	AccountRegistrationMethodTelegramAccount = "telegram account"
+	AccountRegistrationMethodGoogleAccount   = "google account"
+
+	ResourcesProfileImagePath = "/profile/image/"
 	ResourcesProductImagePath = "/resources/product_image/"
 	ResourcesSvgFilePath      = "/resources/svg_file/"
 )

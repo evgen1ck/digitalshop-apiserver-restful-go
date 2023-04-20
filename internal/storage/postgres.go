@@ -30,5 +30,12 @@ func NewPostgres(ctx context.Context, cfg config.Config) (*Postgres, error) {
 		return nil, err
 	}
 
+	var testResult int
+	if err = pool.QueryRow(ctx, "SELECT 1").Scan(&testResult); err != nil {
+		return nil, fmt.Errorf("failed to test database connection: %w", err)
+	} else if testResult != 1 {
+		return nil, fmt.Errorf("unexpected test query result: %d", testResult)
+	}
+
 	return &Postgres{pool}, nil
 }

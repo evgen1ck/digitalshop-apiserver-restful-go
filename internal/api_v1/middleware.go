@@ -319,7 +319,7 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 
 			// Check token expiration
 			if jwtData.ExpiresAt.Time.Before(time.Now()) {
-				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Token expired")
+				RedRespond(w, http.StatusForbidden, "Unauthorized", "Token expired")
 				return
 			}
 
@@ -357,7 +357,7 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 			}
 
 			// Set context key
-			err = ContextSetAuthenticated(r, tokenString, jwtData)
+			r = ContextSetAuthenticated(r, tokenString, jwtData)
 			if err != nil {
 				RespondWithInternalServerError(w)
 				logger.NewWarn("Error in setting auth context key", err)

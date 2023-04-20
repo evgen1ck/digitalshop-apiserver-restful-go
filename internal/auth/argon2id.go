@@ -44,10 +44,7 @@ func CompareHashPasswords(password string, base64PasswordHash string, base64Salt
 	}
 
 	newPasswordHash := argon2.IDKey([]byte(password), newBase64Salt, iterations, memory, parallelism, keyLength)
-
 	newBase64PasswordHash := base64.RawStdEncoding.EncodeToString(newPasswordHash)
-	if newBase64PasswordHash == base64PasswordHash {
-		return true, nil
-	}
-	return false, nil
+
+	return newBase64PasswordHash == base64PasswordHash, nil
 }
