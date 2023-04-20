@@ -34,7 +34,7 @@ CREATE TABLE account.registration_method
 );
 INSERT INTO account.registration_method(registration_method_name) VALUES ('web application'), ('telegram account'), ('google account');
 
-select account_id, nickname, email, password, salt_for_password from account.user where nickname = '' or email = '77lm@mail.ru'
+
 
 DROP TABLE IF EXISTS account.role CASCADE;
 CREATE TABLE account.role
@@ -249,14 +249,6 @@ CREATE TABLE product.variant
 );
 
 
-
-GRANT USAGE ON SCHEMA account TO user_alpha;
-GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA account TO user_alpha;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA account TO user_alpha;
-
-GRANT USAGE ON SCHEMA product TO user_alpha;
-GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA product TO user_alpha;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA product TO user_alpha;
 
 --GRANT USAGE ON SCHEMA xxxx TO user;
 --GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA xxxx TO user;
