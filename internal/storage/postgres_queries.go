@@ -99,31 +99,41 @@ func UpdateLastAccountActivity(ctx context.Context, pdb *Postgres, uuid string) 
 	return nil
 }
 
-func DeleteUser(ctx context.Context, pdb *Postgres, nickname, email, base64PasswordHash, base64Salt, token string) (string, error) {
-	var result uuid.UUID
+//func DeleteUser(ctx context.Context, pdb *Postgres, nickname, email, base64PasswordHash, base64Salt, token string) (string, error) {
+//	var result uuid.UUID
+//
+//	if err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
+//		err := tx.QueryRow(ctx,
+//			"DELETE ").Scan(&result)
+//		if err != nil {
+//			return err
+//		}
+//
+//		res, err := tx.Exec(ctx,
+//			"INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5)",
+//			result, email, nickname, base64PasswordHash, base64Salt)
+//		if err != nil {
+//			return err
+//		}
+//		if res.RowsAffected() < 1 {
+//			return FailedInsert
+//		}
+//		return err
+//	}); err != nil {
+//		return result.String(), err
+//	}
+//
+//	return result.String(), nil
+//}
 
-	if err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
-		err := tx.QueryRow(ctx,
-			"DELETE ").Scan(&result)
-		if err != nil {
-			return err
-		}
-
-		res, err := tx.Exec(ctx,
-			"INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5)",
-			result, email, nickname, base64PasswordHash, base64Salt)
-		if err != nil {
-			return err
-		}
-		if res.RowsAffected() < 1 {
-			return FailedInsert
-		}
-		return err
-	}); err != nil {
-		return result.String(), err
+func GetProducts(ctx context.Context, pdb *Postgres) (pgx.Rows, error) {
+	rows, err := pdb.Pool.Query(ctx,
+		"SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_for_mainpage")
+	if err != nil {
+		return nil, err
 	}
 
-	return result.String(), nil
+	return rows, nil
 }
 
 func CheckCsrfTokenExists(ctx context.Context, pdb *Postgres, csrfToken string) (bool, error) {

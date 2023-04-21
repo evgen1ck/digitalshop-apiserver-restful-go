@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"syscall"
 	"test-server-go/internal/api_v1"
-	"test-server-go/internal/api_v1/handlers"
+	"test-server-go/internal/api_v1/handlers_v1"
 	"test-server-go/internal/config"
 	"test-server-go/internal/logger"
 	"test-server-go/internal/mailer"
@@ -144,7 +144,7 @@ func setupRouter(app models.Application) {
 	r.Use(middleware.Compress(5))  // Supports compression
 
 	api_v1.SetupPrometheus(app) // prometheus routes
-	rs := handlers.Resolver{
+	rs := handlers_v1.Resolver{
 		App: &app,
 	}
 	rs.SetupRouterApiVer1("/api/v1") // api version 1 routes

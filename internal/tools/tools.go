@@ -11,6 +11,7 @@ import (
 	"io"
 	"math/big"
 	"net"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -158,6 +159,15 @@ func Slugify(s string) string {
 	return buf.String()
 }
 
+func GetFullURL(r *http.Request, isDebug bool) string {
+	scheme := "http"
+	if !isDebug {
+		scheme = "https"
+	}
+
+	return fmt.Sprintf("%s://%s%s", scheme, r.Host, r.RequestURI)
+}
+
 // UrlSetParam sets or updates a query parameter in a Url string.
 // It parses the input Url string and sets the specified key-value pair in the query parameters.
 // If the Url string cannot be parsed, an error is returned.
@@ -173,6 +183,20 @@ func UrlSetParam(u string, key string, value interface{}) (string, error) {
 
 	parsedURL.RawQuery = values.Encode()
 	return parsedURL.String(), nil
+}
+
+func UrlGetParam(u, key string) (string, error) {
+	var value string
+
+	parsedURL, err := url.Parse(u)
+	if err != nil {
+		return value, err
+	}
+
+	queryParams := parsedURL.Query()
+	value = queryParams.Get(key)
+
+	return value, nil
 }
 
 // UrlDelParam removes a query parameter with the specified key from the provided Url string.
