@@ -363,7 +363,7 @@ WHERE
 ORDER BY
     p.product_name,
     st.subtype_no,
-    lv.variant_name;
+    lv.quantity_current DESC;
 
 
 

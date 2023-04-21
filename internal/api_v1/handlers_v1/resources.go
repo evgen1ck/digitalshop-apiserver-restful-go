@@ -7,18 +7,19 @@ import (
 	"path/filepath"
 	"strings"
 	"test-server-go/internal/api_v1"
+	tl "test-server-go/internal/tools"
 )
 
 func (rs *Resolver) ResourcesGetProductImage(w http.ResponseWriter, r *http.Request) {
-	//if runtime.GOOS == "windows" {
-	//	path, _ = os.Getwd()
-	//} else {
-	//	path, _ = getExecutablePath()
-	//}
-	//configPath := flag.String("config", filepath.Join(path, "server.yaml"), "Path to the YAML configuration file")
+	path, err := tl.GetExecutablePath()
+	if err != nil {
+		rs.App.Logger.NewWarn("error in get executable path", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
 
 	id := chi.URLParam(r, "id")
-	dir := "resources/product_images"
+	dir := filepath.Join(path, "resources", "product_images")
 
 	files, err := os.ReadDir(dir)
 	if err != nil {
@@ -40,7 +41,6 @@ func (rs *Resolver) ResourcesGetProductImage(w http.ResponseWriter, r *http.Requ
 	}
 
 	if foundFile == "" {
-		rs.App.Logger.NewWarn("error in found file", err)
 		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "This file not found")
 		return
 	}

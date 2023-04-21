@@ -16,9 +16,9 @@ const (
 	AccountRegistrationMethodTelegramAccount = "telegram account"
 	AccountRegistrationMethodGoogleAccount   = "google account"
 
-	ResourcesProfileImagePath = "/profile/image/"
-	ResourcesProductImagePath = "/resources/product_image/"
-	ResourcesSvgFilePath      = "/resources/svg_file/"
+	ResourcesProfileImagePath = "/api/v1/profile/image/"
+	ResourcesProductImagePath = "/api/v1/resources/product_image/"
+	ResourcesSvgFilePath      = "/api/v1/resources/svg_file/"
 )
 
 var (

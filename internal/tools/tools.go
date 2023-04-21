@@ -13,6 +13,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
@@ -278,4 +281,17 @@ func StringNoDashesToUuid(s string) (uuid.UUID, error) {
 		s[16:20],
 		s[20:32],
 	}, "-"))
+}
+
+func GetExecutablePath() (string, error) {
+	if runtime.GOOS == "windows" {
+		path, err := os.Getwd()
+		return path, err
+	} else {
+		ex, err := os.Executable()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Dir(ex), nil
+	}
 }

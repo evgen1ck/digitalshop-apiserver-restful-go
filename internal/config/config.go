@@ -5,7 +5,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
-	"runtime"
+	tl "test-server-go/internal/tools"
 )
 
 type Config struct {
@@ -59,12 +59,9 @@ type Config struct {
 
 func SetupYaml() (*Config, error) {
 	var cfg Config
-	var path string
-
-	if runtime.GOOS == "windows" {
-		path, _ = os.Getwd()
-	} else {
-		path, _ = getExecutablePath()
+	path, err := tl.GetExecutablePath()
+	if err != nil {
+		return nil, err
 	}
 
 	configPath := flag.String("config", filepath.Join(path, "server.yaml"), "Path to the YAML configuration file")
@@ -121,12 +118,4 @@ func SetupYaml() (*Config, error) {
 	flag.Parse()
 
 	return &cfg, nil
-}
-
-func getExecutablePath() (string, error) {
-	ex, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Dir(ex), nil
 }

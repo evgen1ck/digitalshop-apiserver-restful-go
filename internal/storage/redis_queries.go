@@ -35,7 +35,7 @@ func CreateBlockedToken(ctx context.Context, rdb *Redis, token string, expiratio
 func CheckBlockedTokenExists(ctx context.Context, rdb *Redis, token string) (bool, error) {
 	result, err := rdb.Client.Get(ctx, BlockedTokenPath+token).Result()
 	if err == redis.Nil {
-		return false, NoResults
+		return false, nil
 	} else if err != nil {
 		return false, err
 	} else {

@@ -131,8 +131,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	if password == "" {
 		api_v1.RespondWithConflict(w, "User not found")
 		return
-	}
-	if err != nil {
+	} else if err != nil {
 		rs.App.Logger.NewWarn("error in checked registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
@@ -243,6 +242,27 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Get account state and check on exists
+		state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, userUuid, storage.AccountRoleUser)
+		if state == "" {
+			api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of users")
+			return
+		} else if err != nil {
+			api_v1.RespondWithInternalServerError(w)
+			rs.App.Logger.NewWarn("Error in founding account in the list", err)
+			return
+		}
+
+		// Check account on state (blocked, deleted...)
+		switch state {
+		case storage.AccountStateBlocked:
+			api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been blocked")
+			return
+		case storage.AccountStateDeleted:
+			api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been deleted")
+			return
+		}
+
 		result, err := auth.CompareHashPasswords(password, base64PasswordHash, base64Salt)
 		if err != nil {
 			rs.App.Logger.NewWarn("error in compare hash passwords", err)
@@ -288,7 +308,7 @@ func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
 	if err := storage.CreateBlockedToken(r.Context(), rs.App.Redis, token, ttl); err == storage.QueryExists {
 		api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Token has already been deactivated")
 		return
-	} else {
+	} else if err != nil {
 		rs.App.Logger.NewWarn("error in took jwt data", err)
 		api_v1.RespondWithInternalServerError(w)
 	}
