@@ -17,7 +17,6 @@ import (
 	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
-	"time"
 )
 
 func Run() {
@@ -34,44 +33,57 @@ func Run() {
 		Handler: app.Router,
 	}
 
-	done := make(chan struct{})
-	go func() {
-		shutdownServer(prometheusServer, app.Logger, "Prometheus API")
-		shutdownServer(apiV1Server, app.Logger, "Service API v1")
-		close(done)
-	}()
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	if app.Config.App.Debug {
 		app.Logger.NewInfo("Prometheus API will be running in debug mode on " + prometheusServer.Addr)
-		app.Logger.NewInfo("Service API v1 will be running in debug mode on " + apiV1Server.Addr)
 		go func() {
 			if err := prometheusServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				app.Logger.NewError("Error starting Prometheus API", err)
 			}
 		}()
+
+		app.Logger.NewInfo("Service API v1 will be running in debug mode on " + apiV1Server.Addr)
 		go func() {
 			if err := apiV1Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				app.Logger.NewError("Error starting Service API v1", err)
 			}
 		}()
 	} else {
-		app.Logger.NewInfo("Prometheus API will be running in tls mode on" + prometheusServer.Addr)
-		app.Logger.NewInfo("Service API v1 will be running in tls mode on" + apiV1Server.Addr)
+		app.Logger.NewInfo("Prometheus API will be running in tls mode on " + prometheusServer.Addr)
 		go func() {
 			if err := prometheusServer.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile); err != nil && err != http.ErrServerClosed {
 				app.Logger.NewError("Error starting Prometheus API", err)
 			}
 		}()
+
+		app.Logger.NewInfo("Service API v1 will be running in tls mode on " + apiV1Server.Addr)
 		go func() {
 			if err := apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile); err != nil && err != http.ErrServerClosed {
 				app.Logger.NewError("Error starting Service API v1", err)
 			}
 		}()
+		app.Logger.NewInfo("The services is ready to listen and serve on https")
+	}
+	app.Logger.NewInfo("The services is ready to listen and serve on http")
+
+	killSignal := <-interrupt
+	switch killSignal {
+	case os.Interrupt:
+		app.Logger.NewWarn("Got signal SIGINT...", nil)
+	case syscall.SIGTERM:
+		app.Logger.NewWarn("Got signal SIGTERM...", nil)
 	}
 
-	<-done
-	app.Postgres.Pool.Close()
-	app.Logger.Logger.Sync()
+	app.Logger.NewInfo("The services is shutting down...")
+
+	prometheusServer.Shutdown(context.Background())
+	app.Logger.NewInfo("Prometheus service is shut down")
+
+	apiV1Server.Shutdown(context.Background())
+	app.Logger.NewInfo("API v1 service is shut down")
+	app.Logger.NewInfo("Done")
 }
 
 func setupConfig() *models.Application {
@@ -115,23 +127,6 @@ func setupConfig() *models.Application {
 	}
 
 	return &application
-}
-
-func shutdownServer(srv *http.Server, logger *logger.Logger, serviceName string) {
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
-	<-signalChan
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	srv.SetKeepAlivesEnabled(false)
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.NewError("Could not gracefully shutdown the "+serviceName, err)
-	}
-
-	logger.NewInfo(serviceName + " stopped")
-
 }
 
 func setupRouter(app models.Application) {

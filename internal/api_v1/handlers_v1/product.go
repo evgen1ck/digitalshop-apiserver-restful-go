@@ -10,10 +10,10 @@ import (
 )
 
 type Variant struct {
-	VariantName     string  `json:"variant_name"`
 	VariantId       string  `json:"variant_id"`
-	Service         string  `json:"service"`
 	ServiceSvgUrl   string  `json:"service_svg_url"`
+	VariantName     string  `json:"variant_name"`
+	Service         string  `json:"service"`
 	State           string  `json:"state"`
 	Item            string  `json:"item"`
 	Mask            string  `json:"mask"`
@@ -25,15 +25,15 @@ type Variant struct {
 }
 
 type Subtype struct {
-	SubtypeName string    `json:"subtype_name"`
 	Type        string    `json:"type"`
+	SubtypeName string    `json:"subtype_name"`
 	Variants    []Variant `json:"variants"`
 }
 
 type Product struct {
-	ProductName     string    `json:"product_name"`
 	ProductId       string    `json:"product_id"`
 	ProductImageUrl string    `json:"product_image_url"`
+	ProductName     string    `json:"product_name"`
 	Description     string    `json:"description"`
 	Subtypes        []Subtype `json:"subtypes"`
 }
@@ -117,6 +117,8 @@ func (rs *Resolver) ProductsData(w http.ResponseWriter, r *http.Request) {
 			for i, st := range productsMap[p.ProductName].Subtypes {
 				if st.SubtypeName == s.SubtypeName && st.Type == s.Type {
 					v.ServiceSvgUrl = rs.App.Config.App.Service.Url.Api + storage.ResourcesSvgFilePath + strings.ReplaceAll(v.Service, " ", "-")
+					//if (v.State )
+
 					productsMap[p.ProductName].Subtypes[i].Variants = append(productsMap[p.ProductName].Subtypes[i].Variants, v)
 					break
 				}
@@ -128,7 +130,6 @@ func (rs *Resolver) ProductsData(w http.ResponseWriter, r *http.Request) {
 			productsList = append(productsList, product)
 		}
 
-		// Вывод результатов
 		//for _, product := range productsList {
 		//	fmt.Printf("Product: %s\n", product.ProductName)
 		//	for _, subtype := range product.Subtypes {

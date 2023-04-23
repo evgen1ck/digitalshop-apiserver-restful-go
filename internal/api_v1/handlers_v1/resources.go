@@ -49,5 +49,28 @@ func (rs *Resolver) ResourcesGetProductImage(w http.ResponseWriter, r *http.Requ
 
 }
 
-func (rs *Resolver) ResourcesGetAvatarImage(w http.ResponseWriter, r *http.Request) {}
-func (rs *Resolver) ResourcesGetSvgFile(w http.ResponseWriter, r *http.Request)     {}
+func (rs *Resolver) ResourcesGetAvatarImage(w http.ResponseWriter, r *http.Request) {
+}
+
+func (rs *Resolver) ResourcesGetSvgFile(w http.ResponseWriter, r *http.Request) {
+	path, err := tl.GetExecutablePath()
+	if err != nil {
+		rs.App.Logger.NewWarn("error in get executable path", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+	dir := filepath.Join(path, "resources", "svg_files")
+	filename := id + ".svg"
+
+	filePath := filepath.Join(dir, filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "This file not found")
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/svg+xml")
+	http.ServeFile(w, r, filePath)
+}

@@ -128,7 +128,7 @@ CREATE TABLE product.state
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary	text		NULL
 );
-INSERT INTO product.state(state_name) VALUES ('unavailable'), ('active'), ('blocked'), ('deleted');
+INSERT INTO product.state(state_name) VALUES ('unavailable without price'), ('active'), ('deleted'), ('unavailable with price');
 
 
 
