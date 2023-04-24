@@ -50,6 +50,7 @@ func Run() {
 				app.Logger.NewError("Error starting Service API v1", err)
 			}
 		}()
+		app.Logger.NewInfo("The services is ready to listen and serve on http protocol")
 	} else {
 		app.Logger.NewInfo("Prometheus API will be running in tls mode on " + prometheusServer.Addr)
 		go func() {
@@ -64,9 +65,8 @@ func Run() {
 				app.Logger.NewError("Error starting Service API v1", err)
 			}
 		}()
-		app.Logger.NewInfo("The services is ready to listen and serve on https")
+		app.Logger.NewInfo("The services is ready to listen and serve on https protocol")
 	}
-	app.Logger.NewInfo("The services is ready to listen and serve on http")
 
 	killSignal := <-interrupt
 	switch killSignal {

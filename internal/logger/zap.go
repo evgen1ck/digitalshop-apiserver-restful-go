@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	folderName    = "logs"
+	folderName    = "log"
 	fileFormat    = "02.01.06"
 	fileExtension = "log"
 )
@@ -31,15 +31,16 @@ func NewZap() (*Logger, error) {
 	var logFilePath string
 	var err error
 
-	logFilePath, err = tl.GetExecutablePathWithJoin(folderName, logFileName)
+	logFilePath, err = tl.GetExecutablePath()
 	if err != nil {
 		return nil, err
 	}
+	logFilePath = filepath.Join(logFilePath, folderName, logFileName)
 
-	if err = updateLogFile(&logFilePath); err != nil {
+	logFileDir := filepath.Dir(logFilePath)
+	if err = os.MkdirAll(logFileDir, 0755); err != nil {
 		return nil, err
 	}
-
 	file, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
@@ -52,22 +53,6 @@ func NewZap() (*Logger, error) {
 	logger := zap.New(core)
 
 	return &Logger{Logger: logger}, nil
-}
-
-func updateLogFile(logFilePath *string) error {
-	today := time.Now().Format(fileFormat)
-	currentLogFile := filepath.Base(*logFilePath)
-	currentLogDate := currentLogFile[:len(today)]
-
-	if currentLogDate != today {
-		newLogFilePath, err := tl.GetExecutablePathWithJoin(folderName, logFileName)
-		if err != nil {
-			return err
-		}
-
-		*logFilePath = newLogFilePath
-	}
-	return nil
 }
 
 func (l *Logger) Sync() error {

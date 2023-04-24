@@ -2,13 +2,12 @@ package mailer
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/go-mail/mail/v2"
 	"html/template"
-	"os"
+	"log"
 	"path/filepath"
-	"runtime"
 	"test-server-go/internal/config"
+	tl "test-server-go/internal/tools"
 	"time"
 )
 
@@ -17,31 +16,15 @@ type Mailer struct {
 	from string
 }
 
-const folderName = "templates"
-
 func getPath(file string) (string, error) {
-	var tmplFilePath string
-
-	if runtime.GOOS == "windows" {
-		if err := os.MkdirAll(folderName, os.ModePerm); err != nil {
-			return tmplFilePath, fmt.Errorf("failed to create log directory: %v", err)
-		}
-
-		tmplFilePath = filepath.Join(folderName, file)
-	} else {
-		executablePath, err := os.Executable()
-		if err != nil {
-			return tmplFilePath, fmt.Errorf("failed to get executable path: %v", err)
-		}
-		executableDir := filepath.Dir(executablePath)
-
-		logsPath := filepath.Join(executableDir, folderName)
-		if err := os.MkdirAll(logsPath, os.ModePerm); err != nil {
-			return tmplFilePath, fmt.Errorf("failed to create log directory: %v", err)
-		}
-
-		tmplFilePath = filepath.Join(logsPath, file)
+	path, err := tl.GetExecutablePath()
+	if err != nil {
+		log.Fatal()
 	}
+
+	dir := filepath.Join(path, "resources", "templates")
+
+	tmplFilePath := filepath.Join(dir, file)
 
 	return tmplFilePath, nil
 }

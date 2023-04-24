@@ -168,7 +168,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		Nickname:           nickname,
 		Email:              email,
 		RegistrationMethod: storage.AccountRegistrationMethodWebApplication,
-		AvatarUrl:          rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + tl.UuidToStringNoDashes(userUuid),
+		AvatarUrl:          rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + userUuid,
 	}
 
 	api_v1.RespondWithCreated(w, response)

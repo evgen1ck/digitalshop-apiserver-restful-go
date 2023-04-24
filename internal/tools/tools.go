@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"io"
@@ -290,27 +289,6 @@ func GetExecutablePath() (string, error) {
 		return path, err
 	} else {
 		ex, err := os.Executable()
-		if err != nil {
-			return "", err
-		}
-		return filepath.Dir(ex), nil
+		return filepath.Dir(ex), err
 	}
-}
-
-func GetExecutablePathWithJoin(s1, s2 string) (string, error) {
-	var fullPath string
-
-	if runtime.GOOS != "windows" {
-		var err error
-		s1, err = GetExecutablePath()
-		if err != nil {
-			return "", err
-		}
-	} else if s1 == "" {
-		return fullPath, errors.New("fist value is empty")
-	}
-
-	fullPath = filepath.Join(s1, s2)
-
-	return fullPath, nil
 }

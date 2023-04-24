@@ -18,9 +18,7 @@ func (rs *Resolver) ResourcesGetProductImage(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	id := chi.URLParam(r, "id")
 	dir := filepath.Join(path, "resources", "product_images")
-
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in read files directory", err)
@@ -29,6 +27,7 @@ func (rs *Resolver) ResourcesGetProductImage(w http.ResponseWriter, r *http.Requ
 	}
 
 	var foundFile string
+	id := chi.URLParam(r, "id")
 	for _, file := range files {
 		if !file.IsDir() {
 			filename := file.Name()
@@ -46,7 +45,6 @@ func (rs *Resolver) ResourcesGetProductImage(w http.ResponseWriter, r *http.Requ
 	}
 
 	http.ServeFile(w, r, filepath.Join(dir, foundFile))
-
 }
 
 func (rs *Resolver) ResourcesGetAvatarImage(w http.ResponseWriter, r *http.Request) {
@@ -60,17 +58,15 @@ func (rs *Resolver) ResourcesGetSvgFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	id := chi.URLParam(r, "id")
 	dir := filepath.Join(path, "resources", "svg_files")
-	filename := id + ".svg"
+	fileName := chi.URLParam(r, "id") + ".svg"
+	fullPath := filepath.Join(dir, fileName)
 
-	filePath := filepath.Join(dir, filename)
-
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "This file not found")
 		return
 	}
 
 	w.Header().Set("Content-Type", "image/svg+xml")
-	http.ServeFile(w, r, filePath)
+	http.ServeFile(w, r, fullPath)
 }
