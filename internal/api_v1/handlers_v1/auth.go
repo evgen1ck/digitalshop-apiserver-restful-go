@@ -52,12 +52,12 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	emailDomainExists, err := tl.CheckEmailDomainExistence(email)
+	if err != nil {
+		rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
+	}
 	if !emailDomainExists {
 		api_v1.RespondWithConflict(w, "Email: the email domain is not exist")
 		return
-	}
-	if err != nil {
-		rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
 	}
 
 	// Block 2 - check for an exists nickname and email
@@ -216,11 +216,12 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		emailDomainExists, err := tl.CheckEmailDomainExistence(email)
+		if err != nil {
+			rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
+		}
 		if !emailDomainExists {
 			api_v1.RespondWithConflict(w, "Email: the email domain is not exist")
 			return
-		} else if err != nil {
-			rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
 		}
 	}
 
