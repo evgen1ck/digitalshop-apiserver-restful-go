@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
+	httprateredis "github.com/go-chi/httprate-redis"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,6 +19,7 @@ import (
 	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
+	"time"
 )
 
 func Run() {
@@ -137,6 +140,17 @@ func setupRouter(app models.Application) {
 	r.Use(middleware.StripSlashes) // Optimizes paths
 	r.Use(middleware.Logger)       // Logging
 	r.Use(middleware.Compress(5))  // Supports compression
+	r.Use(httprate.Limit(
+		10,
+		10*time.Second,
+		httprate.WithKeyByIP(),
+		httprateredis.WithRedisLimitCounter(&httprateredis.Config{
+			Host:     app.Config.Redis.Ip,
+			Port:     uint16(app.Config.Redis.Port),
+			Password: app.Config.Redis.Password,
+			DBIndex:  0,
+		}),
+	))
 
 	api_v1.SetupPrometheus(app) // prometheus routes
 	rs := handlers_v1.Resolver{

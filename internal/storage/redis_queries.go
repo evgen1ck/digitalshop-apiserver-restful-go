@@ -26,10 +26,8 @@ func CreateBlockedToken(ctx context.Context, rdb *Redis, token string, expiratio
 		return QueryExists
 	}
 
-	if err := rdb.Client.Set(ctx, BlockedTokenPath+token, "true", expiration).Err(); err != nil {
-		return err
-	}
-	return nil
+	err = rdb.Client.Set(ctx, BlockedTokenPath+token, "true", expiration).Err()
+	return err
 }
 
 func CheckBlockedTokenExists(ctx context.Context, rdb *Redis, token string) (bool, error) {
@@ -39,7 +37,7 @@ func CheckBlockedTokenExists(ctx context.Context, rdb *Redis, token string) (boo
 	} else if err != nil {
 		return false, err
 	} else {
-		return result == "true", nil
+		return result == "true", err
 	}
 }
 
@@ -51,20 +49,16 @@ func CreateTempRegistration(ctx context.Context, rdb *Redis, nickname, email, pa
 		return QueryExists
 	}
 
-	if err = execInPipeline(ctx, rdb.Client, func(pipe redis.Pipeliner) error {
-		if err := pipe.HSet(ctx, TempRegistrationPath+confirmationToken, "nickname", nickname, "email", email, "password", password).Err(); err != nil {
+	err = execInPipeline(ctx, rdb.Client, func(pipe redis.Pipeliner) error {
+		if err = pipe.HSet(ctx, TempRegistrationPath+confirmationToken, "nickname", nickname, "email", email, "password", password).Err(); err != nil {
 			return err
 		}
 
-		if err = pipe.Expire(ctx, TempRegistrationPath+confirmationToken, expiration).Err(); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+		err = pipe.Expire(ctx, TempRegistrationPath+confirmationToken, expiration).Err()
 		return err
-	}
+	})
 
-	return nil
+	return err
 }
 
 func GetTempRegistration(ctx context.Context, rdb *Redis, confirmationToken string) (string, string, string, error) {
@@ -94,9 +88,7 @@ func DeleteTempRegistration(ctx context.Context, rdb *Redis, confirmationToken s
 		return NoResults
 	}
 
-	if err = rdb.Client.Del(ctx, TempRegistrationPath+confirmationToken).Err(); err != nil {
-		return err
-	}
+	err = rdb.Client.Del(ctx, TempRegistrationPath+confirmationToken).Err()
 
-	return nil
+	return err
 }

@@ -67,7 +67,6 @@ func cyrillicToLatin(text string) string {
 }
 
 func EngToRus(input string) string {
-
 	var result strings.Builder
 
 	for _, char := range input {

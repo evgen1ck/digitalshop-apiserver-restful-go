@@ -5,7 +5,8 @@ go 1.19
 require (
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
-	github.com/go-chi/httprate v0.7.1
+	github.com/go-chi/httprate v0.7.4
+	github.com/go-chi/httprate-redis v0.2.1
 	github.com/go-mail/mail/v2 v2.3.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
@@ -15,7 +16,6 @@ require (
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.13.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 

@@ -128,7 +128,7 @@ CREATE TABLE product.state
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary	text		NULL
 );
-INSERT INTO product.state(state_name) VALUES ('unavailable without price'), ('active'), ('deleted'), ('unavailable with price');
+INSERT INTO product.state(state_name) VALUES ('unavailable without price'), ('active'), ('deleted'), ('unavailable with price'), ('invisible');
 
 
 
@@ -277,8 +277,7 @@ SELECT * FROM product.product_variants_summary_all_data;
 SELECT *
 FROM product.product_variants_summary_all_data
 WHERE
-    (product_name ILIKE '%gta5%' OR variant_name ILIKE '%gta5%' OR description ILIKE '%gta5%' OR tags ILIKE '%gta5%')
-   OR (product_name ILIKE '%value2%' OR variant_name ILIKE '%value2%' OR description ILIKE '%value2%' OR tags ILIKE '%value2%')
+    concat(product_name, variant_name, description, tags) ILIKE ANY (ARRAY['%red%', '%gta%'])
 ORDER BY
     product_name,
     tags,
@@ -344,6 +343,7 @@ SELECT
         WHEN lv.quantity_current > 1 AND lv.quantity_current < 10 THEN 'limited stock'
         WHEN lv.quantity_current >= 10 AND lv.quantity_current < 30 THEN 'adequate stock'
         WHEN lv.quantity_current >= 30 THEN 'large stock'
+        ELSE 'error'
         END AS text_quantity,
     p.description,
     p.tags,
@@ -359,11 +359,7 @@ FROM
         JOIN product.subtype st ON lv.variant_subtype = st.subtype_no
         JOIN product.type t ON st.type_no = t.type_no
 WHERE
-        lv.variant_row_num <= 10
-ORDER BY
-    p.product_name,
-    st.subtype_no,
-    lv.quantity_current DESC;
+    lv.variant_row_num <= 10;
 
 
 
@@ -394,6 +390,7 @@ SELECT
         WHEN lv.quantity_current > 1 AND lv.quantity_current < 10 THEN 'limited stock'
         WHEN lv.quantity_current >= 10 AND lv.quantity_current < 30 THEN 'adequate stock'
         WHEN lv.quantity_current >= 30 THEN 'large stock'
+        ELSE 'error'
         END AS text_quantity,
     p.description,
     p.tags,

@@ -10,7 +10,7 @@ import (
 
 const (
 	timeout            = 5 * time.Second
-	rateLimitRequests  = 80
+	rateLimitRequests  = 100
 	rateLimitInterval  = 1 * time.Minute
 	requestMaxSize     = 4 * 1024 * 1024 // 4 MB
 	uriMaxLength       = 1024            // 1024 runes
@@ -71,6 +71,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Post("/recover-password-with-token", rs.AuthRecoverPasswordWithToken)
 	})
 	r.Route("/products", func(r chi.Router) {
+		r.Get("/mainpage", rs.ProductsDataForMainpage)
 		r.Get("/", rs.ProductsData)
 	})
 	r.Route("/user", func(r chi.Router) {
