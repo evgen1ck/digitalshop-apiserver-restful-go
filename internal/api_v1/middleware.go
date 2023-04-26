@@ -20,9 +20,9 @@ import (
 	"unicode/utf8"
 )
 
-func CorsMiddleware() func(http.Handler) http.Handler {
+func CorsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 	return cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,

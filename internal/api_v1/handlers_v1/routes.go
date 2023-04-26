@@ -2,6 +2,7 @@ package handlers_v1
 
 import (
 	"github.com/go-chi/chi/v5"
+	"strconv"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
@@ -33,7 +34,10 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r := chi.NewRouter()
 
 	// CORS settings
-	r.Use(api_v1.CorsMiddleware())
+	r.Use(api_v1.CorsMiddleware([]string{
+		rs.App.Config.App.Service.Url.Api,
+		rs.App.Config.App.Service.Url.App,
+		"http://localhost:" + strconv.Itoa(rs.App.Config.App.Port)}))
 
 	// Error handling
 	r.Use(api_v1.ServiceUnavailableMiddleware(serviceUnavailable))          // Error 503 - Service Unavailable
