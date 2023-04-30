@@ -48,7 +48,6 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r.Use(api_v1.UnsupportedMediaTypeMiddleware(allowedContentTypes))       // Error 415 - Unsupported Media Type
 	r.Use(api_v1.MethodNotAllowedMiddleware)                                // Error 405 - Method Not Allowed
 	r.Use(api_v1.GatewayTimeoutMiddleware(timeout))                         // Error 504 - Gateway Timeout
-	r.Use(api_v1.BlockPrometheusMetricsMiddleware())                        // Blocking prometheus metrics on this router
 	r.NotFound(api_v1.NotFoundMiddleware())                                 // Error 404 - Not Found
 	//r.Use(api_v1.CsrfMiddleware(rs.App, csrfTokenLength, csrfHeaderName, csrfCookieDuration)) // Error 403 - Forbidden
 

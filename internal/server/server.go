@@ -5,21 +5,17 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/httprate"
-	httprateredis "github.com/go-chi/httprate-redis"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
-	"test-server-go/internal/api_v1"
 	"test-server-go/internal/api_v1/handlers_v1"
 	"test-server-go/internal/config"
 	"test-server-go/internal/logger"
 	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
-	"time"
 )
 
 func Run() {
@@ -140,21 +136,13 @@ func setupRouter(app models.Application) {
 	r.Use(middleware.StripSlashes) // Optimizes paths
 	r.Use(middleware.Logger)       // Logging
 	r.Use(middleware.Compress(5))  // Supports compression
-	r.Use(httprate.Limit(
-		10,
-		10*time.Second,
-		httprate.WithKeyByIP(),
-		httprateredis.WithRedisLimitCounter(&httprateredis.Config{
-			Host:     app.Config.Redis.Ip,
-			Port:     uint16(app.Config.Redis.Port),
-			Password: app.Config.Redis.Password,
-			DBIndex:  0,
-		}),
-	))
 
-	api_v1.SetupPrometheus(app) // prometheus routes
+	// prometheus routes
+	setupPrometheus(app, "/prometheus/metrics", strconv.Itoa(app.Config.Prometheus.Port))
+
+	// api version 1 routes
 	rs := handlers_v1.Resolver{
 		App: &app,
 	}
-	rs.SetupRouterApiVer1("/api/v1") // api version 1 routes
+	rs.SetupRouterApiVer1("/api/v1")
 }

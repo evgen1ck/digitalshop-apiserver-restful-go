@@ -13,7 +13,6 @@ import (
 	"strings"
 	"test-server-go/internal/auth"
 	"test-server-go/internal/logger"
-	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
 	tl "test-server-go/internal/tools"
 	"time"
@@ -28,17 +27,6 @@ func CorsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}).Handler
-}
-
-func PrometheusMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		next.ServeHTTP(w, r)
-		elapsed := time.Since(start)
-
-		requestDuration.Observe(elapsed.Seconds())
-		requestsProcessed.Inc()
-	})
 }
 
 func NotFoundMiddleware() http.HandlerFunc {
@@ -218,77 +206,77 @@ func GatewayTimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Han
 	}
 }
 
-func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName string, csrfCookieDuration time.Duration) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			safeMethods := []string{"GET", "HEAD", "OPTIONS", "TRACE"}
-
-			if !tl.StringInSlice(r.Method, safeMethods) {
-				// Get CSRF token from request header
-				requestToken := r.Header.Get(csrfName)
-				if requestToken == "" {
-					RedRespond(w, http.StatusForbidden, "Forbidden", "CSRF token not found in header")
-					return
-				}
-
-				// Get CSRF token from request cookie
-				cookie, err := r.Cookie(csrfName)
-				if err != nil {
-					RedRespond(w, http.StatusForbidden, "Forbidden", "CSRF token not found in cookie")
-					return
-				}
-
-				// Check if the CSRF tokens match and is valid in the server-side store
-				existsCsrfToken, err := storage.CheckCsrfTokenExists(r.Context(), app.Postgres, requestToken)
-				if err != nil {
-					RespondWithInternalServerError(w)
-				}
-				if requestToken != cookie.Value || !existsCsrfToken {
-					RedRespond(w, http.StatusForbidden, "Forbidden", "Invalid CSRF token")
-					return
-				}
-
-				// Remove the used token from the server-side store
-				err = storage.DeleteCsrfToken(r.Context(), app.Postgres, requestToken)
-				if err != nil {
-					RespondWithInternalServerError(w)
-				}
-			}
-
-			// Generate a new CSRF token
-			token, err := tl.GenerateRandomString(csrfTokenLength)
-			if err != nil {
-				RespondWithInternalServerError(w)
-				return
-			}
-
-			// Save the generated token in the server-side store
-			err = storage.CreateCsrfToken(r.Context(), app.Postgres, token)
-			if err != nil {
-				RespondWithInternalServerError(w)
-			}
-
-			// Create a CSRF cookie with the new token
-			csrfCookie := &http.Cookie{
-				Name:     csrfName,
-				Value:    token,
-				Path:     "/",
-				Expires:  time.Now().Add(csrfCookieDuration),
-				HttpOnly: true,
-				Secure:   true, // Send the cookie only over HTTPS
-			}
-
-			// Set the CSRF cookie
-			http.SetCookie(w, csrfCookie)
-
-			// Set the CSRF token header for the response
-			w.Header().Set(csrfName, token)
-
-			// Call the next handler in the chain
-			next.ServeHTTP(w, r)
-		})
-	}
-}
+//func CsrfMiddleware(app *models.Application, csrfTokenLength int, csrfName string, csrfCookieDuration time.Duration) func(http.Handler) http.Handler {
+//	return func(next http.Handler) http.Handler {
+//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//			safeMethods := []string{"GET", "HEAD", "OPTIONS", "TRACE"}
+//
+//			if !tl.StringInSlice(r.Method, safeMethods) {
+//				// Get CSRF token from request header
+//				requestToken := r.Header.Get(csrfName)
+//				if requestToken == "" {
+//					RedRespond(w, http.StatusForbidden, "Forbidden", "CSRF token not found in header")
+//					return
+//				}
+//
+//				// Get CSRF token from request cookie
+//				cookie, err := r.Cookie(csrfName)
+//				if err != nil {
+//					RedRespond(w, http.StatusForbidden, "Forbidden", "CSRF token not found in cookie")
+//					return
+//				}
+//
+//				// Check if the CSRF tokens match and is valid in the server-side store
+//				existsCsrfToken, err := storage.CheckCsrfTokenExists(r.Context(), app.Postgres, requestToken)
+//				if err != nil {
+//					RespondWithInternalServerError(w)
+//				}
+//				if requestToken != cookie.Value || !existsCsrfToken {
+//					RedRespond(w, http.StatusForbidden, "Forbidden", "Invalid CSRF token")
+//					return
+//				}
+//
+//				// Remove the used token from the server-side store
+//				err = storage.DeleteCsrfToken(r.Context(), app.Postgres, requestToken)
+//				if err != nil {
+//					RespondWithInternalServerError(w)
+//				}
+//			}
+//
+//			// Generate a new CSRF token
+//			token, err := tl.GenerateRandomString(csrfTokenLength)
+//			if err != nil {
+//				RespondWithInternalServerError(w)
+//				return
+//			}
+//
+//			// Save the generated token in the server-side store
+//			err = storage.CreateCsrfToken(r.Context(), app.Postgres, token)
+//			if err != nil {
+//				RespondWithInternalServerError(w)
+//			}
+//
+//			// Create a CSRF cookie with the new token
+//			csrfCookie := &http.Cookie{
+//				Name:     csrfName,
+//				Value:    token,
+//				Path:     "/",
+//				Expires:  time.Now().Add(csrfCookieDuration),
+//				HttpOnly: true,
+//				Secure:   true, // Send the cookie only over HTTPS
+//			}
+//
+//			// Set the CSRF cookie
+//			http.SetCookie(w, csrfCookie)
+//
+//			// Set the CSRF token header for the response
+//			w.Header().Set(csrfName, token)
+//
+//			// Call the next handler in the chain
+//			next.ServeHTTP(w, r)
+//		})
+//	}
+//}
 
 func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger.Logger, secret, role string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -366,19 +354,6 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 
 			// Update last account activity
 			storage.UpdateLastAccountActivity(r.Context(), pdb, jwtData.AccountUuid)
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func BlockPrometheusMetricsMiddleware() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/prometheus/metrics" {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
 
 			next.ServeHTTP(w, r)
 		})
