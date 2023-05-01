@@ -151,7 +151,7 @@ DROP TABLE IF EXISTS product.subtype CASCADE;
 CREATE TABLE product.subtype
 (
     type_no         smallint    ,
-    subtype_no      serial UNIQUE ,
+    subtype_no      serial      UNIQUE ,
     subtype_name    text        NOT NULL UNIQUE,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,

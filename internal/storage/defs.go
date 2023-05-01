@@ -2,12 +2,18 @@ package storage
 
 import (
 	"errors"
+	"strings"
 )
 
-const (
-	AccountRoleUser  = "user"
-	AccountRoleAdmin = "admin"
+// Names style:
+// For creating a record: Create<Type>
+// For checking the existence of a record: Check<Type>
+// For getting a record: Get<Type>
+// For updating a record: Update<Type>
+// For deleting a record: Delete<Type>
 
+// Accounts
+const (
 	AccountStateActive  = "active"
 	AccountStateBlocked = "blocked"
 	AccountStateDeleted = "deleted"
@@ -16,6 +22,21 @@ const (
 	AccountRegistrationMethodTelegramAccount = "telegram account"
 	AccountRegistrationMethodGoogleAccount   = "google account"
 
+	AccountRoleUser  = "user"
+	AccountRoleAdmin = "admin"
+)
+
+// Products
+const (
+	ProductStateActive                  = "active"
+	ProductStateUnavailableWithPrice    = "unavailable with price"
+	ProductStateUnavailableWithoutPrice = "unavailable without price"
+	ProductStateInvisible               = "invisible"
+	ProductStateDeleted                 = "deleted"
+)
+
+// System
+const (
 	ResourcesProfileImagePath = "/api/v1/profile/image/"
 	ResourcesProductImagePath = "/api/v1/resources/product_image/"
 	ResourcesSvgFilePath      = "/api/v1/resources/svg_file/"
@@ -29,3 +50,15 @@ var (
 	NoResults   = errors.New("no results")
 	QueryExists = errors.New("value already exists")
 )
+
+func GetProfileImageUrl(apiUrl, file string) string {
+	return strings.ToLower(apiUrl + ResourcesProfileImagePath + strings.ReplaceAll(file, " ", "-"))
+}
+
+func GetProductImageUrl(apiUrl, file string) string {
+	return strings.ToLower(apiUrl + ResourcesProductImagePath + strings.ReplaceAll(file, " ", "-"))
+}
+
+func GetSvgFileUrl(apiUrl, file string) string {
+	return strings.ToLower(apiUrl + ResourcesSvgFilePath + strings.ReplaceAll(file, " ", "-"))
+}

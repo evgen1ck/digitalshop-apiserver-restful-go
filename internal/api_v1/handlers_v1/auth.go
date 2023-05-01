@@ -3,7 +3,6 @@ package handlers_v1
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/auth"
 	"test-server-go/internal/storage"
@@ -22,36 +21,33 @@ type authResponse struct {
 }
 
 func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
-	var input struct {
+	// Block 0 - decode data
+	var data struct {
 		Nickname string `json:"nickname"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	decodeErr := json.NewDecoder(r.Body).Decode(&input)
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
 	if decodeErr != nil {
 		api_v1.RespondWithBadRequest(w, "")
 		return
 	}
 
 	// Block 1 - data validation
-	nickname := strings.TrimSpace(input.Nickname)
-	email := strings.TrimSpace(strings.ToLower(input.Email))
-	password := strings.TrimSpace(input.Password)
-
-	if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
+	if err := tl.Validate(data.Nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname(), tl.IsTrimSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
 		return
 	}
-	if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
+	if err := tl.Validate(data.Email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail(), tl.IsTrimSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
 		return
 	}
-	if err := tl.Validate(password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace()); err != nil {
+	if err := tl.Validate(data.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
 		return
 	}
 
-	emailDomainExists, err := tl.CheckEmailDomainExistence(email)
+	emailDomainExists, err := tl.CheckEmailDomainExistence(data.Email)
 	if err != nil {
 		rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
 	}
@@ -61,7 +57,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 2 - check for an exists nickname and email
-	nicknameExist, emailExist, err := storage.CheckUserExists(r.Context(), rs.App.Postgres, nickname, email)
+	nicknameExist, emailExist, err := storage.CheckUser(r.Context(), rs.App.Postgres, data.Nickname, data.Email)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in checked the user existence", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -84,7 +80,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := storage.CreateTempRegistration(r.Context(), rs.App.Redis, nickname, email, password, confirmationUrlToken, TempRegistrationExpiration); err != nil {
+	if err = storage.CreateTempRegistration(r.Context(), rs.App.Redis, data.Nickname, data.Email, data.Password, confirmationUrlToken, TempRegistrationExpiration); err != nil {
 		rs.App.Logger.NewWarn("error in inserted registration temp record", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
@@ -98,7 +94,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = rs.App.Mailer.SendEmailConfirmation(nickname, email, url); err != nil {
+	if err = rs.App.Mailer.SendEmailConfirmation(data.Nickname, data.Email, url); err != nil {
 		rs.App.Logger.NewWarn("error in sent email confirmation", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
@@ -109,25 +105,24 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) {
-	var input struct {
+	// Block 0 - decode data
+	var data struct {
 		Token string `json:"token"`
 	}
-	decodeErr := json.NewDecoder(r.Body).Decode(&input)
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
 	if decodeErr != nil {
 		api_v1.RespondWithBadRequest(w, "")
 		return
 	}
 
 	// Block 1 - data validation
-	token := strings.TrimSpace(input.Token)
-
-	if err := tl.Validate(token, tl.IsNotBlank(), tl.IsLen(TokenLength), tl.IsNotContainsSpace()); err != nil {
+	if err := tl.Validate(data.Token, tl.IsNotBlank(), tl.IsLen(TokenLength), tl.IsNotContainsSpace(), tl.IsTrimSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Token: "+err.Error())
 		return
 	}
 
 	// Block 2 - get user data and check on exist user
-	nickname, email, password, err := storage.GetTempRegistration(r.Context(), rs.App.Redis, token)
+	nickname, email, password, err := storage.GetTempRegistration(r.Context(), rs.App.Redis, data.Token)
 	if password == "" {
 		api_v1.RespondWithConflict(w, "User not found")
 		return
@@ -145,7 +140,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	userUuid, err := storage.CreateUser(r.Context(), rs.App.Postgres, rs.App.Redis, nickname, email, base64PasswordHash, base64Salt, token)
+	userUuid, err := storage.CreateUser(r.Context(), rs.App.Postgres, rs.App.Redis, nickname, email, base64PasswordHash, base64Salt, data.Token)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in registration user", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -175,6 +170,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 }
 
 func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
+	// Block 0 - decode data
 	var input struct {
 		Nickname *string `json:"nickname"`
 		Email    *string `json:"email"`
@@ -187,30 +183,23 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 1 - data validation
-	var nickname, email string
-	if input.Nickname != nil {
-		nickname = strings.TrimSpace(strings.ToLower(*input.Nickname))
-	}
-	if input.Email != nil {
-		email = strings.TrimSpace(strings.ToLower(*input.Email))
-	}
-	password := strings.TrimSpace(input.Password)
-
-	if err := tl.Validate(password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace()); err != nil {
+	if err := tl.Validate(input.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
 		return
 	}
-
-	if nickname == "" && email == "" {
+	var nickname, email string
+	if input.Nickname == nil && input.Email == nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Nickname and Email: the values is empty")
 		return
-	} else if nickname != "" {
-		if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname()); err != nil {
+	} else if input.Nickname != nil {
+		nickname = *input.Nickname
+		if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname(), tl.IsTrimSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
 			return
 		}
 	} else {
-		if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail()); err != nil {
+		email = *input.Email
+		if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail(), tl.IsTrimSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
 			return
 		}
@@ -226,7 +215,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 2 - check for an exists nickname and email
-	nicknameExist, emailExist, err := storage.CheckUserExists(r.Context(), rs.App.Postgres, nickname, email)
+	nicknameExist, emailExist, err := storage.CheckUser(r.Context(), rs.App.Postgres, nickname, email)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in checked the user existence", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -264,7 +253,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		result, err := auth.CompareHashPasswords(password, base64PasswordHash, base64Salt)
+		result, err := auth.CompareHashPasswords(input.Password, base64PasswordHash, base64Salt)
 		if err != nil {
 			rs.App.Logger.NewWarn("error in compare hash passwords", err)
 			api_v1.RespondWithInternalServerError(w)
@@ -298,6 +287,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
+	// Block 0 - decode data
 	token, data, err := api_v1.ContextGetAuthenticated(r)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in took jwt data", err)
@@ -305,8 +295,9 @@ func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Block 1 - add token in stop-list
 	ttl := data.ExpiresAt.Sub(time.Now())
-	if err := storage.CreateBlockedToken(r.Context(), rs.App.Redis, token, ttl); err == storage.QueryExists {
+	if err = storage.CreateBlockedToken(r.Context(), rs.App.Redis, token, ttl); err == storage.QueryExists {
 		api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Token has already been deactivated")
 		return
 	} else if err != nil {
@@ -314,6 +305,7 @@ func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithInternalServerError(w)
 	}
 
+	// Block 2 - send the result
 	w.WriteHeader(http.StatusNoContent)
 }
 

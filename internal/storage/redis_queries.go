@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"github.com/redis/go-redis/v9"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,8 @@ const (
 )
 
 func CreateBlockedToken(ctx context.Context, rdb *Redis, token string, expiration time.Duration) error {
+	token = strings.ToLower(token)
+
 	exists, err := rdb.Client.Exists(ctx, BlockedTokenPath+token).Result()
 	if err != nil {
 		return err
@@ -31,6 +34,8 @@ func CreateBlockedToken(ctx context.Context, rdb *Redis, token string, expiratio
 }
 
 func CheckBlockedTokenExists(ctx context.Context, rdb *Redis, token string) (bool, error) {
+	token = strings.ToLower(token)
+
 	result, err := rdb.Client.Get(ctx, BlockedTokenPath+token).Result()
 	if err == redis.Nil {
 		return false, nil
@@ -42,6 +47,9 @@ func CheckBlockedTokenExists(ctx context.Context, rdb *Redis, token string) (boo
 }
 
 func CreateTempRegistration(ctx context.Context, rdb *Redis, nickname, email, password, confirmationToken string, expiration time.Duration) error {
+	nickname = strings.ToLower(nickname)
+	email = strings.ToLower(email)
+
 	exists, err := rdb.Client.Exists(ctx, TempRegistrationPath+confirmationToken).Result()
 	if err != nil {
 		return err

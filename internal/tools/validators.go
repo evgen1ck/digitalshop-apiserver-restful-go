@@ -142,3 +142,12 @@ func IsUtf8() func(string) error {
 		return nil
 	}
 }
+
+func IsTrimSpace() func(string) error {
+	return func(str string) error {
+		if str == strings.TrimSpace(str) {
+			return errors.New("the value is not trimmed space")
+		}
+		return nil
+	}
+}
