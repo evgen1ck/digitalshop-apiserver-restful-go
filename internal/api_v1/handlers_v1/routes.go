@@ -33,11 +33,15 @@ type Resolver struct {
 func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r := chi.NewRouter()
 
+	var corsAllowedOrigins []string
+	if rs.App.Config.App.Debug {
+		corsAllowedOrigins = append(corsAllowedOrigins, "http://localhost:"+strconv.Itoa(rs.App.Config.App.Port))
+	} else {
+		corsAllowedOrigins = append(corsAllowedOrigins, rs.App.Config.App.Service.Url.App)
+	}
+
 	// CORS settings
-	r.Use(api_v1.CorsMiddleware([]string{
-		rs.App.Config.App.Service.Url.Api,
-		rs.App.Config.App.Service.Url.App,
-		"http://localhost:" + strconv.Itoa(rs.App.Config.App.Port)}))
+	r.Use(api_v1.CorsMiddleware(corsAllowedOrigins))
 
 	// Error handling
 	r.Use(api_v1.ServiceUnavailableMiddleware(serviceUnavailable))          // Error 503 - Service Unavailable

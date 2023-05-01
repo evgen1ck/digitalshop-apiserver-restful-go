@@ -131,14 +131,14 @@ func GetProductsWithParams(ctx context.Context, pdb *Postgres, query1, query2, q
 	return rows, err
 }
 
-func CheckCsrfTokenExists(ctx context.Context, pdb *Postgres, csrfToken string) (bool, error) {
-	var result bool
-
-	return result, nil
-}
-func DeleteCsrfToken(ctx context.Context, pdb *Postgres, csrfToken string) error {
-	return nil
-}
-func CreateCsrfToken(ctx context.Context, pdb *Postgres, csrfToken string) error {
-	return nil
-}
+//func CheckCsrfTokenExists(ctx context.Context, pdb *Postgres, csrfToken string) (bool, error) {
+//	var result bool
+//
+//	return result, nil
+//}
+//func DeleteCsrfToken(ctx context.Context, pdb *Postgres, csrfToken string) error {
+//	return nil
+//}
+//func CreateCsrfToken(ctx context.Context, pdb *Postgres, csrfToken string) error {
+//	return nil
+//}

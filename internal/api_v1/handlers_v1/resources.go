@@ -47,9 +47,6 @@ func (rs *Resolver) ResourcesGetProductImage(w http.ResponseWriter, r *http.Requ
 	http.ServeFile(w, r, filepath.Join(dir, foundFile))
 }
 
-func (rs *Resolver) ResourcesGetAvatarImage(w http.ResponseWriter, r *http.Request) {
-}
-
 func (rs *Resolver) ResourcesGetSvgFile(w http.ResponseWriter, r *http.Request) {
 	path, err := tl.GetExecutablePath()
 	if err != nil {

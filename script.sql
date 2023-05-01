@@ -4,8 +4,8 @@ CREATE SCHEMA IF NOT EXISTS account;
 CREATE SCHEMA IF NOT EXISTS product;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA account;
 
-select * from account.user;
-select * from account.account;
+--select * from account.user;
+--select * from account.account;
 
 
 
@@ -79,6 +79,8 @@ CREATE TABLE account.user
     commentary			    text		NULL,
     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
 );
+INSERT INTO account.account(account_id) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0694');
+INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0694', '77lm@mail.ru', 'Evgenick', 'QDmOn45b1pvrdIeKpGo/QWhoh3Yk4SW6ohlqlmnEeY0', 'Q/04YJ4R9L2n8ZVMszEe+w');
 
 
 
@@ -158,14 +160,15 @@ CREATE TABLE product.subtype
     FOREIGN KEY (type_no) REFERENCES product.type(type_no)
 );
 INSERT INTO product.subtype(type_no, subtype_name) VALUES
-                                                       ('1', 'computer games'),
-                                                       ('1', 'mobile games'),
-                                                       ('1', 'console games'),
-                                                       ('2', 'antivirus software'),
-                                                       ('2', 'design software'),
-                                                       ('3', 'music'),
-                                                       ('3', 'books'),
-                                                       ('6', 'G-Coins');
+                                                       ('1', 'Computer version'),
+                                                       ('1', 'Mobile version'),
+                                                       ('1', 'Console version'),
+                                                       ('2', 'Antivirus software'),
+                                                       ('2', 'Design software'),
+                                                       ('3', 'Music'),
+                                                       ('3', 'Books'),
+                                                       ('6', 'G-Coins'),
+                                                       ('1', 'Downloadable game content');
 
 
 
@@ -208,8 +211,8 @@ CREATE TABLE product.product
     commentary		text		NULL
 );
 INSERT INTO product.product(product_id, product_name, tags, description) VALUES
-('9beaf75e-2925-4815-bcb6-1dd364293848', 'Grand Theft Auto 5', 'gta5', 'Лос-Сантос – город солнца, старлеток и вышедших в тираж звезд. Некогда предмет зависти всего западного мира, ныне это пристанище дрянных реалити-шоу, задыхающееся в тисках экономических проблем. В центре всей заварухи – троица совершенно разных преступников, отчаянно пытающихся ухватить удачу за хвост в непрекращающейся борьбе за место под солнцем. Бывший член уличной банды Франклин старается завязать с прошлым. Отошедший от дел грабитель банков Майкл обнаруживает, что в честной жизни все не так радужно, как представлялось. Повернутый на насилии псих Тревор перебивается от одного дельца к другому в надежде сорвать крупный куш. Исчерпав варианты, эти трое ставят на кон собственные жизни и учиняют серию дерзких ограблений, в которых – или пан, или пропал.'),
-('af153d1a-263c-4e77-a4d0-fb11ce781365', 'Red Dead Redemption 2', 'rdr2 rdo', 'Америка, 1899 год. Артур Морган и другие подручные Датча ван дер Линде вынуждены пуститься в бега. Их банде предстоит участвовать в кражах, грабежах и перестрелках в самом сердце Америки. За ними по пятам идут федеральные агенты и лучшие в стране охотники за головами, а саму банду разрывают внутренние противоречия. Артуру предстоит выбрать, что для него важнее: его собственные идеалы или же верность людям, которые его взрастили.'),
+('9beaf75e-2925-4815-bcb6-1dd364293848', 'Grand Theft Auto 5', 'gta 5, gta5', 'Лос-Сантос – город солнца, старлеток и вышедших в тираж звезд. Некогда предмет зависти всего западного мира, ныне это пристанище дрянных реалити-шоу, задыхающееся в тисках экономических проблем. В центре всей заварухи – троица совершенно разных преступников, отчаянно пытающихся ухватить удачу за хвост в непрекращающейся борьбе за место под солнцем. Бывший член уличной банды Франклин старается завязать с прошлым. Отошедший от дел грабитель банков Майкл обнаруживает, что в честной жизни все не так радужно, как представлялось. Повернутый на насилии псих Тревор перебивается от одного дельца к другому в надежде сорвать крупный куш. Исчерпав варианты, эти трое ставят на кон собственные жизни и учиняют серию дерзких ограблений, в которых – или пан, или пропал.'),
+('af153d1a-263c-4e77-a4d0-fb11ce781365', 'Red Dead Redemption 2', 'rdr2, rdr 2, rdo', 'Америка, 1899 год. Артур Морган и другие подручные Датча ван дер Линде вынуждены пуститься в бега. Их банде предстоит участвовать в кражах, грабежах и перестрелках в самом сердце Америки. За ними по пятам идут федеральные агенты и лучшие в стране охотники за головами, а саму банду разрывают внутренние противоречия. Артуру предстоит выбрать, что для него важнее: его собственные идеалы или же верность людям, которые его взрастили.'),
 ('85f8d115-ca4b-4db5-b416-6828e4c0e90a', 'Warframe', NULL, 'Пробудитесь в роли неудержимого воина и сражайтесь вместе с друзьями в этой сюжетной бесплатной онлайн-игре. Столкнитесь с враждующими фракциями в обширной межпланетной системе, следуя указаниям загадочной Лотос, повышайте уровень своего Варфрейма, создайте арсенал разрушительной огневой мощи, и откройте свой истинный потенциал в огромных открытых мирах этого захватывающего сражения от третьего лица.'),
 ('573b8cea-bbfa-4415-8f16-1b793a97c85f', 'PUBG: BATTLEGROUNDS', NULL, 'Высаживайтесь в стратегически важных местах, добывайте оружие и припасы и постарайтесь выжить и остаться последней командой на одном из многочисленных полей боя.'),
 ('7a33fa78-df96-4b7e-ac64-4f152ca2022f', 'Superliminal', NULL, 'Восприятие – это реальность. В этой умопомрачительной головоломке от первого лица вам предстоит сбежать из сюрреалистического мира снов, решая невозможные загадки при помощи перспективы.');
@@ -227,7 +230,8 @@ CREATE TABLE product.variant
     last_change_state   timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     variant_item        smallint    NOT NULL,
     mask                text        NOT NULL,
-    quantity_current    integer     NOT NULL CHECK ( quantity_current >= -1 ) DEFAULT 0,
+    quantity_current    integer     NOT NULL CHECK ( quantity_current >= 0 ) DEFAULT 0,
+    quantity_holding    integer     NOT NULL CHECK ( quantity_holding >= 0 ) DEFAULT 0,
     quantity_sold       integer     NOT NULL CHECK ( quantity_sold >= 0 ) DEFAULT 0,
     price               numeric     NOT NULL CHECK ( price >= 0 ),
     discount_money      numeric     NOT NULL CHECK ( discount_money >= 0 AND discount_money <= price ) DEFAULT 0,
@@ -273,16 +277,6 @@ SELECT * FROM product.product_variants_summary_for_mainpage;
 
 REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data;
 SELECT * FROM product.product_variants_summary_all_data;
-
-SELECT *
-FROM product.product_variants_summary_all_data
-WHERE
-    concat(product_name, variant_name, description, tags) ILIKE ANY (ARRAY['%red%', '%gta%'])
-ORDER BY
-    product_name,
-    tags,
-    variant_name,
-    description;
 
 
 DROP TABLE IF EXISTS product.orders CASCADE;
