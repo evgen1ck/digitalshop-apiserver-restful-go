@@ -13,8 +13,8 @@ type Config struct {
 		Service struct {
 			Name string `yaml:"name"`
 			Url  struct {
-				App string `yaml:"app"`
-				Api string `yaml:"api"`
+				Client string `yaml:"client"`
+				Server string `yaml:"server"`
 			} `yaml:"url"`
 		} `yaml:"service"`
 		Port  int    `yaml:"port"`
@@ -75,8 +75,8 @@ func SetupYaml() (*Config, error) {
 
 	// General settings
 	flag.StringVar(&cfg.App.Service.Name, "app-service-name", cfg.App.Service.Name, "service name")
-	flag.StringVar(&cfg.App.Service.Url.App, "app-service-url-app", cfg.App.Service.Url.App, "service url for app")
-	flag.StringVar(&cfg.App.Service.Url.Api, "app-service-url-api", cfg.App.Service.Url.Api, "service url for api")
+	flag.StringVar(&cfg.App.Service.Url.Client, "app-service-url-client", cfg.App.Service.Url.Client, "service url for client app")
+	flag.StringVar(&cfg.App.Service.Url.Server, "app-service-url-server", cfg.App.Service.Url.Server, "service url for server app")
 	flag.IntVar(&cfg.App.Port, "app-port", cfg.App.Port, "server port")
 	flag.BoolVar(&cfg.App.Debug, "app-debug", cfg.App.Debug, "debug mode")
 	flag.StringVar(&cfg.App.Jwt, "app-jwt", cfg.App.Jwt, "jwt secret")

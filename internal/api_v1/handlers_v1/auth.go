@@ -87,7 +87,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 4 - generate url and send url on email
-	url, err := tl.UrlSetParam(rs.App.Config.App.Service.Url.App+"/confirm-signup", "token", confirmationUrlToken)
+	url, err := tl.UrlSetParam(rs.App.Config.App.Service.Url.Client+"/confirm-signup", "token", confirmationUrlToken)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in url set param", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -163,7 +163,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 		Nickname:           nickname,
 		Email:              email,
 		RegistrationMethod: storage.AccountRegistrationMethodWebApplication,
-		AvatarUrl:          rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + userUuid,
+		AvatarUrl:          rs.App.Config.App.Service.Url.Server + storage.ResourcesProfileImagePath + userUuid,
 	}
 
 	api_v1.RespondWithCreated(w, response)
@@ -279,7 +279,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 			Nickname:           scannedNickname,
 			Email:              scannedEmail,
 			RegistrationMethod: storage.AccountRegistrationMethodWebApplication,
-			AvatarUrl:          rs.App.Config.App.Service.Url.Api + storage.ResourcesProfileImagePath + userUuid,
+			AvatarUrl:          rs.App.Config.App.Service.Url.Server + storage.ResourcesProfileImagePath + userUuid,
 		}
 
 		api_v1.RespondWithCreated(w, response)

@@ -37,7 +37,7 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	if rs.App.Config.App.Debug {
 		corsAllowedOrigins = append(corsAllowedOrigins, "http://localhost:"+strconv.Itoa(rs.App.Config.App.Port))
 	} else {
-		corsAllowedOrigins = append(corsAllowedOrigins, rs.App.Config.App.Service.Url.App)
+		corsAllowedOrigins = append(corsAllowedOrigins, rs.App.Config.App.Service.Url.Client)
 	}
 
 	// CORS settings
@@ -53,7 +53,7 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r.Use(api_v1.MethodNotAllowedMiddleware)                                // Error 405 - Method Not Allowed
 	r.Use(api_v1.GatewayTimeoutMiddleware(timeout))                         // Error 504 - Gateway Timeout
 	r.NotFound(api_v1.NotFoundMiddleware())                                 // Error 404 - Not Found
-	//r.Use(api_v1.CsrfMiddleware(rs.App, csrfTokenLength, csrfHeaderName, csrfCookieDuration)) // Error 403 - Forbidden
+	//r.Use(api_v1.CsrfMiddleware(rs.Client, csrfTokenLength, csrfHeaderName, csrfCookieDuration)) // Error 403 - Forbidden
 
 	rs.registerRoutes(r)
 

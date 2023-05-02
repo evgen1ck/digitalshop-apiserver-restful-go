@@ -9,7 +9,7 @@ import (
 
 func (rs *Resolver) ProductsDataForMainpage(w http.ResponseWriter, r *http.Request) {
 	// Block 1 - get products for mainpage
-	products, err := storage.GetProductsForMainpage(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Api)
+	products, err := storage.GetProductsForMainpage(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get products for mainpage", err)
 		api_v1.RespondWithInternalServerError(w)
