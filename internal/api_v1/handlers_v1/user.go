@@ -11,6 +11,9 @@ func (rs *Resolver) UserProfileDelete(w http.ResponseWriter, r *http.Request) {
 	//	api_v1.RespondWithInternalServerError(w)
 	//	return
 	//}
+}
+
+func (rs *Resolver) UserNewPayment(w http.ResponseWriter, r *http.Request) {
 
 }
 

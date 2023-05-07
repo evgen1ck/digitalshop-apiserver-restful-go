@@ -50,8 +50,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	emailDomainExists, err := tl.CheckEmailDomainExistence(data.Email)
 	if err != nil {
 		rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
-	}
-	if !emailDomainExists {
+	} else if !emailDomainExists {
 		api_v1.RespondWithConflict(w, "Email: the email domain is not exist")
 		return
 	}
@@ -185,33 +184,35 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	// Block 1 - data validation
 	if err := tl.Validate(input.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
+		rs.App.Logger.NewWarn("Password: ", err)
 		return
 	}
 	var nickname, email string
-	if input.Nickname == nil && input.Email == nil {
-		api_v1.RespondWithUnprocessableEntity(w, "Nickname and Email: the values is empty")
-		return
-	} else if input.Nickname != nil {
+	if input.Nickname != nil && *input.Nickname != "" {
 		nickname = *input.Nickname
 		if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
+			rs.App.Logger.NewWarn("Nickname: ", err)
 			return
 		}
-	} else {
+	} else if input.Email != nil && *input.Email != "" {
 		email = *input.Email
 		if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
+			rs.App.Logger.NewWarn("Email: ", err)
 			return
 		}
-
 		emailDomainExists, err := tl.CheckEmailDomainExistence(email)
 		if err != nil {
 			rs.App.Logger.NewWarn("Error in checked the email domain: ", err)
-		}
-		if !emailDomainExists {
+		} else if !emailDomainExists {
 			api_v1.RespondWithConflict(w, "Email: the email domain is not exist")
 			return
 		}
+	} else {
+		api_v1.RespondWithUnprocessableEntity(w, "Nickname and Email: the values are empty")
+		rs.App.Logger.NewWarn("Nickname and Email: the values are empty ", nil)
+		return
 	}
 
 	// Block 2 - check for an exists nickname and email
@@ -234,12 +235,12 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 
 		// Get account state and check on exists
 		state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, userUuid, storage.AccountRoleUser)
-		if state == "" {
-			api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of users")
-			return
-		} else if err != nil {
+		if err != nil {
 			api_v1.RespondWithInternalServerError(w)
 			rs.App.Logger.NewWarn("Error in founding account in the list", err)
+			return
+		} else if state == "" {
+			api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of users")
 			return
 		}
 

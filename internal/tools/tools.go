@@ -228,12 +228,16 @@ func CheckEmailDomainExistence(addr string) (bool, error) {
 	// Get the TXT record of the domain
 	txtRecords, err := net.LookupTXT(domain)
 	if err != nil {
-		return false, err
+		if strings.Contains(err.Error(), "not exist") {
+			return false, nil
+		} else {
+			return false, err
+		}
 	}
 
 	// Search for the "v=spf1" flag in the TXT record
 	for _, txt := range txtRecords {
-		if strings.Contains(txt, "v=spf1") {
+		if strings.Contains(strings.ToLower(txt), "v=spf1") {
 			return true, nil
 		}
 	}

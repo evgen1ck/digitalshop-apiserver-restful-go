@@ -21,8 +21,8 @@ import (
 
 func CorsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 	return cors.New(cors.Options{
-		AllowedOrigins: allowedOrigins,
-		//AllowedOrigins:   []string{"*"},
+		//AllowedOrigins: allowedOrigins,
+		AllowedOrigins:   []string{"*"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
@@ -310,12 +310,12 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 
 			// Get account state and check on exists
 			state, err := storage.GetStateAccount(r.Context(), pdb, jwtData.AccountUuid, role)
-			if state == "" {
-				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of "+role+"s")
-				return
-			} else if err != nil {
+			if err != nil {
 				RespondWithInternalServerError(w)
 				logger.NewWarn("Error in founding account in the list", err)
+				return
+			} else if state == "" {
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of "+role+"s")
 				return
 			}
 

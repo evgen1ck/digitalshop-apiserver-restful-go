@@ -79,6 +79,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 	})
 	r.Route("/user", func(r chi.Router) {
 		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleUser))
+		r.Get("/payment", rs.UserNewPayment)
 		r.Route("/profile", func(r chi.Router) {
 			r.Patch("/", rs.UserProfileUpdate)
 			r.Delete("/", rs.UserProfileDelete)
@@ -98,6 +99,12 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 			r.Post("/", rs.AdminCreateProduct)
 			r.Patch("/{id}", rs.AdminProductsUpdate)
 			r.Delete("/{id}", rs.AdminProductsDelete)
+			r.Route("/services", func(r chi.Router) {
+				r.Get("/", rs.AdminCreateProduct)
+				r.Post("/", rs.AdminCreateProduct)
+				r.Patch("/{id}", rs.AdminProductsUpdate)
+				r.Delete("/{id}", rs.AdminProductsDelete)
+			})
 		})
 		r.Route("/profile", func(r chi.Router) {
 			// routes
