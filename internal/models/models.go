@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/go-chi/chi/v5"
+	"test-server-go/freekassa"
 	"test-server-go/internal/config"
 	"test-server-go/internal/logger"
 	"test-server-go/internal/mailer"
@@ -9,10 +10,11 @@ import (
 )
 
 type Application struct {
-	Config   *config.Config
-	Postgres *storage.Postgres
-	Redis    *storage.Redis
-	Mailer   *mailer.Mailer
-	Logger   *logger.Logger
-	Router   *chi.Mux
+	Config    *config.Config
+	Postgres  *storage.Postgres
+	Redis     *storage.Redis
+	Mailer    *mailer.Mailer
+	Logger    *logger.Logger
+	Router    *chi.Mux
+	Freekassa *freekassa.Config
 }

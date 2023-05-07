@@ -21,8 +21,8 @@ import (
 
 func CorsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 	return cors.New(cors.Options{
-		//AllowedOrigins:   allowedOrigins,
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins: allowedOrigins,
+		//AllowedOrigins:   []string{"*"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
@@ -105,22 +105,6 @@ func ServiceUnavailableMiddleware(unavailable bool) func(http.Handler) http.Hand
 					http.StatusServiceUnavailable,
 					"Service unavailable",
 					"The service is currently unavailable. Please try again later")
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func UnsupportedMediaTypeMiddleware(allowedContentTypes []string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			contentType := r.Header.Get("Content-Type")
-			if !tl.ContainsStringInSlice(contentType, allowedContentTypes) {
-				RedRespond(w,
-					http.StatusUnsupportedMediaType,
-					"Unsupported media type",
-					"The request contains an unsupported media type. Please use one of "+strings.Join(allowedContentTypes, ", ")+" allowed media types")
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -356,6 +340,21 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 			// Update last account activity
 			storage.UpdateLastAccountActivity(r.Context(), pdb, jwtData.AccountUuid)
 
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func FreekassaIpWhitelistMiddleware(allowedIPs []string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip := r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")]
+			fmt.Printf("ip: %s", ip)
+			if !tl.StringInSlice(ip, allowedIPs) {
+				RedRespond(w, http.StatusForbidden, "Forbidden", "Not allowed IP address")
+				return
+			}
+			fmt.Printf("not allowed in FreekassaIpWhitelistMiddleware")
 			next.ServeHTTP(w, r)
 		})
 	}

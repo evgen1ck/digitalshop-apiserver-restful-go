@@ -3,6 +3,7 @@ package handlers_v1
 import (
 	"github.com/go-chi/chi/v5"
 	"strconv"
+	"test-server-go/freekassa"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
@@ -20,10 +21,6 @@ const (
 	//csrfTokenLength    = 32
 	//csrfHeaderName     = "X-CSRF-Token"
 	//csrfCookieDuration = 30 * time.Minute
-)
-
-var (
-	allowedContentTypes = []string{"application/json", "text/plain"}
 )
 
 type Resolver struct {
@@ -49,7 +46,6 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r.Use(api_v1.UriLengthMiddleware(uriMaxLength))                         // Error 414 - URI Too Long
 	r.Use(api_v1.RequestSizeMiddleware(requestMaxSize))                     // Error 413 - Payload Too Large
 	r.Use(api_v1.UnprocessableEntityMiddleware)                             // Error 422 - Unprocessable Entity
-	r.Use(api_v1.UnsupportedMediaTypeMiddleware(allowedContentTypes))       // Error 415 - Unsupported Media Type
 	r.Use(api_v1.MethodNotAllowedMiddleware)                                // Error 405 - Method Not Allowed
 	r.Use(api_v1.GatewayTimeoutMiddleware(timeout))                         // Error 504 - Gateway Timeout
 	r.NotFound(api_v1.NotFoundMiddleware())                                 // Error 404 - Not Found
@@ -110,5 +106,9 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 	r.Route("/resources", func(r chi.Router) {
 		r.Get("/product_image/{id}", rs.ResourcesGetProductImage)
 		r.Get("/svg_file/{id}", rs.ResourcesGetSvgFile)
+	})
+	r.Route("/freekassa", func(r chi.Router) {
+		r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs))
+		r.Get("/notification", rs.FreekassaNotification)
 	})
 }

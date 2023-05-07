@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"test-server-go/freekassa"
 	"test-server-go/internal/api_v1/handlers_v1"
 	"test-server-go/internal/config"
 	"test-server-go/internal/logger"
@@ -112,13 +113,20 @@ func setupConfig() *models.Application {
 		zapLogger.NewError("Error connecting to the Redis database", err)
 	}
 
+	freekassaCfg := freekassa.NewConfig(
+		uint32(cfg.Payments.Freekassa.ShopId),
+		cfg.Payments.Freekassa.ApiKey,
+		cfg.Payments.Freekassa.FirstSecretWord,
+		cfg.Payments.Freekassa.SecondSecretWord)
+
 	application := models.Application{
-		Config:   cfg,
-		Postgres: pdb,
-		Redis:    rdb,
-		Mailer:   mailer.NewSmtp(*cfg),
-		Logger:   zapLogger,
-		Router:   chi.NewRouter(),
+		Config:    cfg,
+		Postgres:  pdb,
+		Redis:     rdb,
+		Mailer:    mailer.NewSmtp(*cfg),
+		Logger:    zapLogger,
+		Router:    chi.NewRouter(),
+		Freekassa: freekassaCfg,
 	}
 
 	if application.Config.App.Debug {

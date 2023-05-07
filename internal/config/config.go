@@ -55,6 +55,14 @@ type Config struct {
 		CertFile string `yaml:"certfile"`
 		KeyFile  string `yaml:"keyfile"`
 	} `yaml:"tls"`
+	Payments struct {
+		Freekassa struct {
+			ShopId           int    `yaml:"shopId"`
+			ApiKey           string `yaml:"apiKey"`
+			FirstSecretWord  string `yaml:"firstSecretWord"`
+			SecondSecretWord string `yaml:"secondSecretWord"`
+		} `yaml:"freekassa"`
+	} `yaml:"payments"`
 }
 
 func SetupYaml() (*Config, error) {
@@ -114,6 +122,12 @@ func SetupYaml() (*Config, error) {
 	// TLS
 	flag.StringVar(&cfg.Tls.CertFile, "tls-certfile", cfg.Tls.CertFile, "tls certificate file")
 	flag.StringVar(&cfg.Tls.KeyFile, "tls-keyfile", cfg.Tls.KeyFile, "tls key file")
+
+	// Payments
+	flag.IntVar(&cfg.Payments.Freekassa.ShopId, "payments-freekassa-shopId", cfg.Payments.Freekassa.ShopId, "payments shop id for freekassa")
+	flag.StringVar(&cfg.Payments.Freekassa.ApiKey, "payments-freekassa-apiKey", cfg.Payments.Freekassa.ApiKey, "payments api key for freekassa")
+	flag.StringVar(&cfg.Payments.Freekassa.FirstSecretWord, "payments-freekassa-firstSecretWord", cfg.Payments.Freekassa.FirstSecretWord, "payments first secret word for freekassa")
+	flag.StringVar(&cfg.Payments.Freekassa.SecondSecretWord, "payments-freekassa-secondSecretWord", cfg.Payments.Freekassa.SecondSecretWord, "payments second secret word for freekassa")
 
 	flag.Parse()
 
