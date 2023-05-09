@@ -39,7 +39,7 @@ const (
 const (
 	ResourcesProfileImagePath = "/api/v1/profile/image/"
 	ResourcesProductImagePath = "/api/v1/resources/product_image/"
-	ResourcesSvgFilePath      = "/api/v1/resources/svg_file/"
+	ResourcesSvgFilePath      = "/api/v1/resources/svg/"
 )
 
 var (

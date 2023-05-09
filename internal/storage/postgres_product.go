@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"time"
 )
@@ -183,7 +184,7 @@ type ProductService struct {
 	ServiceUrl  string    `json:"service_url"`
 	CreatedAt   time.Time `json:"created_at"`
 	ModifiedAt  time.Time `json:"modified_at"`
-	Commentary  string    `json:"commentary"`
+	Commentary  *string   `json:"commentary"`
 }
 
 func GetProductServices(ctx context.Context, pdb *Postgres, apiUrl string) ([]ProductService, error) {
@@ -338,4 +339,20 @@ func GetProductSubtypes(ctx context.Context, pdb *Postgres, typeNo string) ([]Pr
 	}
 
 	return subtypes, err
+}
+
+func GetProductVariantForPayment(ctx context.Context, pdb *Postgres, variantId string) (string, string, string, int, float64, error) {
+	var variantName, variantState string
+	var finalPrice float64
+	var quantityCurrent int
+	var productId uuid.UUID
+
+	err := pdb.Pool.QueryRow(ctx,
+		"SELECT product_id, variant_name, state_name, quantity_current, final_price FROM product.product_variants_summary_all_data WHERE variant_id = $1",
+		variantId).Scan(&productId, &variantName, &variantState, &quantityCurrent, &finalPrice)
+	if err != nil {
+		return productId.String(), variantName, variantState, quantityCurrent, finalPrice, err
+	}
+
+	return productId.String(), variantName, variantState, quantityCurrent, finalPrice, err
 }

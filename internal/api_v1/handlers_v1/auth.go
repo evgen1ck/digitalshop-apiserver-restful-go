@@ -170,33 +170,33 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 
 func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	// Block 0 - decode data
-	var input struct {
+	var data struct {
 		Nickname *string `json:"nickname"`
 		Email    *string `json:"email"`
 		Password string  `json:"password"`
 	}
-	decodeErr := json.NewDecoder(r.Body).Decode(&input)
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
 	if decodeErr != nil {
 		api_v1.RespondWithBadRequest(w, "")
 		return
 	}
 
 	// Block 1 - data validation
-	if err := tl.Validate(input.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
 		rs.App.Logger.NewWarn("Password: ", err)
 		return
 	}
 	var nickname, email string
-	if input.Nickname != nil && *input.Nickname != "" {
-		nickname = *input.Nickname
+	if data.Nickname != nil && *data.Nickname != "" {
+		nickname = *data.Nickname
 		if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
 			rs.App.Logger.NewWarn("Nickname: ", err)
 			return
 		}
-	} else if input.Email != nil && *input.Email != "" {
-		email = *input.Email
+	} else if data.Email != nil && *data.Email != "" {
+		email = *data.Email
 		if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
 			rs.App.Logger.NewWarn("Email: ", err)
@@ -223,68 +223,73 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !nicknameExist && !emailExist {
-		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "There is no user with this nickname and email address")
-		return
-	} else {
-		userUuid, scannedNickname, scannedEmail, base64PasswordHash, base64Salt, err := storage.GetUserData(r.Context(), rs.App.Postgres, nickname, email)
-		if err != nil {
-			rs.App.Logger.NewWarn("error in get user password and salt", err)
-			api_v1.RespondWithInternalServerError(w)
+		if nickname == "" {
+			api_v1.RedRespond(w, http.StatusNotFound, "Not found", "User with this email was not found")
+			return
+		} else {
+			api_v1.RedRespond(w, http.StatusNotFound, "Not found", "User with this nickname was not found")
 			return
 		}
-
-		// Get account state and check on exists
-		state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, userUuid, storage.AccountRoleUser)
-		if err != nil {
-			api_v1.RespondWithInternalServerError(w)
-			rs.App.Logger.NewWarn("Error in founding account in the list", err)
-			return
-		} else if state == "" {
-			api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of users")
-			return
-		}
-
-		// Check account on state (blocked, deleted...)
-		switch state {
-		case storage.AccountStateBlocked:
-			api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been blocked")
-			return
-		case storage.AccountStateDeleted:
-			api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been deleted")
-			return
-		}
-
-		result, err := auth.CompareHashPasswords(input.Password, base64PasswordHash, base64Salt)
-		if err != nil {
-			rs.App.Logger.NewWarn("error in compare hash passwords", err)
-			api_v1.RespondWithInternalServerError(w)
-			return
-		} else if result == false {
-			api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Invalid password")
-			return
-		}
-
-		// Block 4 - generate JWT
-		jwtToken, err := auth.GenerateJwt(userUuid, rs.App.Config.App.Jwt)
-		if err != nil {
-			rs.App.Logger.NewWarn("error in generated jwt", err)
-			api_v1.RespondWithInternalServerError(w)
-			return
-		}
-
-		// Block 5 - send the result
-		response := authResponse{
-			Token:              jwtToken,
-			Role:               storage.AccountRoleUser,
-			Uuid:               userUuid,
-			Nickname:           scannedNickname,
-			Email:              scannedEmail,
-			RegistrationMethod: storage.AccountRegistrationMethodWebApplication,
-			AvatarUrl:          rs.App.Config.App.Service.Url.Server + storage.ResourcesProfileImagePath + userUuid,
-		}
-
-		api_v1.RespondWithCreated(w, response)
 	}
+
+	userUuid, scannedNickname, scannedEmail, base64PasswordHash, base64Salt, err := storage.GetUserData(r.Context(), rs.App.Postgres, nickname, email)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in get user password and salt", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	// Get account state and check on exists
+	state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, userUuid, storage.AccountRoleUser)
+	if err != nil {
+		api_v1.RespondWithInternalServerError(w)
+		rs.App.Logger.NewWarn("Error in founding account in the list", err)
+		return
+	} else if state == "" {
+		api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of users")
+		return
+	}
+
+	// Check account on state (blocked, deleted...)
+	switch state {
+	case storage.AccountStateBlocked:
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been blocked")
+		return
+	case storage.AccountStateDeleted:
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been deleted")
+		return
+	}
+
+	result, err := auth.CompareHashPasswords(data.Password, base64PasswordHash, base64Salt)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in compare hash passwords", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	} else if result == false {
+		api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Invalid password")
+		return
+	}
+
+	// Block 4 - generate JWT
+	jwtToken, err := auth.GenerateJwt(userUuid, rs.App.Config.App.Jwt)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in generated jwt", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	// Block 5 - send the result
+	response := authResponse{
+		Token:              jwtToken,
+		Role:               storage.AccountRoleUser,
+		Uuid:               userUuid,
+		Nickname:           scannedNickname,
+		Email:              scannedEmail,
+		RegistrationMethod: storage.AccountRegistrationMethodWebApplication,
+		AvatarUrl:          rs.App.Config.App.Service.Url.Server + storage.ResourcesProfileImagePath + userUuid,
+	}
+
+	api_v1.RespondWithCreated(w, response)
 }
 
 func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {

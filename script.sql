@@ -151,7 +151,7 @@ DROP TABLE IF EXISTS product.subtype CASCADE;
 CREATE TABLE product.subtype
 (
     type_no         smallint    ,
-    subtype_no      serial      UNIQUE ,
+    subtype_no      serial      UNIQUE,
     subtype_name    text        NOT NULL UNIQUE,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -182,7 +182,7 @@ CREATE TABLE product.service
     commentary	    text		NULL
 );
 INSERT INTO product.service(service_name) VALUES
-('steam'), ('ubisoft'), ('epic games'), ('electronic arts'), ('ozon'), ('wildberries'), ('ivi'), ('youtube'), ('playstation'), ('xbox'), ('nintendo'), ('universal');
+('steam'), ('ubisoft'), ('epic games'), ('electronic arts'), ('discord'), ('youtube'), ('playstation'), ('xbox'), ('nintendo'), ('universal');
 
 
 
@@ -258,7 +258,7 @@ CREATE TABLE product.variant
 );
 INSERT INTO product.variant(product_id, variant_name, variant_service, variant_state, variant_subtype, variant_item, mask, quantity_current, price, discount_money, discount_percent, variant_account) VALUES
 ('9beaf75e-2925-4815-bcb6-1dd364293848', 'Grand Theft Auto 5: Premium Edition', 1, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 14, 1199, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('9beaf75e-2925-4815-bcb6-1dd364293848', 'Grand Theft Auto 5: Premium Edition', 9, 2, 3, 1, 'XXXXX-00000000-YYYYY', 43, 1755, 100, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('9beaf75e-2925-4815-bcb6-1dd364293848', 'Grand Theft Auto 5: Premium Edition', 7, 2, 3, 1, 'XXXXX-00000000-YYYYY', 43, 1755, 100, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
 ('af153d1a-263c-4e77-a4d0-fb11ce781365', 'Red Dead Redemption 2', 1, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 3, 1199, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
 ('af153d1a-263c-4e77-a4d0-fb11ce781365', 'Red Dead Redemption 2: Ultimate Edition', 9, 2, 3, 1, 'XXXXX-YYYYY-XXXXX', 14, 1999, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
 ('af153d1a-263c-4e77-a4d0-fb11ce781365', 'Red Dead Online', 3, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 7, 699, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
@@ -330,6 +330,7 @@ SELECT
     i.item_name,
     lv.mask,
     lv.quantity_current,
+    lv.quantity_holding,
     lv.quantity_sold,
     CASE
         WHEN lv.quantity_current = 0 THEN 'out of stock'
@@ -364,42 +365,39 @@ SELECT
     st.subtype_name,
     s.service_name,
     p.product_name,
-    lv.variant_name,
+    pv.variant_name,
     ps.state_name,
-    lv.price,
-    lv.discount_money,
-    lv.discount_percent,
+    pv.price,
+    pv.discount_money,
+    pv.discount_percent,
     CASE
-        WHEN lv.discount_money > 0::numeric THEN lv.price - lv.discount_money
-        WHEN lv.discount_percent > 0 THEN lv.price * (1 - lv.discount_percent / 100.0)
-        ELSE lv.price
+        WHEN pv.discount_money > 0::numeric THEN pv.price - pv.discount_money
+        WHEN pv.discount_percent > 0 THEN pv.price * (1 - pv.discount_percent / 100.0)
+        ELSE pv.price
         END AS final_price,
     i.item_name,
-    lv.mask,
-    lv.quantity_current,
-    lv.quantity_sold,
+    pv.mask,
+    pv.quantity_current,
+    pv.quantity_holding,
+    pv.quantity_sold,
     CASE
-        WHEN lv.quantity_current = 0 THEN 'out of stock'
-        WHEN lv.quantity_current = 1 THEN 'last in stock'
-        WHEN lv.quantity_current > 1 AND lv.quantity_current < 10 THEN 'limited stock'
-        WHEN lv.quantity_current >= 10 AND lv.quantity_current < 30 THEN 'adequate stock'
-        WHEN lv.quantity_current >= 30 THEN 'large stock'
+        WHEN pv.quantity_current = 0 THEN 'out of stock'
+        WHEN pv.quantity_current = 1 THEN 'last in stock'
+        WHEN pv.quantity_current > 1 AND pv.quantity_current < 10 THEN 'limited stock'
+        WHEN pv.quantity_current >= 10 AND pv.quantity_current < 30 THEN 'adequate stock'
+        WHEN pv.quantity_current >= 30 THEN 'large stock'
         ELSE 'error'
         END AS text_quantity,
     p.description,
     p.tags,
     p.product_id,
-    lv.variant_id,
-    lv.variant_account
+    pv.variant_id,
+    pv.variant_account
 FROM
-    product.variant lv
-        JOIN product.product p ON lv.product_id = p.product_id
-        JOIN product.service s ON lv.variant_service = s.service_no
-        JOIN product.state ps ON lv.variant_state = ps.state_no
-        JOIN product.item i ON lv.variant_item = i.item_no
-        JOIN product.subtype st ON lv.variant_subtype = st.subtype_no
+    product.variant pv
+        JOIN product.product p ON pv.product_id = p.product_id
+        JOIN product.service s ON pv.variant_service = s.service_no
+        JOIN product.state ps ON pv.variant_state = ps.state_no
+        JOIN product.item i ON pv.variant_item = i.item_no
+        JOIN product.subtype st ON pv.variant_subtype = st.subtype_no
         JOIN product.type t ON st.type_no = t.type_no
-ORDER BY
-    p.product_name,
-    lv.variant_name,
-    st.subtype_no;

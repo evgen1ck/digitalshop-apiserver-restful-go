@@ -93,14 +93,14 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Post("/logout", rs.AuthLogout)
 	})
 	r.Route("/admin", func(r chi.Router) {
-		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
+		//r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
 		r.Route("/products", func(r chi.Router) {
 			r.Get("/", rs.AdminGetProducts)
 			r.Post("/", rs.AdminCreateProduct)
 			r.Patch("/{id}", rs.AdminProductsUpdate)
 			r.Delete("/{id}", rs.AdminProductsDelete)
 			r.Route("/services", func(r chi.Router) {
-				r.Get("/", rs.AdminCreateProduct)
+				r.Get("/", rs.AdminProductsServicesGet)
 				r.Post("/", rs.AdminCreateProduct)
 				r.Patch("/{id}", rs.AdminProductsUpdate)
 				r.Delete("/{id}", rs.AdminProductsDelete)
@@ -112,7 +112,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 	})
 	r.Route("/resources", func(r chi.Router) {
 		r.Get("/product_image/{id}", rs.ResourcesGetProductImage)
-		r.Get("/svg_file/{id}", rs.ResourcesGetSvgFile)
+		r.Get("/svg/{id}", rs.ResourcesGetSvgFile)
 	})
 	r.Route("/freekassa", func(r chi.Router) {
 		r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs))

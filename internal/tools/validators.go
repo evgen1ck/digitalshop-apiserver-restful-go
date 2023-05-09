@@ -2,6 +2,7 @@ package tools
 
 import (
 	"errors"
+	"github.com/google/uuid"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -149,5 +150,15 @@ func IsTrimmedSpace() func(string) error {
 			return nil
 		}
 		return errors.New("the value is not trimmed space")
+	}
+}
+
+func IsValidUUID() func(string) error {
+	return func(str string) error {
+		_, err := uuid.Parse(str)
+		if err != nil {
+			return errors.New("the value is not a valid UUID")
+		}
+		return nil
 	}
 }
