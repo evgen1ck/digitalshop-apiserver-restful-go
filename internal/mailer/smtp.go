@@ -54,7 +54,7 @@ func (m *Mailer) sendEmail(to []string, title, body string) error {
 	return nil
 }
 
-func (m *Mailer) SendEmailConfirmation(nickname, email, confirmationUrl string) error {
+func (m *Mailer) SendEmailConfirmation(email, nickname, confirmationUrl, shopName, clientAppUrl string) error {
 	templateFile, err := getPath("mailConfirmationEmail.tmpl")
 	if err != nil {
 		return err
@@ -69,14 +69,47 @@ func (m *Mailer) SendEmailConfirmation(nickname, email, confirmationUrl string) 
 		"Nickname":         nickname,
 		"Email":            email,
 		"ConfirmationLink": confirmationUrl,
+		"ShopName":         shopName,
+		"ClientAppUrl":     clientAppUrl,
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, resources); err != nil {
+	if err = tmpl.Execute(&buf, resources); err != nil {
 		return err
 	}
 
-	if err := m.sendEmail([]string{email}, "Evgenick's Digitals: подтверждение учётной записи", buf.String()); err != nil {
+	if err = m.sendEmail([]string{email}, shopName+": подтверждение учётной записи", buf.String()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Mailer) SendOrderContent(email, variantName, dateAndTime, orderContent, shopName, clientAppUrl string) error {
+	templateFile, err := getPath("mailOrder.tmpl")
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := template.ParseFiles(templateFile)
+	if err != nil {
+		return err
+	}
+
+	resources := map[string]interface{}{
+		"VariantName":  variantName,
+		"DateAndTime":  dateAndTime,
+		"OrderContent": orderContent,
+		"ShopName":     shopName,
+		"ClientAppUrl": clientAppUrl,
+	}
+
+	var buf bytes.Buffer
+	if err = tmpl.Execute(&buf, resources); err != nil {
+		return err
+	}
+
+	if err = m.sendEmail([]string{email}, shopName+": содержимое заказа", buf.String()); err != nil {
 		return err
 	}
 
