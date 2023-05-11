@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type authResponse struct {
+type authUserResponse struct {
 	Token              string `json:"token"`
 	Role               string `json:"role"`
 	Uuid               string `json:"uuid"`
@@ -18,6 +18,18 @@ type authResponse struct {
 	Email              string `json:"email"`
 	RegistrationMethod string `json:"registration_method"`
 	AvatarUrl          string `json:"avatar_url"`
+}
+
+type authAdminResponse struct {
+	Token              string  `json:"token"`
+	Role               string  `json:"role"`
+	Uuid               string  `json:"uuid"`
+	Login              string  `json:"login"`
+	Surname            string  `json:"surname"`
+	Name               string  `json:"name"`
+	Patronymic         *string `json:"patronymic"`
+	RegistrationMethod string  `json:"registration_method"`
+	AvatarUrl          string  `json:"avatar_url"`
 }
 
 func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +167,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Block 5 - send the result
-	response := authResponse{
+	response := authUserResponse{
 		Token:              jwtToken,
 		Role:               storage.AccountRoleUser,
 		Uuid:               userUuid,
@@ -240,7 +252,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get account state and check on exists
-	state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, userUuid, storage.AccountRoleUser)
+	state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, userUuid)
 	if err != nil {
 		api_v1.RespondWithInternalServerError(w)
 		rs.App.Logger.NewWarn("Error in founding account in the list", err)
@@ -279,7 +291,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 5 - send the result
-	response := authResponse{
+	response := authUserResponse{
 		Token:              jwtToken,
 		Role:               storage.AccountRoleUser,
 		Uuid:               userUuid,
@@ -313,6 +325,104 @@ func (rs *Resolver) AuthLogout(w http.ResponseWriter, r *http.Request) {
 
 	// Block 2 - send the result
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AuthAlogin(w http.ResponseWriter, r *http.Request) {
+	// Block 0 - decode data
+	var data struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
+	if decodeErr != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	// Block 1 - data validation
+	if err := tl.Validate(data.Login, tl.IsNotBlank(), tl.IsMinMaxLen(MinLoginLength, MaxLoginLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Login: "+err.Error())
+		rs.App.Logger.NewWarn("Login: ", err)
+		return
+	}
+	if err := tl.Validate(data.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
+		rs.App.Logger.NewWarn("Password: ", err)
+		return
+	}
+
+	// Block 2 - check for an exists login
+	loginExist, err := storage.CheckAdmin(r.Context(), rs.App.Postgres, data.Login)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in checked the user existence", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+	if !loginExist {
+		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "Admin with this login was not found")
+		return
+	}
+
+	adminUuid, scannedLogin, surname, name, patronymic, base64PasswordHash, base64Salt, err := storage.GetAdminData(r.Context(), rs.App.Postgres, data.Login)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in get admin data", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	// Get account state and check on exists
+	state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, adminUuid)
+	if err != nil {
+		api_v1.RespondWithInternalServerError(w)
+		rs.App.Logger.NewWarn("Error in founding account in the list", err)
+		return
+	} else if state == "" {
+		api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of users")
+		return
+	}
+
+	// Check account on state (blocked, deleted...)
+	switch state {
+	case storage.AccountStateBlocked:
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been blocked")
+		return
+	case storage.AccountStateDeleted:
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been deleted")
+		return
+	}
+
+	result, err := auth.CompareHashPasswords(data.Password, base64PasswordHash, base64Salt)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in compare hash passwords", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	} else if result == false {
+		api_v1.RedRespond(w, http.StatusUnauthorized, "Unauthorized", "Invalid password")
+		return
+	}
+
+	// Block 4 - generate JWT
+	jwtToken, err := auth.GenerateJwt(adminUuid, rs.App.Config.App.Jwt)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in generated jwt", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	// Block 5 - send the result
+	response := authAdminResponse{
+		Token:              jwtToken,
+		Role:               storage.AccountRoleAdmin,
+		Uuid:               adminUuid,
+		Login:              scannedLogin,
+		Surname:            surname,
+		Name:               name,
+		Patronymic:         patronymic,
+		RegistrationMethod: storage.AccountRegistrationMethodFromAdminPanel,
+		AvatarUrl:          rs.App.Config.App.Service.Url.Server + storage.ResourcesProfileImagePath + adminUuid,
+	}
+
+	api_v1.RespondWithCreated(w, response)
 }
 
 func (rs *Resolver) AuthLoginWithToken(w http.ResponseWriter, r *http.Request)           {}

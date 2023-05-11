@@ -7,8 +7,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA account;
 --select * from account.user;
 --select * from account.account;
 
-
-
 DROP TABLE IF EXISTS account.state CASCADE;
 CREATE TABLE account.state
 (
@@ -31,7 +29,7 @@ CREATE TABLE account.registration_method
     modified_at         	    timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary			        text		NULL
 );
-INSERT INTO account.registration_method(registration_method_name) VALUES ('web application'), ('telegram account'), ('google account');
+INSERT INTO account.registration_method(registration_method_name) VALUES ('web application'), ('telegram account'), ('google account'), ('from admin panel');
 
 
 
@@ -64,6 +62,8 @@ CREATE TABLE account.account
     FOREIGN KEY (account_role) REFERENCES account.role(role_no),
     FOREIGN KEY (registration_method) REFERENCES account.registration_method(registration_method_no)
 );
+INSERT INTO account.account(account_id) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0694');
+INSERT INTO account.account(account_id) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0693');
 
 
 
@@ -79,7 +79,6 @@ CREATE TABLE account.user
     commentary			    text		NULL,
     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
 );
-INSERT INTO account.account(account_id) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0694');
 INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0694', '77lm@mail.ru', 'Evgenick', 'QDmOn45b1pvrdIeKpGo/QWhoh3Yk4SW6ohlqlmnEeY0', 'Q/04YJ4R9L2n8ZVMszEe+w');
 
 
@@ -105,19 +104,14 @@ CREATE TABLE account.employee
     surname                 text        NOT NULL,
     name                    text        NOT NULL,
     patronymic              text        NULL,
+    login                   text        NOT NULL UNIQUE,
     password 				text		NOT NULL,
     salt_for_password       text        NOT NULL,
     modified_at         	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary			    text		NULL,
     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
 );
-
-
-
-
-
-
-
+INSERT INTO account.employee(account_id, surname, name, patronymic, login, password, salt_for_password) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0693', 'Kovalev', 'Dmitry', NULL, 'administrator', 'QDmOn45b1pvrdIeKpGo/QWhoh3Yk4SW6ohlqlmnEeY0', 'Q/04YJ4R9L2n8ZVMszEe+w');
 
 
 
@@ -130,6 +124,7 @@ CREATE TABLE product.state
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary	text		NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS product_state_name_idx ON product.state (lower(state_name));
 INSERT INTO product.state(state_name) VALUES ('unavailable without price'), ('active'), ('deleted'), ('unavailable with price'), ('invisible');
 
 
@@ -216,6 +211,7 @@ INSERT INTO product.product(product_id, product_name, tags, description) VALUES
 ('85f8d115-ca4b-4db5-b416-6828e4c0e90a', 'Warframe', NULL, 'Пробудитесь в роли неудержимого воина и сражайтесь вместе с друзьями в этой сюжетной бесплатной онлайн-игре. Столкнитесь с враждующими фракциями в обширной межпланетной системе, следуя указаниям загадочной Лотос, повышайте уровень своего Варфрейма, создайте арсенал разрушительной огневой мощи, и откройте свой истинный потенциал в огромных открытых мирах этого захватывающего сражения от третьего лица.'),
 ('573b8cea-bbfa-4415-8f16-1b793a97c85f', 'PUBG: BATTLEGROUNDS', NULL, 'Высаживайтесь в стратегически важных местах, добывайте оружие и припасы и постарайтесь выжить и остаться последней командой на одном из многочисленных полей боя.'),
 ('7a33fa78-df96-4b7e-ac64-4f152ca2022f', 'Superliminal', NULL, 'Восприятие – это реальность. В этой умопомрачительной головоломке от первого лица вам предстоит сбежать из сюрреалистического мира снов, решая невозможные загадки при помощи перспективы.');
+
 
 
 DROP TABLE IF EXISTS product.variant CASCADE;

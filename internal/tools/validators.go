@@ -149,7 +149,7 @@ func IsTrimmedSpace() func(string) error {
 		if str == strings.TrimSpace(str) {
 			return nil
 		}
-		return errors.New("the value is not trimmed space")
+		return errors.New("the value is not trimmed space(s)")
 	}
 }
 
@@ -158,6 +158,30 @@ func IsValidUUID() func(string) error {
 		_, err := uuid.Parse(str)
 		if err != nil {
 			return errors.New("the value is not a valid UUID")
+		}
+		return nil
+	}
+}
+
+func IsNotContainsConsecutiveSpaces() func(string) error {
+	return func(str string) error {
+		match, _ := regexp.MatchString(`\s{2,}`, str)
+		if match {
+			return errors.New("the value contains two or more consecutive spaces")
+		}
+		return nil
+	}
+}
+
+func IsMoney() func(string) error {
+	return func(str string) error {
+		match, _ := regexp.MatchString(`^\d+(\.\d{1,2})?$`, str)
+		if !match {
+			return errors.New("the value is not a valid money amount")
+		}
+		_, err := strconv.ParseFloat(str, 64)
+		if err != nil {
+			return errors.New("the value cannot be converted to float64")
 		}
 		return nil
 	}

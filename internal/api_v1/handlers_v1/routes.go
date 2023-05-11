@@ -12,7 +12,7 @@ import (
 
 const (
 	timeout            = 5 * time.Second
-	rateLimitRequests  = 100
+	rateLimitRequests  = 1000
 	rateLimitInterval  = 1 * time.Minute
 	requestMaxSize     = 4 * 1024 * 1024 // 4 MB
 	uriMaxLength       = 1024            // 1024 runes
@@ -72,10 +72,11 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Post("/login-with-token", rs.AuthLoginWithToken)
 		r.Post("/recover-password", rs.AuthRecoverPassword)
 		r.Post("/recover-password-with-token", rs.AuthRecoverPasswordWithToken)
+		r.Post("/alogin", rs.AuthAlogin)
 	})
-	r.Route("/products", func(r chi.Router) {
-		r.Get("/mainpage", rs.ProductsDataForMainpage)
+	r.Route("/product", func(r chi.Router) {
 		r.Get("/", rs.ProductsData)
+		r.Get("/mainpage", rs.ProductsDataForMainpage)
 	})
 	r.Route("/user", func(r chi.Router) {
 		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleUser))
@@ -94,20 +95,30 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 	})
 	r.Route("/admin", func(r chi.Router) {
 		//r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
-		r.Route("/products", func(r chi.Router) {
+		r.Route("/product", func(r chi.Router) {
 			r.Get("/", rs.AdminGetProducts)
-			r.Post("/", rs.AdminCreateProduct)
-			r.Patch("/{id}", rs.AdminProductsUpdate)
-			r.Delete("/{id}", rs.AdminProductsDelete)
-			r.Route("/services", func(r chi.Router) {
-				r.Get("/", rs.AdminProductsServicesGet)
-				r.Post("/", rs.AdminCreateProduct)
-				r.Patch("/{id}", rs.AdminProductsUpdate)
-				r.Delete("/{id}", rs.AdminProductsDelete)
-			})
+			//r.Post("/", rs.AdminNull)
+			//r.Patch("/{id}", rs.AdminNull)
+			//r.Delete("/{id}", rs.AdminNull)
 		})
-		r.Route("/profile", func(r chi.Router) {
-			// routes
+		r.Route("/service", func(r chi.Router) {
+			r.Get("/", rs.AdminGetServices)
+		})
+		r.Route("/state", func(r chi.Router) {
+			r.Get("/", rs.AdminGetStates)
+		})
+		r.Route("/item", func(r chi.Router) {
+			r.Get("/", rs.AdminGetItems)
+		})
+		r.Route("/type", func(r chi.Router) {
+			r.Get("/", rs.AdminGetTypes)
+		})
+		r.Route("/subtype", func(r chi.Router) {
+			r.Get("/", rs.AdminGetSubtypes)
+		})
+		r.Route("/variant", func(r chi.Router) {
+			r.Get("/", rs.AdminNull)
+			r.Post("/", rs.AdminNull)
 		})
 	})
 	r.Route("/resources", func(r chi.Router) {
@@ -115,7 +126,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Get("/svg/{id}", rs.ResourcesGetSvgFile)
 	})
 	r.Route("/freekassa", func(r chi.Router) {
-		r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs))
+		r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs, rs.App.Config.App.Service.Url.Client+"/finish"))
 		r.Get("/notification", rs.FreekassaNotification)
 	})
 }

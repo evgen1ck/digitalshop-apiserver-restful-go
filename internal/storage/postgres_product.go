@@ -139,14 +139,14 @@ func GetProductsWithParams(ctx context.Context, pdb *Postgres, query1, query2, q
 }
 
 type ProductItem struct {
-	ItemNo     int       `json:"item_no"`
-	ItemName   string    `json:"item_name"`
-	CreatedAt  time.Time `json:"created_at"`
-	ModifiedAt time.Time `json:"modified_at"`
-	Commentary string    `json:"commentary"`
+	ItemNo     int     `json:"item_no"`
+	ItemName   string  `json:"item_name"`
+	CreatedAt  string  `json:"created_at"`
+	ModifiedAt string  `json:"modified_at"`
+	Commentary *string `json:"commentary"`
 }
 
-func GetProductItems(ctx context.Context, pdb *Postgres) ([]ProductItem, error) {
+func AdminGetItems(ctx context.Context, pdb *Postgres) ([]ProductItem, error) {
 	var items []ProductItem
 
 	rows, err := pdb.Pool.Query(ctx,
@@ -158,16 +158,19 @@ func GetProductItems(ctx context.Context, pdb *Postgres) ([]ProductItem, error) 
 
 	for rows.Next() {
 		var item ProductItem
+		var createdAt, modifiedAt time.Time
 
 		if err = rows.Scan(
 			&item.ItemNo,
 			&item.ItemName,
-			&item.CreatedAt,
-			&item.ModifiedAt,
+			&createdAt,
+			&modifiedAt,
 			&item.Commentary,
 		); err != nil {
 			return items, err
 		}
+		item.CreatedAt = createdAt.Format(time.DateTime)
+		item.ModifiedAt = modifiedAt.Format(time.DateTime)
 
 		items = append(items, item)
 	}
@@ -179,19 +182,19 @@ func GetProductItems(ctx context.Context, pdb *Postgres) ([]ProductItem, error) 
 }
 
 type ProductService struct {
-	ServiceNo   int       `json:"service_no"`
-	ServiceName string    `json:"service_name"`
-	ServiceUrl  string    `json:"service_url"`
-	CreatedAt   time.Time `json:"created_at"`
-	ModifiedAt  time.Time `json:"modified_at"`
-	Commentary  *string   `json:"commentary"`
+	ServiceNo   int     `json:"service_no"`
+	ServiceName string  `json:"service_name"`
+	ServiceUrl  string  `json:"service_url"`
+	CreatedAt   string  `json:"created_at"`
+	ModifiedAt  string  `json:"modified_at"`
+	Commentary  *string `json:"commentary"`
 }
 
-func GetProductServices(ctx context.Context, pdb *Postgres, apiUrl string) ([]ProductService, error) {
+func AdminGetServices(ctx context.Context, pdb *Postgres, apiUrl string) ([]ProductService, error) {
 	var services []ProductService
 
 	rows, err := pdb.Pool.Query(ctx,
-		"SELECT service_no, service_name, created_at, modified_at, commentary FROM product.service")
+		"SELECT service_no, service_name, created_at, modified_at, commentary FROM product.service ORDER BY service_name")
 	if err != nil {
 		return services, err
 	}
@@ -199,17 +202,20 @@ func GetProductServices(ctx context.Context, pdb *Postgres, apiUrl string) ([]Pr
 
 	for rows.Next() {
 		var service ProductService
+		var createdAt, modifiedAt time.Time
 
 		if err = rows.Scan(
 			&service.ServiceNo,
 			&service.ServiceName,
-			&service.CreatedAt,
-			&service.ModifiedAt,
+			&createdAt,
+			&modifiedAt,
 			&service.Commentary,
 		); err != nil {
 			return services, err
 		}
 		service.ServiceUrl = GetSvgFileUrl(apiUrl, service.ServiceName)
+		service.CreatedAt = createdAt.Format(time.DateTime)
+		service.ModifiedAt = modifiedAt.Format(time.DateTime)
 
 		services = append(services, service)
 	}
@@ -221,18 +227,18 @@ func GetProductServices(ctx context.Context, pdb *Postgres, apiUrl string) ([]Pr
 }
 
 type ProductState struct {
-	StateNo    int       `json:"state_no"`
-	StateName  string    `json:"state_name"`
-	CreatedAt  time.Time `json:"created_at"`
-	ModifiedAt time.Time `json:"modified_at"`
-	Commentary string    `json:"commentary"`
+	StateNo    int     `json:"state_no"`
+	StateName  string  `json:"state_name"`
+	CreatedAt  string  `json:"created_at"`
+	ModifiedAt string  `json:"modified_at"`
+	Commentary *string `json:"commentary"`
 }
 
-func GetProductStates(ctx context.Context, pdb *Postgres) ([]ProductState, error) {
+func AdminGetStates(ctx context.Context, pdb *Postgres) ([]ProductState, error) {
 	var states []ProductState
 
 	rows, err := pdb.Pool.Query(ctx,
-		"SELECT state_no, state_name, created_at, modified_at, commentary FROM product.state")
+		"SELECT state_no, state_name, created_at, modified_at, commentary FROM product.state ORDER BY state_name")
 	if err != nil {
 		return states, err
 	}
@@ -240,16 +246,20 @@ func GetProductStates(ctx context.Context, pdb *Postgres) ([]ProductState, error
 
 	for rows.Next() {
 		var state ProductState
+		var createdAt, modifiedAt time.Time
 
 		if err = rows.Scan(
 			&state.StateNo,
 			&state.StateName,
-			&state.CreatedAt,
-			&state.ModifiedAt,
+			&createdAt,
+			&modifiedAt,
 			&state.Commentary,
 		); err != nil {
 			return states, err
 		}
+
+		state.CreatedAt = createdAt.Format(time.DateTime)
+		state.ModifiedAt = modifiedAt.Format(time.DateTime)
 
 		states = append(states, state)
 	}
@@ -261,18 +271,18 @@ func GetProductStates(ctx context.Context, pdb *Postgres) ([]ProductState, error
 }
 
 type ProductType struct {
-	TypeNo     int       `json:"type_no"`
-	TypeName   string    `json:"type_name"`
-	CreatedAt  time.Time `json:"created_at"`
-	ModifiedAt time.Time `json:"modified_at"`
-	Commentary string    `json:"commentary"`
+	TypeNo     int     `json:"type_no"`
+	TypeName   string  `json:"type_name"`
+	CreatedAt  string  `json:"created_at"`
+	ModifiedAt string  `json:"modified_at"`
+	Commentary *string `json:"commentary"`
 }
 
-func GetProductTypes(ctx context.Context, pdb *Postgres) ([]ProductType, error) {
+func AdminGetTypes(ctx context.Context, pdb *Postgres) ([]ProductType, error) {
 	var types []ProductType
 
 	rows, err := pdb.Pool.Query(ctx,
-		"SELECT state_no, state_name, created_at, modified_at, commentary FROM product.state")
+		"SELECT type_no, type_name, created_at, modified_at, commentary FROM product.type ORDER BY type_name")
 	if err != nil {
 		return types, err
 	}
@@ -280,16 +290,19 @@ func GetProductTypes(ctx context.Context, pdb *Postgres) ([]ProductType, error) 
 
 	for rows.Next() {
 		var typ ProductType
+		var createdAt, modifiedAt time.Time
 
 		if err = rows.Scan(
 			&typ.TypeNo,
 			&typ.TypeName,
-			&typ.CreatedAt,
-			&typ.ModifiedAt,
+			&createdAt,
+			&modifiedAt,
 			&typ.Commentary,
 		); err != nil {
 			return types, err
 		}
+		typ.CreatedAt = createdAt.Format(time.DateTime)
+		typ.ModifiedAt = modifiedAt.Format(time.DateTime)
 
 		types = append(types, typ)
 	}
@@ -301,19 +314,19 @@ func GetProductTypes(ctx context.Context, pdb *Postgres) ([]ProductType, error) 
 }
 
 type ProductSubtype struct {
-	SubtypeNo   int       `json:"subtype_no"`
-	SubtypeName string    `json:"subtype_name"`
-	CreatedAt   time.Time `json:"created_at"`
-	ModifiedAt  time.Time `json:"modified_at"`
-	Commentary  string    `json:"commentary"`
+	SubtypeNo   int     `json:"subtype_no"`
+	SubtypeName string  `json:"subtype_name"`
+	CreatedAt   string  `json:"created_at"`
+	ModifiedAt  string  `json:"modified_at"`
+	Commentary  *string `json:"commentary"`
 }
 
-func GetProductSubtypes(ctx context.Context, pdb *Postgres, typeNo string) ([]ProductSubtype, error) {
+func AdminGetSubtypes(ctx context.Context, pdb *Postgres, typeName string) ([]ProductSubtype, error) {
 	var subtypes []ProductSubtype
 
 	rows, err := pdb.Pool.Query(ctx,
-		"SELECT subtype_no, subtype_name, created_at, modified_at, commentary FROM product.subtype WHERE type_no = $1",
-		typeNo)
+		"SELECT subtype_no, subtype_name, st.created_at, st.modified_at, st.commentary FROM product.subtype st join product.type t on st.type_no = t.type_no WHERE type_name  = $1 ORDER BY subtype_name",
+		typeName)
 	if err != nil {
 		return subtypes, err
 	}
@@ -321,16 +334,19 @@ func GetProductSubtypes(ctx context.Context, pdb *Postgres, typeNo string) ([]Pr
 
 	for rows.Next() {
 		var subtype ProductSubtype
+		var createdAt, modifiedAt time.Time
 
 		if err = rows.Scan(
 			&subtype.SubtypeNo,
 			&subtype.SubtypeName,
-			&subtype.CreatedAt,
-			&subtype.ModifiedAt,
+			&createdAt,
+			&modifiedAt,
 			&subtype.Commentary,
 		); err != nil {
 			return subtypes, err
 		}
+		subtype.CreatedAt = createdAt.Format(time.DateTime)
+		subtype.ModifiedAt = modifiedAt.Format(time.DateTime)
 
 		subtypes = append(subtypes, subtype)
 	}
@@ -339,6 +355,55 @@ func GetProductSubtypes(ctx context.Context, pdb *Postgres, typeNo string) ([]Pr
 	}
 
 	return subtypes, err
+}
+
+type Product2 struct {
+	ProductId   string  `json:"product_id"`
+	ProductName string  `json:"product_name"`
+	Description string  `json:"description"`
+	Tags        *string `json:"tags"`
+	CreatedAt   string  `json:"created_at"`
+	ModifiedAt  string  `json:"modified_at"`
+	Commentary  *string `json:"commentary"`
+}
+
+func AdminGetProducts(ctx context.Context, pdb *Postgres) ([]Product2, error) {
+	var products []Product2
+
+	rows, err := pdb.Pool.Query(ctx,
+		"SELECT product_id, product_name, description, tags, created_at, modified_at, commentary FROM product.product ORDER BY product_name")
+	if err != nil {
+		return products, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var product Product2
+		var productUuid uuid.UUID
+		var createdAt, modifiedAt time.Time
+
+		if err = rows.Scan(
+			&productUuid,
+			&product.ProductName,
+			&product.Description,
+			&product.Tags,
+			&createdAt,
+			&modifiedAt,
+			&product.Commentary,
+		); err != nil {
+			return products, err
+		}
+		product.ProductId = productUuid.String()
+		product.CreatedAt = createdAt.Format(time.DateTime)
+		product.ModifiedAt = modifiedAt.Format(time.DateTime)
+
+		products = append(products, product)
+	}
+	if err = rows.Err(); err != nil {
+		return products, err
+	}
+
+	return products, err
 }
 
 func GetProductVariantForPayment(ctx context.Context, pdb *Postgres, variantId string) (string, string, string, int, float64, error) {

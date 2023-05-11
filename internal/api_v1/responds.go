@@ -83,3 +83,9 @@ func RespondWithCreated(w http.ResponseWriter, result interface{}) {
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(result)
 }
+
+func RespondOK(w http.ResponseWriter, result interface{}) {
+	setStandardHeadersForJson(w)
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(result)
+}

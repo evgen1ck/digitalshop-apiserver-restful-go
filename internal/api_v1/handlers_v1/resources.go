@@ -44,6 +44,7 @@ func (rs *Resolver) ResourcesGetProductImage(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	w.Header().Set("Content-Type", "image")
 	http.ServeFile(w, r, filepath.Join(dir, foundFile))
 }
 

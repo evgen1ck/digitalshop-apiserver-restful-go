@@ -19,6 +19,7 @@ const (
 	AccountStateDeleted = "deleted"
 
 	AccountRegistrationMethodWebApplication  = "web application"
+	AccountRegistrationMethodFromAdminPanel  = "from admin panel"
 	AccountRegistrationMethodTelegramAccount = "telegram account"
 	AccountRegistrationMethodGoogleAccount   = "google account"
 

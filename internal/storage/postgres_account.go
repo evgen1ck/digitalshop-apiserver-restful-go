@@ -48,6 +48,16 @@ func CheckUser(ctx context.Context, pdb *Postgres, nickname, email string) (bool
 	return nicknameExists, emailExists, err
 }
 
+func CheckAdmin(ctx context.Context, pdb *Postgres, login string) (bool, error) {
+	var loginExists bool
+
+	err := pdb.Pool.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM account.employee WHERE login = $1)::boolean",
+		login).Scan(&loginExists)
+
+	return loginExists, err
+}
+
 func GetUserData(ctx context.Context, pdb *Postgres, nickname, email string) (string, string, string, string, string, error) {
 	var userUuid, scannedNickname, scannedEmail, password, salt string
 	nickname = strings.ToLower(nickname)
@@ -60,12 +70,24 @@ func GetUserData(ctx context.Context, pdb *Postgres, nickname, email string) (st
 	return userUuid, scannedNickname, scannedEmail, password, salt, err
 }
 
-func GetStateAccount(ctx context.Context, pdb *Postgres, uuid, role string) (string, error) {
+func GetAdminData(ctx context.Context, pdb *Postgres, login string) (string, string, string, string, *string, string, string, error) {
+	var adminUuid, scannedLogin, surname, name, password, salt string
+	var patronymic *string
+	login = strings.ToLower(login)
+
+	err := pdb.Pool.QueryRow(ctx,
+		"select account_id, login, surname, name, patronymic, password, salt_for_password from account.employee where lower(login) = $1",
+		login).Scan(&adminUuid, &scannedLogin, &surname, &name, &patronymic, &password, &salt)
+
+	return adminUuid, scannedLogin, surname, name, patronymic, password, salt, err
+}
+
+func GetStateAccount(ctx context.Context, pdb *Postgres, uuid string) (string, error) {
 	var stateName string
 
 	err := pdb.Pool.QueryRow(ctx,
-		"select ast.state_name from account.account aa left join account.role ar on aa.account_role = ar.role_no left join account.state ast on aa.account_state = ast.state_no where aa.account_id = $1 and ar.role_name = $2",
-		uuid, role).Scan(&stateName)
+		"select ast.state_name from account.account aa left join account.role ar on aa.account_role = ar.role_no left join account.state ast on aa.account_state = ast.state_no where aa.account_id = $1",
+		uuid).Scan(&stateName)
 
 	return stateName, err
 }

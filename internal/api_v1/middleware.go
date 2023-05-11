@@ -309,13 +309,17 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 			}
 
 			// Get account state and check on exists
-			state, err := storage.GetStateAccount(r.Context(), pdb, jwtData.AccountUuid, role)
+			state, err := storage.GetStateAccount(r.Context(), pdb, jwtData.AccountUuid)
 			if err != nil {
 				RespondWithInternalServerError(w)
 				logger.NewWarn("Error in founding account in the list", err)
 				return
 			} else if state == "" {
 				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of "+role+"s")
+				return
+			}
+			if state != role {
+				RedRespond(w, http.StatusForbidden, "Forbidden", "This account has a different role")
 				return
 			}
 
@@ -345,16 +349,18 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 	}
 }
 
-func FreekassaIpWhitelistMiddleware(allowedIPs []string) func(http.Handler) http.Handler {
+func FreekassaIpWhitelistMiddleware(allowedIPs []string, url string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")]
 			fmt.Printf("ip: %s", ip)
 			if !tl.StringInSlice(ip, allowedIPs) {
-				RedRespond(w, http.StatusForbidden, "Forbidden", "Not allowed IP address")
+				http.Redirect(w, r, url, http.StatusSeeOther)
+				//RedRespond(w, http.StatusForbidden, "Forbidden", "Not allowed IP address")
+				fmt.Printf("not allowed in FreekassaIpWhitelistMiddleware")
 				return
 			}
-			fmt.Printf("not allowed in FreekassaIpWhitelistMiddleware")
+
 			next.ServeHTTP(w, r)
 		})
 	}
