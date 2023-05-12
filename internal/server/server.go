@@ -74,6 +74,8 @@ func Run() {
 		app.Logger.NewWarn("Got signal SIGINT...", nil)
 	case syscall.SIGTERM:
 		app.Logger.NewWarn("Got signal SIGTERM...", nil)
+	default:
+		app.Logger.NewWarn(killSignal.String(), nil)
 	}
 
 	app.Logger.NewInfo("The services is shutting down...")

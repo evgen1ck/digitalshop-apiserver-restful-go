@@ -359,7 +359,7 @@ func FreekassaIpWhitelistMiddleware(allowedIPs []string, url string) func(http.H
 			fmt.Println(ip)
 			fmt.Printf("ip: %s", ip)
 			if !tl.StringInSlice(ip, allowedIPs) {
-				http.Redirect(w, r, url, http.StatusSeeOther)
+				//http.Redirect(w, r, url, http.StatusSeeOther)
 				//RedRespond(w, http.StatusForbidden, "Forbidden", "Not allowed IP address")
 				fmt.Printf("not allowed in FreekassaIpWhitelistMiddleware")
 				return

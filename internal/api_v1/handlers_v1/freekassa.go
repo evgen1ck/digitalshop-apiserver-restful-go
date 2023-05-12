@@ -15,7 +15,7 @@ func (rs *Resolver) FreekassaNotification(w http.ResponseWriter, r *http.Request
 	}
 
 	merchantID := r.FormValue("MERCHANT_ID")
-	//amount := r.FormValue("AMOUNT")
+	////amount := r.FormValue("AMOUNT")
 	intid := r.FormValue("intid")
 	//merchantOrderID := r.FormValue("MERCHANT_ORDER_ID")
 	//pEmail := r.FormValue("P_EMAIL")
