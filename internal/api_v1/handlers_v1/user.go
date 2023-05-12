@@ -3,8 +3,8 @@ package handlers_v1
 import (
 	"encoding/json"
 	"net/http"
-	"test-server-go/freekassa"
 	"test-server-go/internal/api_v1"
+	freekassa2 "test-server-go/internal/freekassa"
 	"test-server-go/internal/storage"
 	tl "test-server-go/internal/tools"
 )
@@ -60,19 +60,33 @@ func (rs *Resolver) UserNewPayment(w http.ResponseWriter, r *http.Request) {
 		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This product variant has been deleted")
 		return
 	} else if variantState == storage.ProductStateUnavailableWithoutPrice {
-		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "This product variant unavailable without price")
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This product variant unavailable without price")
 		return
 	} else if variantState == storage.ProductStateUnavailableWithPrice {
-		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "This product variant unavailable with price")
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This product variant unavailable with price")
 		return
 	}
 
 	if quantityCurrent == 0 {
-		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "This product variant sold out")
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This product variant sold out")
 		return
 	}
 
-	url := freekassa.NewOrderUrl(rs.App.Freekassa, finalPrice, freekassa.CurrencyRUB, variantName)
+	_, jwtData, err := api_v1.ContextGetAuthenticated(r)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in took jwt data", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	orderId, err := storage.CreateUserOrder(r.Context(), rs.App.Postgres, data.VariantId, jwtData.AccountUuid, finalPrice)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in create user order", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	url := freekassa2.NewOrderUrl(rs.App.Freekassa, finalPrice, freekassa2.CurrencyRUB, variantName+"_"+orderId)
 
 	// Block 3 - send the result
 	response := struct {

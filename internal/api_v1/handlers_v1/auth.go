@@ -252,7 +252,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get account state and check on exists
-	state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, userUuid)
+	state, role, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, userUuid)
 	if err != nil {
 		api_v1.RespondWithInternalServerError(w)
 		rs.App.Logger.NewWarn("Error in founding account in the list", err)
@@ -269,6 +269,12 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	case storage.AccountStateDeleted:
 		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been deleted")
+		return
+	}
+
+	// Check account role
+	if role != storage.AccountRoleUser {
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has a different role")
 		return
 	}
 
@@ -371,7 +377,7 @@ func (rs *Resolver) AuthAlogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get account state and check on exists
-	state, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, adminUuid)
+	state, role, err := storage.GetStateAccount(r.Context(), rs.App.Postgres, adminUuid)
 	if err != nil {
 		api_v1.RespondWithInternalServerError(w)
 		rs.App.Logger.NewWarn("Error in founding account in the list", err)
@@ -388,6 +394,12 @@ func (rs *Resolver) AuthAlogin(w http.ResponseWriter, r *http.Request) {
 		return
 	case storage.AccountStateDeleted:
 		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been deleted")
+		return
+	}
+
+	// Check account role
+	if role != storage.AccountRoleAdmin {
+		api_v1.RedRespond(w, http.StatusForbidden, "Forbidden", "This account has a different role")
 		return
 	}
 

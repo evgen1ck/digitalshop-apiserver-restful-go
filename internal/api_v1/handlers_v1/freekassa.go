@@ -2,7 +2,9 @@ package handlers_v1
 
 import (
 	"net/http"
+	"strings"
 	"test-server-go/internal/api_v1"
+	"test-server-go/internal/storage"
 )
 
 func (rs *Resolver) FreekassaNotification(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +34,24 @@ func (rs *Resolver) FreekassaNotification(w http.ResponseWriter, r *http.Request
 	//res := fmt.Sprintf(
 	//	"заказ с номером %s был успешно оплачен. Сумма: %s, email: %s, телефон: %s, ID электронной валюты: %s, номер счета/карты плательщика: %s, комиссия: %s, id магазина: %s, номер операции Free-Kassa: %s\n",
 	//	merchantOrderID, amount, pEmail, pPhone, curID, payerAccount, commission, merchantID, intid)
+
+	splitID := strings.Split(merchantID, "_")
+
+	splitID[0] = strings.ReplaceAll(splitID[0], "-", " ")
+
+	email, err := storage.GetDataForFreekassa(r.Context(), rs.App.Postgres, splitID[1])
+	if err != nil {
+		rs.App.Logger.NewWarn("error in get user email for freekassa", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	err = rs.App.Mailer.SendOrderContent(email, splitID[0], "", rs.App.Config.App.Service.Name, rs.App.Config.App.Service.Url.Client)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in send order content", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
 
 	rs.App.Logger.NewInfo("URI: " + r.RequestURI + " IP: " + r.RemoteAddr + " MERCHANT_ID: " + merchantID + " intid: " + intid)
 

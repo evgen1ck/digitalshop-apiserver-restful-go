@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
+	"strconv"
 	"time"
 )
 
@@ -130,8 +131,82 @@ func GetProductsForMainpage(ctx context.Context, pdb *Postgres, apiUrl string) (
 	return products, err
 }
 
+type AdminProducts struct {
+	ProductId       string  `json:"product_id"`
+	ProductImageUrl string  `json:"product_image_url"`
+	ProductName     string  `json:"product_name"`
+	Description     string  `json:"description"`
+	Type            string  `json:"type_name"`
+	SubtypeName     string  `json:"subtype_name"`
+	VariantId       string  `json:"variant_id"`
+	ServiceSvgUrl   string  `json:"service_svg_url"`
+	VariantName     string  `json:"variant_name"`
+	Service         string  `json:"service_name"`
+	State           string  `json:"state_name"`
+	Item            string  `json:"item_name"`
+	Mask            string  `json:"mask"`
+	TextQuantity    string  `json:"text_quantity"`
+	QuantityCurrent int     `json:"quantity_current"`
+	QuantitySold    int     `json:"quantity_sold"`
+	Price           float64 `json:"price"`
+	DiscountMoney   float64 `json:"discount_money"`
+	DiscountPercent int     `json:"discount_percent"`
+	FinalPrice      float64 `json:"final_price"`
+}
+
+func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, variantId string) ([]AdminProducts, error) {
+	var products []AdminProducts
+
+	query := "SELECT product_id, product_name, description, type_name, subtype_name, variant_id, variant_name, service_name, state_name, item_name, mask, text_quantity, quantity_current, quantity_sold, price, discount_money, discount_percent, final_price FROM product.product_variants_summary_for_mainpage "
+	if variantId != "" {
+		query += "WHERE variant_id = " + variantId
+	}
+	rows, err := pdb.Pool.Query(context.Background(), query)
+	if err != nil {
+		return products, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var p AdminProducts
+		err = rows.Scan(
+			&p.ProductId,
+			&p.ProductName,
+			&p.Description,
+			&p.Type,
+			&p.SubtypeName,
+			&p.VariantId,
+			&p.VariantName,
+			&p.Service,
+			&p.State,
+			&p.Item,
+			&p.Mask,
+			&p.TextQuantity,
+			&p.QuantityCurrent,
+			&p.QuantitySold,
+			&p.Price,
+			&p.DiscountMoney,
+			&p.DiscountPercent,
+			&p.FinalPrice,
+		)
+		if err != nil {
+			return products, err
+		}
+
+		p.ProductImageUrl = GetProductImageUrl(apiUrl, p.ProductId)
+		p.ServiceSvgUrl = GetSvgFileUrl(apiUrl, p.Service)
+
+		products = append(products, p)
+	}
+	if err = rows.Err(); err != nil {
+		return products, err
+	}
+
+	return products, nil
+}
+
 func GetProductsWithParams(ctx context.Context, pdb *Postgres, query1, query2, query3 string) (pgx.Rows, error) {
-	rows, err := pdb.Pool.Query(ctx,
+	rows, err := pdb.Pool.Query(context.Background(),
 		"SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_all_data WHERE concat(product_name, variant_name, description, tags) ILIKE ANY (ARRAY[$1, $2, $3])",
 		"%"+query1+"%", "%"+query2+"%", "%"+query3+"%")
 
@@ -149,7 +224,7 @@ type ProductItem struct {
 func AdminGetItems(ctx context.Context, pdb *Postgres) ([]ProductItem, error) {
 	var items []ProductItem
 
-	rows, err := pdb.Pool.Query(ctx,
+	rows, err := pdb.Pool.Query(context.Background(),
 		"SELECT item_no, item_name, created_at, modified_at, commentary FROM product.item")
 	if err != nil {
 		return items, err
@@ -193,7 +268,7 @@ type ProductService struct {
 func AdminGetServices(ctx context.Context, pdb *Postgres, apiUrl string) ([]ProductService, error) {
 	var services []ProductService
 
-	rows, err := pdb.Pool.Query(ctx,
+	rows, err := pdb.Pool.Query(context.Background(),
 		"SELECT service_no, service_name, created_at, modified_at, commentary FROM product.service ORDER BY service_name")
 	if err != nil {
 		return services, err
@@ -237,7 +312,7 @@ type ProductState struct {
 func AdminGetStates(ctx context.Context, pdb *Postgres) ([]ProductState, error) {
 	var states []ProductState
 
-	rows, err := pdb.Pool.Query(ctx,
+	rows, err := pdb.Pool.Query(context.Background(),
 		"SELECT state_no, state_name, created_at, modified_at, commentary FROM product.state ORDER BY state_name")
 	if err != nil {
 		return states, err
@@ -281,7 +356,7 @@ type ProductType struct {
 func AdminGetTypes(ctx context.Context, pdb *Postgres) ([]ProductType, error) {
 	var types []ProductType
 
-	rows, err := pdb.Pool.Query(ctx,
+	rows, err := pdb.Pool.Query(context.Background(),
 		"SELECT type_no, type_name, created_at, modified_at, commentary FROM product.type ORDER BY type_name")
 	if err != nil {
 		return types, err
@@ -324,7 +399,7 @@ type ProductSubtype struct {
 func AdminGetSubtypes(ctx context.Context, pdb *Postgres, typeName string) ([]ProductSubtype, error) {
 	var subtypes []ProductSubtype
 
-	rows, err := pdb.Pool.Query(ctx,
+	rows, err := pdb.Pool.Query(context.Background(),
 		"SELECT subtype_no, subtype_name, st.created_at, st.modified_at, st.commentary FROM product.subtype st join product.type t on st.type_no = t.type_no WHERE type_name  = $1 ORDER BY subtype_name",
 		typeName)
 	if err != nil {
@@ -370,7 +445,7 @@ type Product2 struct {
 func AdminGetProducts(ctx context.Context, pdb *Postgres) ([]Product2, error) {
 	var products []Product2
 
-	rows, err := pdb.Pool.Query(ctx,
+	rows, err := pdb.Pool.Query(context.Background(),
 		"SELECT product_id, product_name, description, tags, created_at, modified_at, commentary FROM product.product ORDER BY product_name")
 	if err != nil {
 		return products, err
@@ -412,12 +487,84 @@ func GetProductVariantForPayment(ctx context.Context, pdb *Postgres, variantId s
 	var quantityCurrent int
 	var productId uuid.UUID
 
-	err := pdb.Pool.QueryRow(ctx,
+	err := pdb.Pool.QueryRow(context.Background(),
 		"SELECT product_id, variant_name, state_name, quantity_current, final_price FROM product.product_variants_summary_all_data WHERE variant_id = $1",
 		variantId).Scan(&productId, &variantName, &variantState, &quantityCurrent, &finalPrice)
-	if err != nil {
-		return productId.String(), variantName, variantState, quantityCurrent, finalPrice, err
-	}
 
 	return productId.String(), variantName, variantState, quantityCurrent, finalPrice, err
 }
+
+func CreateAdminVariant(ctx context.Context, pdb *Postgres, productName, variantName, serviceName, stateName, subtypeName, itemName, mask, price, discountMoney, discountPercent, accountId string) error {
+	var productId string
+	var serviceId, stateId, subtypeId, itemId int
+	var localDiscountMoney float64
+	var localDiscountPercent int
+
+	localDiscountMoney, _ = strconv.ParseFloat(discountMoney, 64)
+	localDiscountPercent, _ = strconv.Atoi(discountPercent)
+
+	if err := pdb.Pool.QueryRow(context.Background(),
+		"SELECT product_id FROM product.product WHERE product_name = $1",
+		productName).Scan(&productId); err != nil {
+		return err
+	}
+	if err := pdb.Pool.QueryRow(context.Background(),
+		"SELECT service_no FROM product.service WHERE service_name = $1",
+		serviceName).Scan(&serviceId); err != nil {
+		return err
+	}
+	if err := pdb.Pool.QueryRow(context.Background(),
+		"SELECT state_no FROM product.state WHERE state_name = $1",
+		stateName).Scan(&stateId); err != nil {
+		return err
+	}
+	if err := pdb.Pool.QueryRow(context.Background(),
+		"SELECT subtype_no FROM product.subtype WHERE subtype_name = $1",
+		subtypeName).Scan(&subtypeId); err != nil {
+		return err
+	}
+	if err := pdb.Pool.QueryRow(context.Background(),
+		"SELECT item_no FROM product.item WHERE item_name = $1",
+		itemName).Scan(&itemId); err != nil {
+		return err
+	}
+
+	result, err := pdb.Pool.Exec(context.Background(),
+		"INSERT INTO product.variant(product_id, variant_name, variant_service, variant_state, variant_subtype, variant_item, mask, price, discount_money, discount_percent, variant_account) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+		productId, variantName, serviceId, stateId, subtypeId, itemId, mask, price, localDiscountMoney, localDiscountPercent, accountId)
+	if err != nil {
+		return err
+	} else if result.RowsAffected() < 1 {
+		return FailedInsert
+	}
+
+	UpdateData(ctx, pdb)
+
+	return err
+}
+
+func UpdateData(ctx context.Context, pdb *Postgres) error {
+	_, err := pdb.Pool.Exec(ctx,
+		"REFRESH MATERIALIZED VIEW product.product_variants_summary_for_mainpage; REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data")
+
+	return err
+}
+
+//func DeleteAdminVariant(ctx context.Context, pdb *Postgres, uuid string) error {
+//	if err := pdb.Pool.QueryRow(context.Background(),
+//		"SELECT product_id FROM product.product WHERE product_name = $1",
+//		productName).Scan(&productId); err != nil {
+//		return err
+//	}
+//
+//	result, err := pdb.Pool.Exec(ctx,
+//		"DELETE FROM account.user WHERE user_account = $1",
+//		uuid)
+//	if err != nil {
+//		return err
+//	} else if result.RowsAffected() < 1 {
+//		return FailedDelete
+//	}
+//
+//	return err
+//}

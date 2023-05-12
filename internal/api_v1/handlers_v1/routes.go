@@ -3,7 +3,6 @@ package handlers_v1
 import (
 	"github.com/go-chi/chi/v5"
 	"strconv"
-	"test-server-go/freekassa"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
@@ -80,7 +79,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 	})
 	r.Route("/user", func(r chi.Router) {
 		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleUser))
-		r.Get("/payment", rs.UserNewPayment)
+		r.Post("/payment", rs.UserNewPayment)
 		r.Route("/profile", func(r chi.Router) {
 			r.Patch("/", rs.UserProfileUpdate)
 			r.Delete("/", rs.UserProfileDelete)
@@ -94,7 +93,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Post("/logout", rs.AuthLogout)
 	})
 	r.Route("/admin", func(r chi.Router) {
-		//r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
+		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
 		r.Route("/product", func(r chi.Router) {
 			r.Get("/", rs.AdminGetProducts)
 			//r.Post("/", rs.AdminNull)
@@ -117,8 +116,8 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 			r.Get("/", rs.AdminGetSubtypes)
 		})
 		r.Route("/variant", func(r chi.Router) {
-			r.Get("/", rs.AdminNull)
-			r.Post("/", rs.AdminNull)
+			r.Get("/", rs.AdminGetVariants)
+			r.Post("/", rs.AdminCreateVariant)
 		})
 	})
 	r.Route("/resources", func(r chi.Router) {
@@ -126,7 +125,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Get("/svg/{id}", rs.ResourcesGetSvgFile)
 	})
 	r.Route("/freekassa", func(r chi.Router) {
-		r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs, rs.App.Config.App.Service.Url.Client+"/finish"))
+		//r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs, rs.App.Config.App.Service.Url.Client+"/finish"))
 		r.Get("/notification", rs.FreekassaNotification)
 	})
 }

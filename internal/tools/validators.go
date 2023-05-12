@@ -186,3 +186,18 @@ func IsMoney() func(string) error {
 		return nil
 	}
 }
+
+func IsValidInteger(allowNegative bool) func(string) error {
+	return func(str string) error {
+		num, err := strconv.Atoi(str)
+		if err != nil {
+			return errors.New("the value is not a valid integer")
+		}
+
+		if !allowNegative && num < 0 {
+			return errors.New("the value is a negative integer")
+		}
+
+		return nil
+	}
+}

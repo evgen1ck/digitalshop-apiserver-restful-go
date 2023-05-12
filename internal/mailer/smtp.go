@@ -85,7 +85,7 @@ func (m *Mailer) SendEmailConfirmation(email, nickname, confirmationUrl, shopNam
 	return nil
 }
 
-func (m *Mailer) SendOrderContent(email, variantName, dateAndTime, orderContent, shopName, clientAppUrl string) error {
+func (m *Mailer) SendOrderContent(email, variantName, orderContent, shopName, clientAppUrl string) error {
 	templateFile, err := getPath("mailOrder.tmpl")
 	if err != nil {
 		return err
@@ -98,7 +98,6 @@ func (m *Mailer) SendOrderContent(email, variantName, dateAndTime, orderContent,
 
 	resources := map[string]interface{}{
 		"VariantName":  variantName,
-		"DateAndTime":  dateAndTime,
 		"OrderContent": orderContent,
 		"ShopName":     shopName,
 		"ClientAppUrl": clientAppUrl,

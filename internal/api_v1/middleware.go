@@ -309,17 +309,13 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 			}
 
 			// Get account state and check on exists
-			state, err := storage.GetStateAccount(r.Context(), pdb, jwtData.AccountUuid)
+			state, scannedRole, err := storage.GetStateAccount(r.Context(), pdb, jwtData.AccountUuid)
 			if err != nil {
 				RespondWithInternalServerError(w)
 				logger.NewWarn("Error in founding account in the list", err)
 				return
 			} else if state == "" {
-				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of "+role+"s")
-				return
-			}
-			if state != role {
-				RedRespond(w, http.StatusForbidden, "Forbidden", "This account has a different role")
+				RedRespond(w, http.StatusUnauthorized, "Unauthorized", "The account was not found in the list of this role")
 				return
 			}
 
@@ -330,6 +326,12 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 				return
 			case storage.AccountStateDeleted:
 				RedRespond(w, http.StatusForbidden, "Forbidden", "This account has been deleted")
+				return
+			}
+
+			// Check account role
+			if scannedRole != role {
+				RedRespond(w, http.StatusForbidden, "Forbidden", "This account has a different role")
 				return
 			}
 
@@ -352,7 +354,9 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 func FreekassaIpWhitelistMiddleware(allowedIPs []string, url string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 			ip := r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")]
+			fmt.Println(ip)
 			fmt.Printf("ip: %s", ip)
 			if !tl.StringInSlice(ip, allowedIPs) {
 				http.Redirect(w, r, url, http.StatusSeeOther)

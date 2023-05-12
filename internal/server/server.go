@@ -10,9 +10,9 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
-	"test-server-go/freekassa"
 	"test-server-go/internal/api_v1/handlers_v1"
 	"test-server-go/internal/config"
+	freekassa2 "test-server-go/internal/freekassa"
 	"test-server-go/internal/logger"
 	"test-server-go/internal/mailer"
 	"test-server-go/internal/models"
@@ -113,11 +113,27 @@ func setupConfig() *models.Application {
 		zapLogger.NewError("Error connecting to the Redis database", err)
 	}
 
-	freekassaCfg := freekassa.NewConfig(
+	freekassaCfg := freekassa2.NewConfig(
 		uint32(cfg.Payments.Freekassa.ShopId),
 		cfg.Payments.Freekassa.ApiKey,
 		cfg.Payments.Freekassa.FirstSecretWord,
 		cfg.Payments.Freekassa.SecondSecretWord)
+
+	balance, err := freekassa2.Balances(freekassaCfg)
+	if err != nil {
+		fmt.Printf("BALANCE ERROR: %v\n", err)
+	}
+	if len(balance) == 0 {
+		fmt.Printf("BALANCE WARN: no balance\n")
+	} else {
+		fmt.Printf("BALANCE:\n")
+		for _, bal := range balance {
+			fmt.Printf("%s %.2f\n", bal.Currency, bal.Value)
+		}
+	}
+
+	url := freekassa2.NewOrderUrl(freekassaCfg, 1000.10, freekassa2.CurrencyRUB, "GTA555")
+	fmt.Printf("NEW ORDER URL: %s\n", url)
 
 	application := models.Application{
 		Config:    cfg,

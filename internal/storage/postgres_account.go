@@ -23,7 +23,7 @@ func CreateUser(ctx context.Context, pdb *Postgres, rdb *Redis, nickname, email,
 		}
 
 		res, err := tx.Exec(ctx,
-			"INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5)",
+			"INSERT INTO account.user(user_account, email, nickname, password, salt_for_password) VALUES ($1, $2, $3, $4, $5)",
 			result, email, nickname, base64PasswordHash, base64Salt)
 		if err != nil {
 			return err
@@ -64,7 +64,7 @@ func GetUserData(ctx context.Context, pdb *Postgres, nickname, email string) (st
 	email = strings.ToLower(email)
 
 	err := pdb.Pool.QueryRow(ctx,
-		"select account_id, nickname, email, password, salt_for_password from account.user where lower(nickname) = $1 or email = $2",
+		"select user_account, nickname, email, password, salt_for_password from account.user where lower(nickname) = $1 or email = $2",
 		nickname, email).Scan(&userUuid, &scannedNickname, &scannedEmail, &password, &salt)
 
 	return userUuid, scannedNickname, scannedEmail, password, salt, err
@@ -82,14 +82,14 @@ func GetAdminData(ctx context.Context, pdb *Postgres, login string) (string, str
 	return adminUuid, scannedLogin, surname, name, patronymic, password, salt, err
 }
 
-func GetStateAccount(ctx context.Context, pdb *Postgres, uuid string) (string, error) {
-	var stateName string
+func GetStateAccount(ctx context.Context, pdb *Postgres, uuid string) (string, string, error) {
+	var stateName, roleName string
 
 	err := pdb.Pool.QueryRow(ctx,
-		"select ast.state_name from account.account aa left join account.role ar on aa.account_role = ar.role_no left join account.state ast on aa.account_state = ast.state_no where aa.account_id = $1",
-		uuid).Scan(&stateName)
+		"select ast.state_name, ar.role_name from account.account aa left join account.role ar on aa.account_role = ar.role_no left join account.state ast on aa.account_state = ast.state_no where aa.account_id = $1",
+		uuid).Scan(&stateName, &roleName)
 
-	return stateName, err
+	return stateName, roleName, err
 }
 
 func UpdateLastAccountActivity(ctx context.Context, pdb *Postgres, uuid string) error {
@@ -107,7 +107,7 @@ func UpdateLastAccountActivity(ctx context.Context, pdb *Postgres, uuid string) 
 
 func DeleteUser(ctx context.Context, pdb *Postgres, uuid string) error {
 	result, err := pdb.Pool.Exec(ctx,
-		"DELETE FROM account.user WHERE account_id = $1",
+		"DELETE FROM account.user WHERE user_account = $1",
 		uuid)
 	if err != nil {
 		return err

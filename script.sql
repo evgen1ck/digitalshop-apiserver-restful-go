@@ -6,6 +6,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA account;
 
 --select * from account.user;
 --select * from account.account;
+--select * from product.variant;
+
+
+
 
 DROP TABLE IF EXISTS account.state CASCADE;
 CREATE TABLE account.state
@@ -16,6 +20,7 @@ CREATE TABLE account.state
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary	text		NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS account_state_name_idx ON account.state (lower(state_name));
 INSERT INTO account.state(state_name) VALUES ('active'), ('blocked'), ('deleted');
 
 
@@ -29,6 +34,7 @@ CREATE TABLE account.registration_method
     modified_at         	    timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary			        text		NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS account_registration_method_name_idx ON account.registration_method (lower(registration_method_name));
 INSERT INTO account.registration_method(registration_method_name) VALUES ('web application'), ('telegram account'), ('google account'), ('from admin panel');
 
 
@@ -42,6 +48,7 @@ CREATE TABLE account.role
     modified_at  timestamp	 NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary   text		 NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS account_role_name_idx ON account.role (lower(role_name));
 INSERT INTO account.role(role_name) VALUES ('user'), ('admin');
 
 
@@ -63,23 +70,24 @@ CREATE TABLE account.account
     FOREIGN KEY (registration_method) REFERENCES account.registration_method(registration_method_no)
 );
 INSERT INTO account.account(account_id) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0694');
-INSERT INTO account.account(account_id) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0693');
+INSERT INTO account.account(account_id, account_role) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0693', '2');
 
 
 
 DROP TABLE IF EXISTS account.user CASCADE;
 CREATE TABLE account.user
 (
-    account_id              uuid        NOT NULL UNIQUE,
+    user_account            uuid        NOT NULL UNIQUE,
     email                   text        NOT NULL UNIQUE,
     nickname                text        NOT NULL UNIQUE,
     password 				text		NOT NULL,
 	salt_for_password       text        NOT NULL,
     modified_at         	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary			    text		NULL,
-    FOREIGN KEY (account_id) REFERENCES account.account(account_id)
+    FOREIGN KEY (user_account) REFERENCES account.account(account_id)
 );
-INSERT INTO account.user(account_id, email, nickname, password, salt_for_password) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0694', '77lm@mail.ru', 'Evgenick', 'QDmOn45b1pvrdIeKpGo/QWhoh3Yk4SW6ohlqlmnEeY0', 'Q/04YJ4R9L2n8ZVMszEe+w');
+CREATE UNIQUE INDEX IF NOT EXISTS account_email_idx ON account.user (lower(email));
+INSERT INTO account.user(user_account, email, nickname, password, salt_for_password) VALUES ('4ad0f276-b11b-4c17-a160-3671699f0694', '77lm@mail.ru', 'Evgenick', 'QDmOn45b1pvrdIeKpGo/QWhoh3Yk4SW6ohlqlmnEeY0', 'Q/04YJ4R9L2n8ZVMszEe+w');
 
 
 
@@ -138,6 +146,7 @@ CREATE TABLE product.type
     modified_at timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary  text		NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS product_type_name_idx ON product.type (lower(type_name));
 INSERT INTO product.type(type_name) VALUES ('games'), ('software'), ('media content'), ('e-tickets'), ('virtual gifts'), ('replenishment of in-game currency');
 
 
@@ -154,6 +163,7 @@ CREATE TABLE product.subtype
     PRIMARY KEY (type_no, subtype_no),
     FOREIGN KEY (type_no) REFERENCES product.type(type_no)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS product_subtype_name_idx ON product.subtype (lower(subtype_name));
 INSERT INTO product.subtype(type_no, subtype_name) VALUES
                                                        ('1', 'Computer version'),
                                                        ('1', 'Mobile version'),
@@ -176,8 +186,8 @@ CREATE TABLE product.service
     modified_at    	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary	    text		NULL
 );
-INSERT INTO product.service(service_name) VALUES
-('steam'), ('ubisoft'), ('epic games'), ('electronic arts'), ('discord'), ('youtube'), ('playstation'), ('xbox'), ('nintendo'), ('universal');
+CREATE UNIQUE INDEX IF NOT EXISTS product_service_name_idx ON product.service (lower(service_name));
+INSERT INTO product.service(service_name) VALUES ('steam'), ('ubisoft'), ('epic games'), ('electronic arts'), ('discord'), ('youtube'), ('playstation'), ('xbox'), ('nintendo'), ('universal');
 
 
 
@@ -190,6 +200,7 @@ CREATE TABLE product.item
     modified_at    	timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary	    text		NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS product_item_name_idx ON product.item (lower(item_name));
 INSERT INTO product.item(item_name) VALUES ('activation key'), ('usual link'), ('gift as link');
 
 
@@ -211,6 +222,8 @@ INSERT INTO product.product(product_id, product_name, tags, description) VALUES
 ('85f8d115-ca4b-4db5-b416-6828e4c0e90a', 'Warframe', NULL, 'Пробудитесь в роли неудержимого воина и сражайтесь вместе с друзьями в этой сюжетной бесплатной онлайн-игре. Столкнитесь с враждующими фракциями в обширной межпланетной системе, следуя указаниям загадочной Лотос, повышайте уровень своего Варфрейма, создайте арсенал разрушительной огневой мощи, и откройте свой истинный потенциал в огромных открытых мирах этого захватывающего сражения от третьего лица.'),
 ('573b8cea-bbfa-4415-8f16-1b793a97c85f', 'PUBG: BATTLEGROUNDS', NULL, 'Высаживайтесь в стратегически важных местах, добывайте оружие и припасы и постарайтесь выжить и остаться последней командой на одном из многочисленных полей боя.'),
 ('7a33fa78-df96-4b7e-ac64-4f152ca2022f', 'Superliminal', NULL, 'Восприятие – это реальность. В этой умопомрачительной головоломке от первого лица вам предстоит сбежать из сюрреалистического мира снов, решая невозможные загадки при помощи перспективы.');
+
+SELECT product_id FROM product.product WHERE product_name = 'Grand Theft Auto 5';
 
 
 
@@ -267,6 +280,38 @@ INSERT INTO product.variant(product_id, variant_name, variant_service, variant_s
 ('573b8cea-bbfa-4415-8f16-1b793a97c85f', '400 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 66, 339, 200, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
 ('573b8cea-bbfa-4415-8f16-1b793a97c85f', '600 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 33, 599, 0, 10, '4ad0f276-b11b-4c17-a160-3671699f0694');
 
+select * from product.order;
+
+DROP TABLE IF EXISTS product.order CASCADE;
+CREATE TABLE product.order
+(
+    order_id        uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
+    order_account   uuid        NOT NULL,
+    price           numeric     NOT NULL CHECK ( price >= 0 ),
+    paid            bool        NOT NULL DEFAULT false,
+    created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    commentary		text		NULL,
+    FOREIGN KEY (order_account) REFERENCES account.account(account_id)
+);
+
+SELECT email FROM account.user au JOIN product.order po ON au.user_account = po.order_account WHERE po.order_id = '556ed2a1-5983-4c10-80ff-0d3fdcb4361b';
+
+DROP TABLE IF EXISTS product.content CASCADE;
+CREATE TABLE product.content
+(
+    content_id      uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
+    content_variant uuid        NOT NULL,
+    content_order   uuid        NULL,
+    data            text        NOT NULL,
+    created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    commentary		text		NULL,
+    FOREIGN KEY (content_variant) REFERENCES product.variant(variant_id),
+    FOREIGN KEY (content_order) REFERENCES product.order(order_id)
+);
+
+
 
 REFRESH MATERIALIZED VIEW product.product_variants_summary_for_mainpage;
 SELECT * FROM product.product_variants_summary_for_mainpage;
@@ -274,23 +319,6 @@ SELECT * FROM product.product_variants_summary_for_mainpage;
 REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data;
 SELECT * FROM product.product_variants_summary_all_data;
 
-
-DROP TABLE IF EXISTS product.orders CASCADE;
-CREATE TABLE product.orders
-(
-    order_id        uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
-    order_variant   uuid        NOT NULL,
-    order_account   uuid        NOT NULL,
-    current_price   numeric     NOT NULL CHECK ( current_price >= 0 ),
-    paid            numeric     NOT NULL CHECK ( paid >= 0 ),
-    quantity_left   integer     NOT NULL CHECK ( quantity_left >= -1 ),
-    content         text        NOT NULL,
-    created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary		text		NULL,
-    FOREIGN KEY (order_variant) REFERENCES product.variant(variant_id),
-    FOREIGN KEY (order_account) REFERENCES account.account(account_id)
-);
 
 
 --GRANT USAGE ON SCHEMA xxxx TO user;

@@ -13,10 +13,21 @@ func (rs *Resolver) AdminCreateProduct(w http.ResponseWriter, r *http.Request)  
 func (rs *Resolver) AdminProductsUpdate(w http.ResponseWriter, r *http.Request) {}
 func (rs *Resolver) AdminProductsDelete(w http.ResponseWriter, r *http.Request) {}
 
+func (rs *Resolver) AdminGetVariants(w http.ResponseWriter, r *http.Request) {
+	products, err := storage.GetAdminVariants(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, "")
+	if err != nil {
+		rs.App.Logger.NewWarn("error in get variants", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	api_v1.RespondOK(w, products)
+}
+
 func (rs *Resolver) AdminGetProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := storage.AdminGetProducts(r.Context(), rs.App.Postgres)
 	if err != nil {
-		rs.App.Logger.NewWarn("error in get products", err)
+		rs.App.Logger.NewWarn("error in get variants", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
@@ -91,20 +102,22 @@ func (rs *Resolver) AdminGetSubtypes(w http.ResponseWriter, r *http.Request) {
 	api_v1.RespondOK(w, subtypes)
 }
 
+type AdminCreateVariantData struct {
+	ProductName     string  `json:"product_name"`
+	VariantName     string  `json:"variant_name"`
+	Service         string  `json:"service_name"`
+	State           string  `json:"state_name"`
+	Subtype         string  `json:"subtype_name"`
+	Item            string  `json:"item_name"`
+	Mask            string  `json:"mask"`
+	Price           string  `json:"price"`
+	DiscountMoney   *string `json:"discount_money"`
+	DiscountPercent *string `json:"discount_percent"`
+}
+
 func (rs *Resolver) AdminCreateVariant(w http.ResponseWriter, r *http.Request) {
 	// Block 0 - decode data
-	var data struct {
-		ProductName     string `json:"product_name"`
-		VariantName     string `json:"variant_name"`
-		Service         string `json:"service"`
-		State           string `json:"state"`
-		Subtype         string `json:"subtype"`
-		Item            string `json:"item"`
-		Mask            string `json:"mask"`
-		Price           string `json:"price"`
-		DiscountMoney   string `json:"discount_money"`
-		DiscountPercent string `json:"discount_percent"`
-	}
+	var data AdminCreateVariantData
 	decodeErr := json.NewDecoder(r.Body).Decode(&data)
 	if decodeErr != nil {
 		api_v1.RespondWithBadRequest(w, "")
@@ -144,12 +157,29 @@ func (rs *Resolver) AdminCreateVariant(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithUnprocessableEntity(w, "Price: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.DiscountMoney, tl.IsNotBlank(), tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
-		api_v1.RespondWithUnprocessableEntity(w, "Discount money: "+err.Error())
+	if data.DiscountMoney != nil && *data.DiscountMoney != "" {
+		if err := tl.Validate(*data.DiscountMoney, tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "Discount money: "+err.Error())
+			return
+		}
+	}
+	if data.DiscountPercent != nil && *data.DiscountPercent != "" {
+		if err := tl.Validate(*data.DiscountPercent, tl.IsValidInteger(false), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "Discount percent: "+err.Error())
+			return
+		}
+	}
+
+	_, jwtData, err := api_v1.ContextGetAuthenticated(r)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in took jwt data", err)
+		api_v1.RespondWithInternalServerError(w)
 		return
 	}
-	if err := tl.Validate(data.DiscountPercent, tl.IsNotBlank(), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
-		api_v1.RespondWithUnprocessableEntity(w, "Discount percent: "+err.Error())
+
+	if err = storage.CreateAdminVariant(r.Context(), rs.App.Postgres, data.ProductName, data.VariantName, data.Service, data.State, data.Subtype, data.Item, data.Mask, data.Price, *data.DiscountMoney, *data.DiscountPercent, jwtData.AccountUuid); err != nil {
+		api_v1.RespondWithInternalServerError(w)
+		rs.App.Logger.NewWarn("Error in create admin variant", err)
 		return
 	}
 
