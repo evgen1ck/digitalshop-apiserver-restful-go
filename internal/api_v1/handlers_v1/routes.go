@@ -4,7 +4,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"strconv"
 	"test-server-go/internal/api_v1"
-	"test-server-go/internal/freekassa"
 	"test-server-go/internal/models"
 	"test-server-go/internal/storage"
 	"time"
@@ -119,6 +118,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Route("/variant", func(r chi.Router) {
 			r.Get("/", rs.AdminGetVariants)
 			r.Post("/", rs.AdminCreateVariant)
+			r.Get("/del", rs.AdminDeleteVariant)
 		})
 	})
 	r.Route("/resources", func(r chi.Router) {
@@ -126,7 +126,8 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Get("/svg/{id}", rs.ResourcesGetSvgFile)
 	})
 	r.Route("/freekassa", func(r chi.Router) {
-		r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs, rs.App.Config.App.Service.Url.Client+"/finish"))
-		r.Get("/ok", rs.FreekassaNotification)
+		//r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs, rs.App.Config.App.Service.Url.Client+"/finish"))
+		r.Get("/notification", rs.FreekassaNotification)
+		//r.Get("/ok", rs.FreekassaOK)
 	})
 }

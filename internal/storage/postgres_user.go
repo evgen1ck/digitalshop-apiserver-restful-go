@@ -8,8 +8,8 @@ func CreateUserOrder(ctx context.Context, pdb *Postgres, variantId, orderAccount
 	var orderId string
 
 	if err := pdb.Pool.QueryRow(context.Background(),
-		"INSERT INTO product.order(order_account, price) VALUES ($1, $2) RETURNING order_id",
-		orderAccount, price).Scan(&orderId); err != nil {
+		"INSERT INTO product.order(order_account, order_variant, price) VALUES ($1, $2, $3) RETURNING order_id",
+		orderAccount, variantId, price).Scan(&orderId); err != nil {
 		return orderId, err
 	}
 

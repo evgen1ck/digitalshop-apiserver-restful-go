@@ -10,7 +10,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA account;
 
 
 
-
 DROP TABLE IF EXISTS account.state CASCADE;
 CREATE TABLE account.state
 (
@@ -287,15 +286,17 @@ CREATE TABLE product.order
 (
     order_id        uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
     order_account   uuid        NOT NULL,
+    order_variant   uuid        NULL,
     price           numeric     NOT NULL CHECK ( price >= 0 ),
     paid            bool        NOT NULL DEFAULT false,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary		text		NULL,
-    FOREIGN KEY (order_account) REFERENCES account.account(account_id)
+    FOREIGN KEY (order_account) REFERENCES account.account(account_id),
+    FOREIGN KEY (order_variant) REFERENCES product.variant(variant_id)
 );
 
-SELECT email FROM account.user au JOIN product.order po ON au.user_account = po.order_account WHERE po.order_id = '556ed2a1-5983-4c10-80ff-0d3fdcb4361b';
+
 
 DROP TABLE IF EXISTS product.content CASCADE;
 CREATE TABLE product.content

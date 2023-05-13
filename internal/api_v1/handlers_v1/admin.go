@@ -2,6 +2,7 @@ package handlers_v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/storage"
@@ -14,7 +15,15 @@ func (rs *Resolver) AdminProductsUpdate(w http.ResponseWriter, r *http.Request) 
 func (rs *Resolver) AdminProductsDelete(w http.ResponseWriter, r *http.Request) {}
 
 func (rs *Resolver) AdminGetVariants(w http.ResponseWriter, r *http.Request) {
-	products, err := storage.GetAdminVariants(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, "")
+	err := r.ParseForm()
+	if err != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	variantId := r.FormValue("variant_id")
+	fmt.Println(variantId)
+	products, err := storage.GetAdminVariants(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, variantId)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get variants", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -180,6 +189,33 @@ func (rs *Resolver) AdminCreateVariant(w http.ResponseWriter, r *http.Request) {
 	if err = storage.CreateAdminVariant(r.Context(), rs.App.Postgres, data.ProductName, data.VariantName, data.Service, data.State, data.Subtype, data.Item, data.Mask, data.Price, *data.DiscountMoney, *data.DiscountPercent, jwtData.AccountUuid); err != nil {
 		api_v1.RespondWithInternalServerError(w)
 		rs.App.Logger.NewWarn("Error in create admin variant", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminDeleteVariant(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	typeName := r.FormValue("variant_id")
+	if typeName == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Variant_id: the parameter value is empty")
+		return
+	}
+
+	inUsage, err := storage.AdminDeleteVariant(r.Context(), rs.App.Postgres, typeName)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in delete variant", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+	if inUsage {
+		api_v1.RespondWithConflict(w, "Variant using in orders")
 		return
 	}
 

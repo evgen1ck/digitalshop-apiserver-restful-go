@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"strconv"
@@ -159,7 +160,7 @@ func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, variantId stri
 
 	query := "SELECT product_id, product_name, description, type_name, subtype_name, variant_id, variant_name, service_name, state_name, item_name, mask, text_quantity, quantity_current, quantity_sold, price, discount_money, discount_percent, final_price FROM product.product_variants_summary_for_mainpage "
 	if variantId != "" {
-		query += "WHERE variant_id = " + variantId
+		query += fmt.Sprintf("WHERE variant_id = '%s'", variantId)
 	}
 	rows, err := pdb.Pool.Query(context.Background(), query)
 	if err != nil {
@@ -568,3 +569,29 @@ func UpdateData(ctx context.Context, pdb *Postgres) error {
 //
 //	return err
 //}
+
+func AdminDeleteVariant(ctx context.Context, pdb *Postgres, variantId string) (bool, error) {
+	var inUsage bool
+
+	if err := pdb.Pool.QueryRow(context.Background(),
+		"SELECT EXISTS(SELECT 1 FROM product.order WHERE order_variant = $1)",
+		variantId).Scan(&inUsage); err != nil {
+		return false, err
+	}
+	if inUsage {
+		return true, nil
+	}
+
+	result, err := pdb.Pool.Exec(context.Background(),
+		"DELETE FROM product.variant WHERE variant_id = $1",
+		variantId)
+	if err != nil {
+		return false, err
+	} else if result.RowsAffected() < 1 {
+		return false, FailedDelete
+	}
+
+	UpdateData(ctx, pdb)
+
+	return false, nil
+}
