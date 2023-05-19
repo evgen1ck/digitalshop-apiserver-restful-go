@@ -56,22 +56,14 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 }
 
 func (rs *Resolver) registerRoutes(r chi.Router) {
-	r.Route("/server", func(r chi.Router) {
-		r.Route("/databases", func(r chi.Router) {
-			r.Route("/postgres", func(r chi.Router) {
-				r.Post("/info", rs.ServerDatabasesPostgresInfo)
-				r.Post("/backup", rs.ServerDatabasesPostgresBackup)
-			})
-		})
-	})
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/signup", rs.AuthSignup)
 		r.Post("/signup-with-token", rs.AuthSignupWithToken)
 		r.Post("/login", rs.AuthLogin)
-		r.Post("/login-with-token", rs.AuthLoginWithToken)
-		r.Post("/recover-password", rs.AuthRecoverPassword)
-		r.Post("/recover-password-with-token", rs.AuthRecoverPasswordWithToken)
 		r.Post("/alogin", rs.AuthAlogin)
+		//r.Post("/login-with-token", rs.AuthLoginWithToken)
+		//r.Post("/recover-password", rs.AuthRecoverPassword)
+		//r.Post("/recover-password-with-token", rs.AuthRecoverPasswordWithToken)
 	})
 	r.Route("/product", func(r chi.Router) {
 		r.Get("/", rs.ProductsData)
@@ -83,7 +75,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Route("/profile", func(r chi.Router) {
 			r.Patch("/", rs.UserProfileUpdate)
 			r.Delete("/", rs.UserProfileDelete)
-			r.Get("/orders", rs.UserProfileOrders)
+			r.Get("/order", rs.UserProfileOrders)
 			r.Post("/dump", rs.UserProfileDump)
 			r.Route("/image", func(r chi.Router) {
 				r.Get("/", rs.UserProfileOrders)
@@ -118,8 +110,16 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Route("/variant", func(r chi.Router) {
 			r.Get("/", rs.AdminGetVariants)
 			r.Post("/", rs.AdminCreateVariant)
-			r.Get("/del", rs.AdminDeleteVariant)
+			r.Patch("/", rs.AdminNull)
+			r.Delete("/", rs.AdminDeleteVariant)
 		})
+		r.Route("/database", func(r chi.Router) {
+			r.Route("/postgres", func(r chi.Router) {
+				r.Get("/info", rs.ServerDatabasesPostgresInfo)
+				r.Post("/backup", rs.ServerDatabasesPostgresBackup)
+			})
+		})
+		r.Post("/logout", rs.AuthLogout)
 	})
 	r.Route("/resources", func(r chi.Router) {
 		r.Get("/product_image/{id}", rs.ResourcesGetProductImage)
