@@ -44,10 +44,10 @@ func Run() {
 			}
 		}()
 
-		app.Logger.NewInfo("Service API v1 will be running in debug mode on " + apiV1Server.Addr)
+		app.Logger.NewInfo("ServiceName API v1 will be running in debug mode on " + apiV1Server.Addr)
 		go func() {
 			if err := apiV1Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				app.Logger.NewError("Error starting Service API v1", err)
+				app.Logger.NewError("Error starting ServiceName API v1", err)
 			}
 		}()
 		app.Logger.NewInfo("The services is ready to listen and serve on http protocol")
@@ -59,10 +59,10 @@ func Run() {
 			}
 		}()
 
-		app.Logger.NewInfo("Service API v1 will be running in tls mode on " + apiV1Server.Addr)
+		app.Logger.NewInfo("ServiceName API v1 will be running in tls mode on " + apiV1Server.Addr)
 		go func() {
 			if err := apiV1Server.ListenAndServeTLS(app.Config.Tls.CertFile, app.Config.Tls.KeyFile); err != nil && err != http.ErrServerClosed {
-				app.Logger.NewError("Error starting Service API v1", err)
+				app.Logger.NewError("Error starting ServiceName API v1", err)
 			}
 		}()
 		app.Logger.NewInfo("The services is ready to listen and serve on https protocol")
@@ -121,21 +121,21 @@ func setupConfig() *models.Application {
 		cfg.Payments.Freekassa.FirstSecretWord,
 		cfg.Payments.Freekassa.SecondSecretWord)
 
-	balance, err := freekassa2.Balances(freekassaCfg)
-	if err != nil {
-		fmt.Printf("BALANCE ERROR: %v\n", err)
-	}
-	if len(balance) == 0 {
-		fmt.Printf("BALANCE WARN: no balance\n")
-	} else {
-		fmt.Printf("BALANCE:\n")
-		for _, bal := range balance {
-			fmt.Printf("%s %.2f\n", bal.Currency, bal.Value)
-		}
-	}
-
-	url := freekassa2.NewOrderUrl(freekassaCfg, 1000.10, freekassa2.CurrencyRUB, "GTA555")
-	fmt.Printf("NEW ORDER URL: %s\n", url)
+	//balance, err := freekassa2.Balances(freekassaCfg)
+	//if err != nil {
+	//	fmt.Printf("BALANCE ERROR: %v\n", err)
+	//}
+	//if len(balance) == 0 {
+	//	fmt.Printf("BALANCE WARN: no balance\n")
+	//} else {
+	//	fmt.Printf("BALANCE:\n")
+	//	for _, bal := range balance {
+	//		fmt.Printf("%s %.2f\n", bal.Currency, bal.Value)
+	//	}
+	//}
+	//
+	//url := freekassa2.NewOrderUrl(freekassaCfg, 1000.10, freekassa2.CurrencyRUB, "GTA555")
+	//fmt.Printf("NEW ORDER URL: %s\n", url)
 
 	application := models.Application{
 		Config:    cfg,

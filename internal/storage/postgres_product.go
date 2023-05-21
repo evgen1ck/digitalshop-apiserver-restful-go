@@ -2,8 +2,8 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"strconv"
 	"time"
@@ -42,7 +42,7 @@ func GetProductsForMainpage(ctx context.Context, pdb *Postgres, apiUrl string) (
 	productsMap := make(map[string]*Product)
 	products := make([]Product, 0, len(productsMap))
 
-	rows, err := pdb.Pool.Query(ctx,
+	rows, err := pdb.Pool.Query(context.Background(),
 		"SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_for_mainpage")
 	if err != nil {
 		return products, err
@@ -108,12 +108,13 @@ func GetProductsForMainpage(ctx context.Context, pdb *Postgres, apiUrl string) (
 		for i, st := range productsMap[p.ProductName].Subtypes {
 			if st.SubtypeName == s.SubtypeName && st.Type == s.Type {
 				if v.State == ProductStateInvisible || v.State == ProductStateDeleted {
-					break
+					continue
 				} else if v.State == ProductStateUnavailableWithoutPrice {
 					v.Price = 0
 					v.DiscountPercent = 0
 					v.DiscountMoney = 0
 					v.FinalPrice = 0
+					v.TextQuantity = ""
 				}
 				v.ServiceSvgUrl = GetSvgFileUrl(apiUrl, v.Service)
 				productsMap[p.ProductName].Subtypes[i].Variants = append(productsMap[p.ProductName].Subtypes[i].Variants, v)
@@ -125,6 +126,27 @@ func GetProductsForMainpage(ctx context.Context, pdb *Postgres, apiUrl string) (
 		return products, err
 	}
 
+	for productName, product := range productsMap {
+		for i := len(product.Subtypes) - 1; i >= 0; i-- {
+			if len(product.Subtypes[i].Variants) == 0 {
+				productsMap[productName].Subtypes = append(productsMap[productName].Subtypes[:i], productsMap[productName].Subtypes[i+1:]...)
+			}
+		}
+	}
+
+	var deleteKeys []string
+	for productName, product := range productsMap {
+		// If there are no subtypes left in the product, add the product's key to the deleteKeys slice
+		if len(product.Subtypes) == 0 {
+			deleteKeys = append(deleteKeys, productName)
+		}
+	}
+	// Delete products with no subtypes from productsMap
+	for _, key := range deleteKeys {
+		delete(productsMap, key)
+	}
+
+	// Create the products slice from the remaining items in productsMap
 	for _, product := range productsMap {
 		products = append(products, *product)
 	}
@@ -455,11 +477,10 @@ func AdminGetProducts(ctx context.Context, pdb *Postgres) ([]Product2, error) {
 
 	for rows.Next() {
 		var product Product2
-		var productUuid uuid.UUID
 		var createdAt, modifiedAt time.Time
 
 		if err = rows.Scan(
-			&productUuid,
+			&product.ProductId,
 			&product.ProductName,
 			&product.Description,
 			&product.Tags,
@@ -469,7 +490,6 @@ func AdminGetProducts(ctx context.Context, pdb *Postgres) ([]Product2, error) {
 		); err != nil {
 			return products, err
 		}
-		product.ProductId = productUuid.String()
 		product.CreatedAt = createdAt.Format(time.DateTime)
 		product.ModifiedAt = modifiedAt.Format(time.DateTime)
 
@@ -486,13 +506,13 @@ func GetProductVariantForPayment(ctx context.Context, pdb *Postgres, variantId s
 	var variantName, variantState string
 	var finalPrice float64
 	var quantityCurrent int
-	var productId uuid.UUID
+	var productId string
 
 	err := pdb.Pool.QueryRow(context.Background(),
 		"SELECT product_id, variant_name, state_name, quantity_current, final_price FROM product.product_variants_summary_all_data WHERE variant_id = $1",
 		variantId).Scan(&productId, &variantName, &variantState, &quantityCurrent, &finalPrice)
 
-	return productId.String(), variantName, variantState, quantityCurrent, finalPrice, err
+	return productId, variantName, variantState, quantityCurrent, finalPrice, err
 }
 
 func CreateAdminVariant(ctx context.Context, pdb *Postgres, productName, variantName, serviceName, stateName, subtypeName, itemName, mask, price, discountMoney, discountPercent, accountId string) error {
@@ -540,12 +560,11 @@ func CreateAdminVariant(ctx context.Context, pdb *Postgres, productName, variant
 	}
 
 	UpdateData(ctx, pdb)
-
 	return err
 }
 
 func UpdateData(ctx context.Context, pdb *Postgres) error {
-	_, err := pdb.Pool.Exec(ctx,
+	_, err := pdb.Pool.Exec(context.Background(),
 		"REFRESH MATERIALIZED VIEW product.product_variants_summary_for_mainpage; REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data")
 
 	return err
@@ -570,6 +589,35 @@ func UpdateData(ctx context.Context, pdb *Postgres) error {
 //	return err
 //}
 
+func UpdateAdminVariant(ctx context.Context, pdb *Postgres, id string, updateData map[string]interface{}) error {
+	if len(updateData) == 0 {
+		return errors.New("no data provided for update")
+	}
+
+	// Build SQL query
+	query := "UPDATE product.variant SET"
+	var args []interface{}
+	i := 1
+	for key, val := range updateData {
+		query += fmt.Sprintf(" %s = $%d,", key, i)
+		args = append(args, val)
+		i++
+	}
+
+	query = query[:len(query)-1] + " WHERE variant_id = $" + strconv.Itoa(i)
+	args = append(args, id)
+
+	result, err := pdb.Pool.Exec(ctx, query, args...)
+	if err != nil {
+		return err
+	} else if result.RowsAffected() < 1 {
+		return FailedUpdate
+	}
+
+	UpdateData(ctx, pdb)
+	return nil
+}
+
 func AdminDeleteVariant(ctx context.Context, pdb *Postgres, variantId string) (bool, error) {
 	var inUsage bool
 
@@ -592,6 +640,25 @@ func AdminDeleteVariant(ctx context.Context, pdb *Postgres, variantId string) (b
 	}
 
 	UpdateData(ctx, pdb)
-
 	return false, nil
+}
+
+func GetItemNo(ctx context.Context, pdb *Postgres, itemName string) (int, error) {
+	var itemNo int
+
+	err := pdb.Pool.QueryRow(ctx,
+		"SELECT item_no FROM product.item WHERE item_name = $1",
+		itemName).Scan(&itemNo)
+
+	return itemNo, err
+}
+
+func GetStateNo(ctx context.Context, pdb *Postgres, stateName string) (int, error) {
+	var stateNo int
+
+	err := pdb.Pool.QueryRow(ctx,
+		"SELECT state_no FROM product.state WHERE state_name = $1",
+		stateName).Scan(&stateNo)
+
+	return stateNo, err
 }

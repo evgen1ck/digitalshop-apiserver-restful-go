@@ -3,7 +3,6 @@ package api_v1
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"test-server-go/internal/auth"
 )
@@ -17,7 +16,6 @@ func ContextSetAuthenticated(r *http.Request, token string, data *auth.JwtData) 
 	ctx := context.WithValue(r.Context(), AuthenticatedJwtTokenContextKey, token)
 	ctx = context.WithValue(ctx, AuthenticatedJwtDataContextKey, data)
 
-	fmt.Println(data)
 	return r.WithContext(ctx)
 }
 

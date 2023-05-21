@@ -40,7 +40,7 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r.Use(api_v1.CorsMiddleware(corsAllowedOrigins))
 
 	// Error handling
-	r.Use(api_v1.ServiceUnavailableMiddleware(serviceUnavailable))          // Error 503 - Service Unavailable
+	r.Use(api_v1.ServiceUnavailableMiddleware(serviceUnavailable))          // Error 503 - ServiceName Unavailable
 	r.Use(api_v1.RateLimitMiddleware(rateLimitRequests, rateLimitInterval)) // Error 429 - Too Many Requests
 	r.Use(api_v1.UriLengthMiddleware(uriMaxLength))                         // Error 414 - URI Too Long
 	r.Use(api_v1.RequestSizeMiddleware(requestMaxSize))                     // Error 413 - Payload Too Large
@@ -106,11 +106,13 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		})
 		r.Route("/subtype", func(r chi.Router) {
 			r.Get("/", rs.AdminGetSubtypes)
+			r.Post("/", rs.AdminGetSubtypes)
+			r.Delete("/", rs.AdminGetSubtypes)
 		})
 		r.Route("/variant", func(r chi.Router) {
 			r.Get("/", rs.AdminGetVariants)
 			r.Post("/", rs.AdminCreateVariant)
-			r.Patch("/", rs.AdminNull)
+			r.Patch("/", rs.AdminUpdateVariant)
 			r.Delete("/", rs.AdminDeleteVariant)
 		})
 		r.Route("/database", func(r chi.Router) {
@@ -126,7 +128,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Get("/svg/{id}", rs.ResourcesGetSvgFile)
 	})
 	r.Route("/freekassa", func(r chi.Router) {
-		//r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs, rs.App.Config.App.Service.Url.Client+"/finish"))
+		//r.Use(api_v1.FreekassaIpWhitelistMiddleware(freekassa.AllowedFreekassaIPs, rs.App.Config.App.ServiceName.Url.Client+"/finish"))
 		r.Get("/notification", rs.FreekassaNotification)
 		//r.Get("/ok", rs.FreekassaOK)
 	})

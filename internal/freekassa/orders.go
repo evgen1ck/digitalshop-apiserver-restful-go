@@ -13,7 +13,6 @@ func NewOrderUrl(cfg *Config, amount float64, currency, orderName string) string
 	orderName = strings.ReplaceAll(strings.TrimSpace(orderName), " ", "-")
 
 	signature = createPaymentFormSignature(cfg, formatMoney(amount), currency, orderName)
-	fmt.Println(orderName)
 
 	orderUrl = fmt.Sprintf("%s?m=%d&oa=%s&currency=%s&o=%s&s=%s",
 		mainUrl, *cfg.ShopId, formatMoney(amount), currency, orderName, signature)

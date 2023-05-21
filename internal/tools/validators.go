@@ -201,3 +201,22 @@ func IsValidInteger(allowNegative bool) func(string) error {
 		return nil
 	}
 }
+
+func UuidFieldValidators() []func(string) error {
+	return []func(string) error{
+		IsNotBlank(),
+		IsLen(36),
+		IsNotContainsSpace(),
+		IsValidUUID(),
+		IsTrimmedSpace(),
+	}
+}
+
+func TextFieldValidators() []func(string) error {
+	return []func(string) error{
+		IsNotBlank(),
+		IsMinMaxLen(4, 64),
+		IsNotContainsConsecutiveSpaces(),
+		IsTrimmedSpace(),
+	}
+}

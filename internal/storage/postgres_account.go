@@ -2,17 +2,16 @@ package storage
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"strings"
 )
 
 func CreateUser(ctx context.Context, pdb *Postgres, rdb *Redis, nickname, email, base64PasswordHash, base64Salt, token string) (string, error) {
-	var result uuid.UUID
+	var result string
 	email = strings.ToLower(email)
 
 	if err := DeleteTempRegistration(ctx, rdb, token); err != nil {
-		return result.String(), err
+		return result, err
 	}
 
 	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
@@ -33,7 +32,7 @@ func CreateUser(ctx context.Context, pdb *Postgres, rdb *Redis, nickname, email,
 		return err
 	})
 
-	return result.String(), err
+	return result, err
 }
 
 func CheckUser(ctx context.Context, pdb *Postgres, nickname, email string) (bool, bool, error) {

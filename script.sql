@@ -164,15 +164,15 @@ CREATE TABLE product.subtype
 );
 CREATE UNIQUE INDEX IF NOT EXISTS product_subtype_name_idx ON product.subtype (lower(subtype_name));
 INSERT INTO product.subtype(type_no, subtype_name) VALUES
-                                                       ('1', 'Computer version'),
-                                                       ('1', 'Mobile version'),
-                                                       ('1', 'Console version'),
-                                                       ('2', 'Antivirus software'),
-                                                       ('2', 'Design software'),
-                                                       ('3', 'Music'),
-                                                       ('3', 'Books'),
-                                                       ('6', 'G-Coins'),
-                                                       ('1', 'Downloadable game content');
+                                                       ('1', 'computer version'),
+                                                       ('1', 'mobile version'),
+                                                       ('1', 'console version'),
+                                                       ('2', 'antivirus software'),
+                                                       ('2', 'design software'),
+                                                       ('3', 'music'),
+                                                       ('3', 'books'),
+                                                       ('6', 'g-coins'),
+                                                       ('1', 'downloadable game content');
 
 
 
@@ -221,8 +221,6 @@ INSERT INTO product.product(product_id, product_name, tags, description) VALUES
 ('85f8d115-ca4b-4db5-b416-6828e4c0e90a', 'Warframe', NULL, 'Пробудитесь в роли неудержимого воина и сражайтесь вместе с друзьями в этой сюжетной бесплатной онлайн-игре. Столкнитесь с враждующими фракциями в обширной межпланетной системе, следуя указаниям загадочной Лотос, повышайте уровень своего Варфрейма, создайте арсенал разрушительной огневой мощи, и откройте свой истинный потенциал в огромных открытых мирах этого захватывающего сражения от третьего лица.'),
 ('573b8cea-bbfa-4415-8f16-1b793a97c85f', 'PUBG: BATTLEGROUNDS', NULL, 'Высаживайтесь в стратегически важных местах, добывайте оружие и припасы и постарайтесь выжить и остаться последней командой на одном из многочисленных полей боя.'),
 ('7a33fa78-df96-4b7e-ac64-4f152ca2022f', 'Superliminal', NULL, 'Восприятие – это реальность. В этой умопомрачительной головоломке от первого лица вам предстоит сбежать из сюрреалистического мира снов, решая невозможные загадки при помощи перспективы.');
-
-SELECT product_id FROM product.product WHERE product_name = 'Grand Theft Auto 5';
 
 
 

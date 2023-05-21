@@ -103,7 +103,7 @@ func ServiceUnavailableMiddleware(unavailable bool) func(http.Handler) http.Hand
 			if unavailable {
 				RedRespond(w,
 					http.StatusServiceUnavailable,
-					"Service unavailable",
+					"ServiceName unavailable",
 					"The service is currently unavailable. Please try again later")
 				return
 			}
