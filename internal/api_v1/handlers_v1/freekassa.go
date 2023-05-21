@@ -66,8 +66,3 @@ func (rs *Resolver) FreekassaNotification(w http.ResponseWriter, r *http.Request
 	rs.App.Logger.NewInfo("abc4")
 	w.WriteHeader(http.StatusNoContent)
 }
-
-func (rs *Resolver) FreekassaOK(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, rs.App.Config.App.Service.Url.Client+"/finish", http.StatusSeeOther)
-	w.WriteHeader(http.StatusNoContent)
-}
