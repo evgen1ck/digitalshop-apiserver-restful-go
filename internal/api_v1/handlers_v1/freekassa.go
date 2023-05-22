@@ -15,7 +15,7 @@ func (rs *Resolver) FreekassaNotification(w http.ResponseWriter, r *http.Request
 	}
 
 	merchantID := r.FormValue("MERCHANT_ORDER_ID")
-	////amount := r.FormValue("AMOUNT")
+	//amount := r.FormValue("AMOUNT")
 	//intid := r.FormValue("intid")
 	//merchantOrderID := r.FormValue("MERCHANT_ORDER_ID")
 	//pEmail := r.FormValue("P_EMAIL")
@@ -32,15 +32,14 @@ func (rs *Resolver) FreekassaNotification(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	email, nickname, content, err := storage.GetDataForFreekassa(r.Context(), rs.App.Postgres, splitID[len(splitID)-1])
+	email, nickname, content, productName, variantName, serviceName, itemName, err := storage.GetDataForFreekassa(r.Context(), rs.App.Postgres, splitID[len(splitID)-1])
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get data for freekassa", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
-	splitID[0] = strings.ReplaceAll(splitID[0], "-", " ")
-	err = rs.App.Mailer.SendOrderContent(email, nickname, splitID[0], content, rs.App.Config.App.Service.Name, rs.App.Config.App.Service.Url.Client)
+	err = rs.App.Mailer.SendOrderContent(email, nickname, productName+" - "+variantName, serviceName, itemName, content, rs.App.Config.App.Service.Url.Client)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in send order content", err)
 		api_v1.RespondWithInternalServerError(w)

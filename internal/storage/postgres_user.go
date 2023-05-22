@@ -6,8 +6,8 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-func GetDataForFreekassa(ctx context.Context, pdb *Postgres, orderId string) (string, string, string, error) {
-	var email, nickname, content string
+func GetDataForFreekassa(ctx context.Context, pdb *Postgres, orderId string) (string, string, string, string, string, string, string, error) {
+	var email, nickname, content, productName, variantName, serviceName, itemName string
 	var paid bool
 
 	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
@@ -36,9 +36,15 @@ func GetDataForFreekassa(ctx context.Context, pdb *Postgres, orderId string) (st
 			return err
 		}
 
+		if err = tx.QueryRow(context.Background(),
+			"SELECT pp.product_name, pv.variant_name, ps.service_name, pi.item_name FROM product.order po JOIN product.content pc ON po.order_id = pc.content_order JOIN product.variant pv ON pc.content_variant = pv.variant_id JOIN product.product pp ON pv.product_id = pp.product_id JOIN product.service ps ON pv.variant_service = ps.service_no JOIN product.item pi ON pv.variant_item = pi.item_no WHERE po.order_id = $1",
+			orderId).Scan(&productName, &variantName, &serviceName, &itemName); err != nil {
+			return err
+		}
+
 		return nil
 	})
 
 	UpdateData(ctx, pdb)
-	return email, nickname, content, err
+	return email, nickname, content, productName, variantName, serviceName, itemName, err
 }

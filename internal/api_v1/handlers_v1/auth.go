@@ -105,7 +105,7 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = rs.App.Mailer.SendEmailConfirmation(data.Nickname, data.Email, url, rs.App.Config.App.Service.Name, rs.App.Config.App.Service.Url.Client); err != nil {
+	if err = rs.App.Mailer.SendEmailConfirmation(data.Nickname, data.Email, url, rs.App.Config.App.Service.Url.Client); err != nil {
 		rs.App.Logger.NewWarn("error in sent email confirmation", err)
 		api_v1.RespondWithInternalServerError(w)
 		return

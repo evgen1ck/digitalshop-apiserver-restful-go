@@ -354,7 +354,7 @@ func JwtAuthMiddleware(pdb *storage.Postgres, rdb *storage.Redis, logger *logger
 func FreekassaIpWhitelistMiddleware(allowedIPs []string, url string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")]
+			ip := strings.Split(r.RemoteAddr, ":")[0]
 			if !tl.StringInSlice(ip, allowedIPs) {
 				http.Redirect(w, r, url, http.StatusSeeOther)
 				return

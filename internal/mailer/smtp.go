@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"path/filepath"
+	"strings"
 	"test-server-go/internal/config"
 	tl "test-server-go/internal/tools"
 	"time"
@@ -54,7 +55,7 @@ func (m *Mailer) sendEmail(to []string, title, body string) error {
 	return nil
 }
 
-func (m *Mailer) SendEmailConfirmation(email, nickname, confirmationUrl, shopName, clientAppUrl string) error {
+func (m *Mailer) SendEmailConfirmation(email, nickname, confirmationUrl, clientAppUrl string) error {
 	templateFile, err := getPath("mailConfirmationEmail.tmpl")
 	if err != nil {
 		return err
@@ -69,7 +70,6 @@ func (m *Mailer) SendEmailConfirmation(email, nickname, confirmationUrl, shopNam
 		"Nickname":         nickname,
 		"Email":            email,
 		"ConfirmationLink": confirmationUrl,
-		"ShopName":         shopName,
 		"ClientAppUrl":     clientAppUrl,
 	}
 
@@ -78,14 +78,14 @@ func (m *Mailer) SendEmailConfirmation(email, nickname, confirmationUrl, shopNam
 		return err
 	}
 
-	if err = m.sendEmail([]string{email}, shopName+": подтверждение учётной записи", buf.String()); err != nil {
+	if err = m.sendEmail([]string{email}, "Evgenick's Digitals: подтверждение учётной записи", buf.String()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Mailer) SendOrderContent(email, nickname, variantName, orderContent, shopName, clientAppUrl string) error {
+func (m *Mailer) SendOrderContent(email, nickname, variantName, serviceName, itemName, orderContent, clientAppUrl string) error {
 	templateFile, err := getPath("mailOrder.tmpl")
 	if err != nil {
 		return err
@@ -100,7 +100,8 @@ func (m *Mailer) SendOrderContent(email, nickname, variantName, orderContent, sh
 		"Nickname":     nickname,
 		"VariantName":  variantName,
 		"OrderContent": orderContent,
-		"ShopName":     shopName,
+		"ServiceName":  strings.ToUpper(serviceName),
+		"ItemName":     strings.ToUpper(itemName),
 		"ClientAppUrl": clientAppUrl,
 	}
 
@@ -109,7 +110,7 @@ func (m *Mailer) SendOrderContent(email, nickname, variantName, orderContent, sh
 		return err
 	}
 
-	if err = m.sendEmail([]string{email}, shopName+": содержимое заказа", buf.String()); err != nil {
+	if err = m.sendEmail([]string{email}, "Evgenick's Digitals: содержимое заказа", buf.String()); err != nil {
 		return err
 	}
 
