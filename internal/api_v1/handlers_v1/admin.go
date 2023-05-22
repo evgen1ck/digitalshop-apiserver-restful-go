@@ -3,15 +3,11 @@ package handlers_v1
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/storage"
 	tl "test-server-go/internal/tools"
 )
-
-func (rs *Resolver) AdminNull(w http.ResponseWriter, r *http.Request)           {}
-func (rs *Resolver) AdminCreateProduct(w http.ResponseWriter, r *http.Request)  {}
-func (rs *Resolver) AdminProductsUpdate(w http.ResponseWriter, r *http.Request) {}
-func (rs *Resolver) AdminProductsDelete(w http.ResponseWriter, r *http.Request) {}
 
 func (rs *Resolver) AdminGetVariants(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
@@ -163,14 +159,14 @@ func (rs *Resolver) AdminCreateVariant(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithUnprocessableEntity(w, "Price: "+err.Error())
 		return
 	}
-	if data.DiscountMoney != nil && *data.DiscountMoney != "" {
+	if data.DiscountMoney != nil {
 		if err := tl.Validate(*data.DiscountMoney, tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Discount money: "+err.Error())
 			return
 		}
 	}
-	if data.DiscountPercent != nil && *data.DiscountPercent != "" {
-		if err := tl.Validate(*data.DiscountPercent, tl.IsValidInteger(false), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+	if data.DiscountPercent != nil {
+		if err := tl.Validate(*data.DiscountPercent, tl.IsValidInteger(false, true), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Discount percent: "+err.Error())
 			return
 		}
@@ -228,15 +224,15 @@ func (rs *Resolver) AdminUpdateVariant(w http.ResponseWriter, r *http.Request) {
 
 	var updateData = make(map[string]interface{})
 	if data.VariantName != nil {
-		if err = tl.Validate(*data.VariantName, tl.TextFieldValidators()...); err != nil {
+		if err = tl.Validate(*data.VariantName, tl.TextFieldValidatorsWithSpaces()...); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Variant name: "+err.Error())
 			return
 		}
 		updateData["variant_name"] = *data.VariantName
 	}
 	if data.StateName != nil {
-		if err = tl.Validate(*data.StateName, tl.TextFieldValidators()...); err != nil {
-			api_v1.RespondWithUnprocessableEntity(w, "StateName name: "+err.Error())
+		if err = tl.Validate(*data.StateName, tl.TextFieldValidatorsWithSpaces()...); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "State name: "+err.Error())
 			return
 		}
 		no, err := storage.GetStateNo(r.Context(), rs.App.Postgres, *data.StateName)
@@ -248,8 +244,8 @@ func (rs *Resolver) AdminUpdateVariant(w http.ResponseWriter, r *http.Request) {
 		updateData["variant_state"] = no
 	}
 	if data.ItemName != nil {
-		if err = tl.Validate(*data.ItemName, tl.TextFieldValidators()...); err != nil {
-			api_v1.RespondWithUnprocessableEntity(w, "ItemName name: "+err.Error())
+		if err = tl.Validate(*data.ItemName, tl.TextFieldValidatorsWithSpaces()...); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "Item name: "+err.Error())
 			return
 		}
 		no, err := storage.GetItemNo(r.Context(), rs.App.Postgres, *data.ItemName)
@@ -261,7 +257,7 @@ func (rs *Resolver) AdminUpdateVariant(w http.ResponseWriter, r *http.Request) {
 		updateData["variant_item"] = no
 	}
 	if data.Mask != nil {
-		if err = tl.Validate(*data.Mask, tl.TextFieldValidators()...); err != nil {
+		if err = tl.Validate(*data.Mask, tl.TextFieldValidatorsWithSpaces()...); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Mask: "+err.Error())
 			return
 		}
@@ -282,7 +278,7 @@ func (rs *Resolver) AdminUpdateVariant(w http.ResponseWriter, r *http.Request) {
 		updateData["discount_money"] = *data.DiscountMoney
 	}
 	if data.DiscountPercent != nil {
-		if err = tl.Validate(*data.DiscountPercent, tl.IsValidInteger(false), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+		if err = tl.Validate(*data.DiscountPercent, tl.IsValidInteger(false, true), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Discount percent: "+err.Error())
 			return
 		}
@@ -318,6 +314,10 @@ func (rs *Resolver) AdminDeleteVariant(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: the parameter value is empty")
 		return
 	}
+	if err = tl.Validate(id, tl.UuidFieldValidators()...); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
+		return
+	}
 
 	inUsage, err := storage.AdminDeleteVariant(r.Context(), rs.App.Postgres, id)
 	if err != nil {
@@ -327,6 +327,53 @@ func (rs *Resolver) AdminDeleteVariant(w http.ResponseWriter, r *http.Request) {
 	}
 	if inUsage {
 		api_v1.RespondWithConflict(w, "Variant using in orders")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type AdminUploadVariantData []struct {
+	Data string `json:"data"`
+}
+
+func (rs *Resolver) AdminUploadVariant(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	id := r.FormValue("id")
+	if id == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Id: the parameter value is empty")
+		return
+	}
+	if err = tl.Validate(id, tl.UuidFieldValidators()...); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
+		return
+	}
+
+	var data AdminUploadVariantData
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
+	if decodeErr != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	var dataList []string
+	for i, obj := range data {
+		if err = tl.Validate(obj.Data, tl.LongTextFieldValidatorsWithSpaces()...); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "Data["+strconv.Itoa(i+1)+"]: "+err.Error())
+			return
+		}
+		dataList = append(dataList, obj.Data)
+	}
+
+	err = storage.CreateAdminContent(r.Context(), rs.App.Postgres, id, dataList)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in create content", err)
+		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 

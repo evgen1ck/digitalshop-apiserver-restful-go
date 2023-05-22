@@ -187,7 +187,7 @@ func IsMoney() func(string) error {
 	}
 }
 
-func IsValidInteger(allowNegative bool) func(string) error {
+func IsValidInteger(allowNegative bool, allowZero bool) func(string) error {
 	return func(str string) error {
 		num, err := strconv.Atoi(str)
 		if err != nil {
@@ -196,6 +196,10 @@ func IsValidInteger(allowNegative bool) func(string) error {
 
 		if !allowNegative && num < 0 {
 			return errors.New("the value is a negative integer")
+		}
+
+		if !allowZero && num == 0 {
+			return errors.New("the value is a zero")
 		}
 
 		return nil
@@ -212,10 +216,19 @@ func UuidFieldValidators() []func(string) error {
 	}
 }
 
-func TextFieldValidators() []func(string) error {
+func TextFieldValidatorsWithSpaces() []func(string) error {
 	return []func(string) error{
 		IsNotBlank(),
-		IsMinMaxLen(4, 64),
+		IsMinMaxLen(2, 64),
+		IsNotContainsConsecutiveSpaces(),
+		IsTrimmedSpace(),
+	}
+}
+
+func LongTextFieldValidatorsWithSpaces() []func(string) error {
+	return []func(string) error{
+		IsNotBlank(),
+		IsMinMaxLen(2, 10240),
 		IsNotContainsConsecutiveSpaces(),
 		IsTrimmedSpace(),
 	}

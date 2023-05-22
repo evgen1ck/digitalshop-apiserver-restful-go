@@ -2,39 +2,43 @@ package storage
 
 import (
 	"context"
+	"errors"
+	"github.com/jackc/pgx/v4"
 )
 
-func CreateUserOrder(ctx context.Context, pdb *Postgres, variantId, orderAccount string, price float64) (string, error) {
-	var orderId string
+func GetDataForFreekassa(ctx context.Context, pdb *Postgres, orderId string) (string, string, string, error) {
+	var email, nickname, content string
+	var paid bool
 
-	if err := pdb.Pool.QueryRow(context.Background(),
-		"INSERT INTO product.order(order_account, order_variant, price) VALUES ($1, $2, $3) RETURNING order_id",
-		orderAccount, variantId, price).Scan(&orderId); err != nil {
-		return orderId, err
-	}
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
+		if err := tx.QueryRow(context.Background(),
+			"SELECT paid FROM product.order WHERE order_id = $1",
+			orderId).Scan(&paid); err != nil {
+			return err
+		}
 
-	result, err := pdb.Pool.Exec(context.Background(),
-		"UPDATE product.variant SET quantity_current = (quantity_current - 1), quantity_holding = (quantity_holding + 1) WHERE variant_id = $1",
-		variantId)
-	if err != nil {
-		return orderId, err
-	} else if result.RowsAffected() < 1 {
-		return orderId, FailedUpdate
-	}
+		if paid {
+			return errors.New("order has already been paid")
+		}
+
+		result, err := tx.Exec(context.Background(),
+			"UPDATE product.order SET paid = true WHERE order_id = $1",
+			orderId)
+		if err != nil {
+			return err
+		} else if result.RowsAffected() < 1 {
+			return FailedUpdate
+		}
+
+		if err = tx.QueryRow(context.Background(),
+			"SELECT au.email, au.nickname, pc.data FROM account.user au JOIN product.order po ON au.user_account = po.order_account JOIN product.content pc ON pc.content_order = po.order_id WHERE po.order_id = $1",
+			orderId).Scan(&email, &nickname, &content); err != nil {
+			return err
+		}
+
+		return nil
+	})
 
 	UpdateData(ctx, pdb)
-
-	return orderId, err
-}
-
-func GetDataForFreekassa(ctx context.Context, pdb *Postgres, orderId string) (string, error) {
-	var email string
-
-	if err := pdb.Pool.QueryRow(context.Background(),
-		"SELECT email FROM account.user au JOIN product.order po ON au.user_account = po.order_account WHERE po.order_id = $1",
-		orderId).Scan(&email); err != nil {
-		return email, err
-	}
-
-	return email, nil
+	return email, nickname, content, err
 }

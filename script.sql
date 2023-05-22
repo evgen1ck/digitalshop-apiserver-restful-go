@@ -200,7 +200,7 @@ CREATE TABLE product.item
     commentary	    text		NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS product_item_name_idx ON product.item (lower(item_name));
-INSERT INTO product.item(item_name) VALUES ('activation key'), ('usual link'), ('gift as link');
+INSERT INTO product.item(item_name) VALUES ('key/code'), ('link');
 
 
 
@@ -237,7 +237,6 @@ CREATE TABLE product.variant
     variant_item        smallint    NOT NULL,
     mask                text        NOT NULL,
     quantity_current    integer     NOT NULL CHECK ( quantity_current >= 0 ) DEFAULT 0,
-    quantity_holding    integer     NOT NULL CHECK ( quantity_holding >= 0 ) DEFAULT 0,
     quantity_sold       integer     NOT NULL CHECK ( quantity_sold >= 0 ) DEFAULT 0,
     price               numeric     NOT NULL CHECK ( price >= 0 ),
     discount_money      numeric     NOT NULL CHECK ( discount_money >= 0 AND discount_money <= price ) DEFAULT 0,
@@ -262,36 +261,34 @@ CREATE TABLE product.variant
         (discount_money > 0 AND discount_percent = 0::smallint)
         )
 );
-INSERT INTO product.variant(product_id, variant_name, variant_service, variant_state, variant_subtype, variant_item, mask, quantity_current, price, discount_money, discount_percent, variant_account) VALUES
-('9beaf75e-2925-4815-bcb6-1dd364293848', 'Grand Theft Auto 5: Premium Edition', 1, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 14, 1199, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('9beaf75e-2925-4815-bcb6-1dd364293848', 'Grand Theft Auto 5: Premium Edition', 7, 2, 3, 1, 'XXXXX-00000000-YYYYY', 43, 1755, 100, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('af153d1a-263c-4e77-a4d0-fb11ce781365', 'Red Dead Redemption 2', 1, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 3, 1199, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('af153d1a-263c-4e77-a4d0-fb11ce781365', 'Red Dead Redemption 2: Ultimate Edition', 9, 2, 3, 1, 'XXXXX-YYYYY-XXXXX', 14, 1999, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('af153d1a-263c-4e77-a4d0-fb11ce781365', 'Red Dead Online', 3, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 7, 699, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('85f8d115-ca4b-4db5-b416-6828e4c0e90a', 'Warframe', 1, 2, 1, 1, 'YYYYY-XXXXX-XXXXX', 0, 299, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('573b8cea-bbfa-4415-8f16-1b793a97c85f', 'PUBG: BATTLEGROUNDS: Deluxe Edition', 1, 2, 1, 1, 'XXXXX-YYYYY-XXXXX', 14, 2299, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('573b8cea-bbfa-4415-8f16-1b793a97c85f', 'PUBG: BATTLEGROUNDS: Ultimate Edition', 1, 2, 1, 1, 'XXXXX-YYYYY-XXXXX', 14, 2999, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('7a33fa78-df96-4b7e-ac64-4f152ca2022f', 'Superliminal', 3, 2, 1, 1, 'XXXXX-XXXXX-YYYYY', 1, 699, 100, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('573b8cea-bbfa-4415-8f16-1b793a97c85f', '200 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 2, 199, 0, 50, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('573b8cea-bbfa-4415-8f16-1b793a97c85f', '300 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 0, 259, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('573b8cea-bbfa-4415-8f16-1b793a97c85f', '400 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 66, 339, 200, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
-('573b8cea-bbfa-4415-8f16-1b793a97c85f', '600 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 33, 599, 0, 10, '4ad0f276-b11b-4c17-a160-3671699f0694');
+INSERT INTO product.variant(product_id, variant_id, variant_name, variant_service, variant_state, variant_subtype, variant_item, mask, price, discount_money, discount_percent, variant_account)VALUES
+('9beaf75e-2925-4815-bcb6-1dd364293848', '96c7074d-a205-4489-ba38-e5ebbcb676cd', 'Grand Theft Auto 5: Premium Edition', 1, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 1199, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('9beaf75e-2925-4815-bcb6-1dd364293848', 'e8fac47e-cff7-4a98-9ff9-1524eb826bc3', 'Grand Theft Auto 5: Premium Edition', 7, 2, 3, 1, 'XXXXX-00000000-YYYYY', 1755, 100, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('af153d1a-263c-4e77-a4d0-fb11ce781365', '7193a698-7d38-41c1-93aa-0ba82942a87a', 'Red Dead Redemption 2', 1, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 1199, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('af153d1a-263c-4e77-a4d0-fb11ce781365', '7f3ef0ea-d506-4300-890d-78810187db96', 'Red Dead Redemption 2: Ultimate Edition', 9, 2, 3, 1, 'XXXXX-YYYYY-XXXXX', 1999, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('af153d1a-263c-4e77-a4d0-fb11ce781365', '5eac26f5-92e2-48ba-81e8-e03c86a90814', 'Red Dead Online', 3, 2, 1, 1, 'XXXXX-XXXXX-XXXXX', 699, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('85f8d115-ca4b-4db5-b416-6828e4c0e90a', 'c58f405a-8b38-4afd-8ffc-757243498702', 'Warframe', 1, 2, 1, 1, 'YYYYY-XXXXX-XXXXX', 299, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('573b8cea-bbfa-4415-8f16-1b793a97c85f', 'fb8d23d5-cbce-450e-8600-1acc14981fcb', 'PUBG: BATTLEGROUNDS: Deluxe Edition', 1, 2, 1, 1, 'XXXXX-YYYYY-XXXXX', 2299, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('573b8cea-bbfa-4415-8f16-1b793a97c85f', '646d24f6-6434-454e-91b6-daf572d177bc', 'PUBG: BATTLEGROUNDS: Ultimate Edition', 1, 2, 1, 1, 'XXXXX-YYYYY-XXXXX', 2999, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('7a33fa78-df96-4b7e-ac64-4f152ca2022f', 'ea40a18c-c2d2-41aa-9de3-113c483fc22d', 'Superliminal', 3, 2, 1, 1, 'XXXXX-XXXXX-YYYYY', 699, 100, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('573b8cea-bbfa-4415-8f16-1b793a97c85f', '5eb83209-1645-467b-9d0f-6819fc8ca2bb', '200 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 199, 0, 50, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('573b8cea-bbfa-4415-8f16-1b793a97c85f', 'b0210718-7571-4428-86b5-5bed693ed2d4', '300 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 259, 0, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('573b8cea-bbfa-4415-8f16-1b793a97c85f', '8c6f1ae5-d33a-42f1-b0d3-6bcb25ce9d94', '400 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 339, 200, 0, '4ad0f276-b11b-4c17-a160-3671699f0694'),
+('573b8cea-bbfa-4415-8f16-1b793a97c85f', '4407a26e-96ac-4880-afad-c80220d3218d', '600 G-Coins', 1, 2, 8, 1, 'XXXXX-XXXXX-XXXXX-XXXXX', 599, 0, 10, '4ad0f276-b11b-4c17-a160-3671699f0694');
 
-select * from product.order;
+
 
 DROP TABLE IF EXISTS product.order CASCADE;
 CREATE TABLE product.order
 (
     order_id        uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
     order_account   uuid        NOT NULL,
-    order_variant   uuid        NULL,
     price           numeric     NOT NULL CHECK ( price >= 0 ),
     paid            bool        NOT NULL DEFAULT false,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary		text		NULL,
-    FOREIGN KEY (order_account) REFERENCES account.account(account_id),
-    FOREIGN KEY (order_variant) REFERENCES product.variant(variant_id)
+    FOREIGN KEY (order_account) REFERENCES account.account(account_id)
 );
 
 
@@ -301,7 +298,7 @@ CREATE TABLE product.content
 (
     content_id      uuid        PRIMARY KEY DEFAULT account.UUID_GENERATE_V4(),
     content_variant uuid        NOT NULL,
-    content_order   uuid        NULL,
+    content_order   uuid        UNIQUE NULL DEFAULT NULL,
     data            text        NOT NULL,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -309,75 +306,20 @@ CREATE TABLE product.content
     FOREIGN KEY (content_variant) REFERENCES product.variant(variant_id),
     FOREIGN KEY (content_order) REFERENCES product.order(order_id)
 );
-
-
-
-REFRESH MATERIALIZED VIEW product.product_variants_summary_for_mainpage;
-SELECT * FROM product.product_variants_summary_for_mainpage;
-
-REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data;
-SELECT * FROM product.product_variants_summary_all_data;
-
-
-
---GRANT USAGE ON SCHEMA xxxx TO user;
---GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA xxxx TO user;
---GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA xxxx TO user;
-
-
-DROP MATERIALIZED VIEW IF EXISTS product.product_variants_summary_for_mainpage;
-CREATE MATERIALIZED VIEW product.product_variants_summary_for_mainpage AS
-WITH
-    limited_subtypes AS (
-    SELECT v.*, st.subtype_no, ROW_NUMBER() OVER (PARTITION BY v.product_id, v.variant_id ORDER BY st.subtype_no) AS subtype_row_num
-    FROM product.variant v JOIN product.subtype st ON v.variant_subtype = st.subtype_no),
-    limited_variants AS (
-    SELECT *, ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY variant_name) AS variant_row_num
-    FROM limited_subtypes
-    WHERE subtype_row_num <= 5)
-SELECT
-    t.type_name,
-    st.subtype_name,
-    s.service_name,
-    p.product_name,
-    lv.variant_name,
-    ps.state_name,
-    lv.price,
-    lv.discount_money,
-    lv.discount_percent,
-    CASE
-        WHEN lv.discount_money > 0::numeric THEN lv.price - lv.discount_money
-        WHEN lv.discount_percent > 0 THEN lv.price * (1 - lv.discount_percent / 100.0)
-        ELSE lv.price
-        END AS final_price,
-    i.item_name,
-    lv.mask,
-    lv.quantity_current,
-    lv.quantity_holding,
-    lv.quantity_sold,
-    CASE
-        WHEN lv.quantity_current = 0 THEN 'out of stock'
-        WHEN lv.quantity_current = 1 THEN 'last in stock'
-        WHEN lv.quantity_current > 1 AND lv.quantity_current < 10 THEN 'limited stock'
-        WHEN lv.quantity_current >= 10 AND lv.quantity_current < 30 THEN 'adequate stock'
-        WHEN lv.quantity_current >= 30 THEN 'large stock'
-        ELSE 'error'
-        END AS text_quantity,
-    p.description,
-    p.tags,
-    p.product_id,
-    lv.variant_id,
-    lv.variant_account
-FROM
-    limited_variants lv
-        JOIN product.product p ON lv.product_id = p.product_id
-        JOIN product.service s ON lv.variant_service = s.service_no
-        JOIN product.state ps ON lv.variant_state = ps.state_no
-        JOIN product.item i ON lv.variant_item = i.item_no
-        JOIN product.subtype st ON lv.variant_subtype = st.subtype_no
-        JOIN product.type t ON st.type_no = t.type_no
-WHERE
-    lv.variant_row_num <= 10;
+INSERT INTO product.content (content_variant, data)
+VALUES
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '2T7Q9-4F2S5-WP6R4-DHGK1-BE8K9'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '6U5B7-3G8N2-KV4M1-JCDR3-AF2V9'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '9Y3Z1-5H6M4-XR7G9-PK2L8-BF1N6'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '1C2X3-7W5R9-KF9G2-JV4N6-BL6Y1'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '5P7O2-9S6V3-XL1J4-GZ1H6-BR4T8'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '4A5R8-6T9S3-VN7G1-PK1H9-BZ3L6'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '2K7F4-9H3D1-XT5R6-DL8J2-BP6Y1'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '8U3B5-6F9N4-KZ1X7-PV4G2-BR7T1'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '3S6C9-7G4N1-LB2X5-DH5R8-BZ1V3'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '6T7Q4-2F5S9-WR8P6-JD3G2-BN1K7'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '9Y2Z7-5H4M1-XL6G9-PC2N3-BV8F4'),
+    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '1C5X3-3W6R9-KG2V8-JL4D7-BF9N5');
 
 
 
@@ -401,7 +343,6 @@ SELECT
     i.item_name,
     pv.mask,
     pv.quantity_current,
-    pv.quantity_holding,
     pv.quantity_sold,
     CASE
         WHEN pv.quantity_current = 0 THEN 'out of stock'
@@ -423,4 +364,15 @@ FROM
         JOIN product.state ps ON pv.variant_state = ps.state_no
         JOIN product.item i ON pv.variant_item = i.item_no
         JOIN product.subtype st ON pv.variant_subtype = st.subtype_no
-        JOIN product.type t ON st.type_no = t.type_no
+        JOIN product.type t ON st.type_no = t.type_no;
+
+
+
+REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data;
+SELECT * FROM product.product_variants_summary_all_data;
+
+
+
+--GRANT USAGE ON SCHEMA xxxx TO user;
+--GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA xxxx TO user;
+--GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA xxxx TO user;

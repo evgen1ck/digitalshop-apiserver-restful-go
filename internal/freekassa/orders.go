@@ -10,7 +10,7 @@ import (
 
 func NewOrderUrl(cfg *Config, amount float64, currency, orderName string) string {
 	var signature, orderUrl string
-	orderName = strings.ReplaceAll(strings.TrimSpace(orderName), " ", "-")
+	orderName = strings.ReplaceAll(strings.TrimSpace(orderName), " ", "_")
 
 	signature = createPaymentFormSignature(cfg, formatMoney(amount), currency, orderName)
 

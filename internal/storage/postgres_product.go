@@ -43,7 +43,7 @@ func GetProductsForMainpage(ctx context.Context, pdb *Postgres, apiUrl string) (
 	products := make([]Product, 0, len(productsMap))
 
 	rows, err := pdb.Pool.Query(context.Background(),
-		"SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_for_mainpage")
+		"SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_all_data")
 	if err != nil {
 		return products, err
 	}
@@ -180,10 +180,12 @@ type AdminProducts struct {
 func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, variantId string) ([]AdminProducts, error) {
 	var products []AdminProducts
 
-	query := "SELECT product_id, product_name, description, type_name, subtype_name, variant_id, variant_name, service_name, state_name, item_name, mask, text_quantity, quantity_current, quantity_sold, price, discount_money, discount_percent, final_price FROM product.product_variants_summary_for_mainpage "
+	query := "SELECT product_id, product_name, description, type_name, subtype_name, variant_id, variant_name, service_name, state_name, item_name, mask, text_quantity, quantity_current, quantity_sold, price, discount_money, discount_percent, final_price FROM product.product_variants_summary_all_data "
 	if variantId != "" {
 		query += fmt.Sprintf("WHERE variant_id = '%s'", variantId)
 	}
+	query += " ORDER BY CASE WHEN state_name = 'active' THEN 0 ELSE 1 END, product_name, type_name, subtype_name, variant_name, service_name"
+
 	rows, err := pdb.Pool.Query(context.Background(), query)
 	if err != nil {
 		return products, err
@@ -502,19 +504,6 @@ func AdminGetProducts(ctx context.Context, pdb *Postgres) ([]Product2, error) {
 	return products, err
 }
 
-func GetProductVariantForPayment(ctx context.Context, pdb *Postgres, variantId string) (string, string, string, int, float64, error) {
-	var variantName, variantState string
-	var finalPrice float64
-	var quantityCurrent int
-	var productId string
-
-	err := pdb.Pool.QueryRow(context.Background(),
-		"SELECT product_id, variant_name, state_name, quantity_current, final_price FROM product.product_variants_summary_all_data WHERE variant_id = $1",
-		variantId).Scan(&productId, &variantName, &variantState, &quantityCurrent, &finalPrice)
-
-	return productId, variantName, variantState, quantityCurrent, finalPrice, err
-}
-
 func CreateAdminVariant(ctx context.Context, pdb *Postgres, productName, variantName, serviceName, stateName, subtypeName, itemName, mask, price, discountMoney, discountPercent, accountId string) error {
 	var productId string
 	var serviceId, stateId, subtypeId, itemId int
@@ -565,29 +554,10 @@ func CreateAdminVariant(ctx context.Context, pdb *Postgres, productName, variant
 
 func UpdateData(ctx context.Context, pdb *Postgres) error {
 	_, err := pdb.Pool.Exec(context.Background(),
-		"REFRESH MATERIALIZED VIEW product.product_variants_summary_for_mainpage; REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data")
+		"REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data")
 
 	return err
 }
-
-//func DeleteAdminVariant(ctx context.Context, pdb *Postgres, uuid string) error {
-//	if err := pdb.Pool.QueryRow(context.Background(),
-//		"SELECT product_id FROM product.product WHERE product_name = $1",
-//		productName).Scan(&productId); err != nil {
-//		return err
-//	}
-//
-//	result, err := pdb.Pool.Exec(ctx,
-//		"DELETE FROM account.user WHERE user_account = $1",
-//		uuid)
-//	if err != nil {
-//		return err
-//	} else if result.RowsAffected() < 1 {
-//		return FailedDelete
-//	}
-//
-//	return err
-//}
 
 func UpdateAdminVariant(ctx context.Context, pdb *Postgres, id string, updateData map[string]interface{}) error {
 	if len(updateData) == 0 {
@@ -622,7 +592,7 @@ func AdminDeleteVariant(ctx context.Context, pdb *Postgres, variantId string) (b
 	var inUsage bool
 
 	if err := pdb.Pool.QueryRow(context.Background(),
-		"SELECT EXISTS(SELECT 1 FROM product.order WHERE order_variant = $1)",
+		"SELECT EXISTS(SELECT 1 FROM product.content WHERE content_variant = $1 AND content_order IS NOT NULL)",
 		variantId).Scan(&inUsage); err != nil {
 		return false, err
 	}
@@ -661,4 +631,67 @@ func GetStateNo(ctx context.Context, pdb *Postgres, stateName string) (int, erro
 		stateName).Scan(&stateNo)
 
 	return stateNo, err
+}
+
+func CreateAdminContent(ctx context.Context, pdb *Postgres, variantId string, data []string) error {
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
+		for _, val := range data {
+			res, err := tx.Exec(ctx,
+				"INSERT INTO product.content(content_variant, data) VALUES ($1, $2)",
+				variantId, val)
+			if err != nil {
+				return err
+			} else if res.RowsAffected() < 1 {
+				return FailedInsert
+			}
+			return err
+		}
+
+		res, err := tx.Exec(ctx,
+			"UPDATE product.variant SET quantity_current = quantity_current + $1 WHERE variant_id = $2",
+			len(data), variantId)
+		if err != nil {
+			return err
+		} else if res.RowsAffected() < 1 {
+			return FailedUpdate
+		}
+
+		return err
+	})
+
+	UpdateData(ctx, pdb)
+	return err
+}
+
+func CreateOrder(ctx context.Context, pdb *Postgres, accountId, variantId string) (string, string, float64, error) {
+	var orderId, variantName string
+	var finalPrice float64
+
+	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx,
+			"UPDATE product.variant SET quantity_current = quantity_current - 1 WHERE variant_id = $1 AND quantity_current > 0 AND variant_state = (SELECT state_no FROM product.state WHERE state_name = 'active') RETURNING variant_name",
+			variantId).Scan(&variantName); err != nil {
+			return err
+		}
+
+		if err := tx.QueryRow(ctx,
+			"INSERT INTO product.order (order_account, price) SELECT $1, pp.final_price FROM product.product_variants_summary_all_data pp JOIN product.variant pv ON pv.variant_id = pp.variant_id WHERE pv.variant_id = $2 RETURNING order_id, price",
+			accountId, variantId).Scan(&orderId, &finalPrice); err != nil {
+			return err
+		}
+
+		result, err := tx.Exec(ctx,
+			"UPDATE product.content SET content_order = $1 WHERE content_variant = $2 AND content_order IS NULL AND content_id = (SELECT content_id FROM product.content WHERE content_variant = $2 AND content_order IS NULL LIMIT 1)",
+			orderId, variantId)
+		if err != nil {
+			return err
+		} else if result.RowsAffected() < 1 {
+			return FailedUpdate
+		}
+
+		return err
+	})
+
+	UpdateData(ctx, pdb)
+	return orderId, variantName, finalPrice, err
 }
