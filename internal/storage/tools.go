@@ -5,6 +5,8 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"strings"
+	tl "test-server-go/internal/tools"
 )
 
 // execInTx executes a given function inside a transaction.
@@ -76,4 +78,31 @@ func execInPipeline(ctx context.Context, rdb *redis.Client, f func(pipe redis.Pi
 	}
 
 	return nil
+}
+
+func getSort(sortBy, sortOperator string, list []string) string {
+	if len(list) > 0 {
+		var orderBy []string
+		if tl.ContainsStringInSlice(sortBy, list) {
+			orderBy = append(orderBy, sortBy)
+		}
+		for _, item := range list {
+			if item != sortBy {
+				orderBy = append(orderBy, item)
+			}
+		}
+		switch sortOperator {
+		case "asc":
+			sortOperator = " ASC"
+			break
+		case "desc":
+			sortOperator = " DESC"
+			break
+		default:
+			sortOperator = " DESC"
+			break
+		}
+		return " ORDER BY " + strings.Join(orderBy, ", ") + sortOperator
+	}
+	return ""
 }

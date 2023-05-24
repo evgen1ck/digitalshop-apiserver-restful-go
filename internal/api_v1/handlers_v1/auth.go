@@ -46,15 +46,15 @@ func (rs *Resolver) AuthSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 1 - data validation
-	if err := tl.Validate(data.Nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Nickname, tl.IsNotBlank(true), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.Email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Email, tl.IsNotBlank(true), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Password, tl.IsNotBlank(true), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
 		return
 	}
@@ -127,7 +127,7 @@ func (rs *Resolver) AuthSignupWithToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Block 1 - data validation
-	if err := tl.Validate(data.Token, tl.IsNotBlank(), tl.IsLen(TokenLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Token, tl.IsNotBlank(true), tl.IsLen(TokenLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Token: "+err.Error())
 		return
 	}
@@ -194,7 +194,7 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 1 - data validation
-	if err := tl.Validate(data.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Password, tl.IsNotBlank(true), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
 		rs.App.Logger.NewWarn("Password: ", err)
 		return
@@ -202,14 +202,14 @@ func (rs *Resolver) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	var nickname, email string
 	if data.Nickname != nil && *data.Nickname != "" {
 		nickname = *data.Nickname
-		if err := tl.Validate(nickname, tl.IsNotBlank(), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname(), tl.IsTrimmedSpace()); err != nil {
+		if err := tl.Validate(nickname, tl.IsNotBlank(true), tl.IsMinMaxLen(MinNicknameLength, MaxNicknameLength), tl.IsNotContainsSpace(), tl.IsNickname(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Nickname: "+err.Error())
 			rs.App.Logger.NewWarn("Nickname: ", err)
 			return
 		}
 	} else if data.Email != nil && *data.Email != "" {
 		email = *data.Email
-		if err := tl.Validate(email, tl.IsNotBlank(), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail(), tl.IsTrimmedSpace()); err != nil {
+		if err := tl.Validate(email, tl.IsNotBlank(true), tl.IsMinMaxLen(MinEmailLength, MaxEmailLength), tl.IsNotContainsSpace(), tl.IsEmail(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
 			rs.App.Logger.NewWarn("Email: ", err)
 			return
@@ -346,12 +346,12 @@ func (rs *Resolver) AuthAlogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 1 - data validation
-	if err := tl.Validate(data.Login, tl.IsNotBlank(), tl.IsMinMaxLen(MinLoginLength, MaxLoginLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Login, tl.IsNotBlank(true), tl.IsMinMaxLen(MinLoginLength, MaxLoginLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Login: "+err.Error())
 		rs.App.Logger.NewWarn("Login: ", err)
 		return
 	}
-	if err := tl.Validate(data.Password, tl.IsNotBlank(), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Password, tl.IsNotBlank(true), tl.IsMinMaxLen(MinPasswordLength, MaxPasswordLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Password: "+err.Error())
 		rs.App.Logger.NewWarn("Password: ", err)
 		return

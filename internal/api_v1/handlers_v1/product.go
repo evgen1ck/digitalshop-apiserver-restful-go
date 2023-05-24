@@ -8,11 +8,24 @@ import (
 )
 
 func (rs *Resolver) ProductsDataForMainpage(w http.ResponseWriter, r *http.Request) {
+	id := r.FormValue("id")
+	if id != "" {
+		if err := tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
+			return
+		}
+	}
+
 	// Block 1 - get products for mainpage
-	products, err := storage.GetProductsForMainpage(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server)
+	products, err := storage.GetProductsForMainpage(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, id)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get products for mainpage", err)
 		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	if len(products) == 0 {
+		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "Variant with this id not found")
 		return
 	}
 

@@ -31,14 +31,14 @@ func (rs *Resolver) UserNewPayment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 1 - data validation
-	if err := tl.Validate(data.VariantId, tl.IsNotBlank(), tl.IsLen(UUIDLength), tl.IsNotContainsSpace(), tl.IsValidUUID(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.VariantId, tl.IsNotBlank(true), tl.IsLen(UUIDLength), tl.IsNotContainsSpace(), tl.IsValidUUID(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "VariantId: "+err.Error())
 		return
 	}
 	var coupon string
 	if data.Coupon != nil && *data.Coupon != "" {
 		coupon = *data.Coupon
-		if err := tl.Validate(coupon, tl.IsNotBlank(), tl.IsMinMaxLen(MinCouponLength, MaxCouponLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
+		if err := tl.Validate(coupon, tl.IsNotBlank(true), tl.IsMinMaxLen(MinCouponLength, MaxCouponLength), tl.IsNotContainsSpace(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Email: "+err.Error())
 			return
 		}
@@ -71,6 +71,23 @@ func (rs *Resolver) UserNewPayment(w http.ResponseWriter, r *http.Request) {
 	api_v1.RespondWithCreated(w, response)
 }
 
+func (rs *Resolver) UserProfileOrders(w http.ResponseWriter, r *http.Request) {
+	_, jwtData, err := api_v1.ContextGetAuthenticated(r)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in took jwt data", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	orders, err := storage.GetUserOrders(r.Context(), rs.App.Postgres, jwtData.AccountUuid)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in get orders", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	api_v1.RespondOK(w, orders)
+}
+
 func (rs *Resolver) UserProfileDump(w http.ResponseWriter, r *http.Request)   {}
 func (rs *Resolver) UserProfileUpdate(w http.ResponseWriter, r *http.Request) {}
-func (rs *Resolver) UserProfileOrders(w http.ResponseWriter, r *http.Request) {}

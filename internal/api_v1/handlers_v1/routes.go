@@ -72,18 +72,14 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 	})
 	r.Route("/user", func(r chi.Router) {
 		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleUser))
+		r.Get("/order", rs.UserProfileOrders)
 		r.Post("/payment", rs.UserNewPayment)
 		r.Route("/profile", func(r chi.Router) {
 			r.Patch("/", rs.UserProfileUpdate)
 			r.Delete("/", rs.UserProfileDelete)
-			r.Get("/order", rs.UserProfileOrders)
-			r.Post("/dump", rs.UserProfileDump)
-			r.Route("/image", func(r chi.Router) {
-				r.Get("/", rs.UserProfileOrders)
-				r.Post("/", rs.UserProfileOrders)
-			})
 		})
 		r.Post("/logout", rs.AuthLogout)
+		//r.Post("/dump", rs.UserProfileDump)
 	})
 	r.Route("/admin", func(r chi.Router) {
 		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
@@ -115,6 +111,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 			r.Post("/", rs.AdminCreateVariant)
 			r.Patch("/", rs.AdminUpdateVariant)
 			r.Delete("/", rs.AdminDeleteVariant)
+			r.Put("/", rs.AdminUploadVariant)
 		})
 		r.Route("/database", func(r chi.Router) {
 			r.Route("/postgres", func(r chi.Router) {

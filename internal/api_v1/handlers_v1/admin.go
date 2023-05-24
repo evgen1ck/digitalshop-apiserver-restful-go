@@ -127,35 +127,35 @@ func (rs *Resolver) AdminCreateVariant(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Block 1 - data validation
-	if err := tl.Validate(data.ProductName, tl.IsNotBlank(), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.ProductName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Product name: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.VariantName, tl.IsNotBlank(), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.VariantName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Variant name: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.ServiceName, tl.IsNotBlank(), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.ServiceName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "ServiceName name: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.StateName, tl.IsNotBlank(), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.StateName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "StateName name: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.SubtypeName, tl.IsNotBlank(), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.SubtypeName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "SubtypeName name: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.ItemName, tl.IsNotBlank(), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.ItemName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "ItemName name: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.Mask, tl.IsNotBlank(), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Mask, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Mask: "+err.Error())
 		return
 	}
-	if err := tl.Validate(data.Price, tl.IsNotBlank(), tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
+	if err := tl.Validate(data.Price, tl.IsNotBlank(true), tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Price: "+err.Error())
 		return
 	}
@@ -210,7 +210,7 @@ func (rs *Resolver) AdminUpdateVariant(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: the parameter value is empty")
 		return
 	}
-	if err = tl.Validate(id, tl.UuidFieldValidators()...); err != nil {
+	if err = tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
 		return
 	}
@@ -264,7 +264,7 @@ func (rs *Resolver) AdminUpdateVariant(w http.ResponseWriter, r *http.Request) {
 		updateData["mask"] = *data.Mask
 	}
 	if data.Price != nil {
-		if err = tl.Validate(*data.Price, tl.IsNotBlank(), tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
+		if err = tl.Validate(*data.Price, tl.IsNotBlank(true), tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Price: "+err.Error())
 			return
 		}
@@ -314,7 +314,7 @@ func (rs *Resolver) AdminDeleteVariant(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: the parameter value is empty")
 		return
 	}
-	if err = tl.Validate(id, tl.UuidFieldValidators()...); err != nil {
+	if err = tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
 		return
 	}
@@ -349,7 +349,7 @@ func (rs *Resolver) AdminUploadVariant(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: the parameter value is empty")
 		return
 	}
-	if err = tl.Validate(id, tl.UuidFieldValidators()...); err != nil {
+	if err = tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
 		return
 	}
@@ -358,6 +358,11 @@ func (rs *Resolver) AdminUploadVariant(w http.ResponseWriter, r *http.Request) {
 	decodeErr := json.NewDecoder(r.Body).Decode(&data)
 	if decodeErr != nil {
 		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	if len(data) == 0 {
+		api_v1.RespondWithUnprocessableEntity(w, "No values")
 		return
 	}
 

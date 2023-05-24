@@ -371,6 +371,10 @@ FROM
 REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data;
 SELECT * FROM product.product_variants_summary_all_data;
 
+select * from product.content;
+
+select * from product.order;
+select * from product.content;
 
 
 --GRANT USAGE ON SCHEMA xxxx TO user;

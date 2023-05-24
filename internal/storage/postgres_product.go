@@ -38,12 +38,20 @@ type Product struct {
 	Subtypes        []Subtype `json:"subtypes"`
 }
 
-func GetProductsForMainpage(ctx context.Context, pdb *Postgres, apiUrl string) ([]Product, error) {
+func GetProductsForMainpage(ctx context.Context, pdb *Postgres, apiUrl, id, searchText, sort, sortType string) ([]Product, error) {
 	productsMap := make(map[string]*Product)
 	products := make([]Product, 0, len(productsMap))
 
-	rows, err := pdb.Pool.Query(context.Background(),
-		"SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_all_data")
+	query := "SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_all_data"
+	//transliterate := tl.Transliterate(searchText)
+	//rusToEng := tl.RusToEng(searchText)
+	if id != "" {
+		query += " WHERE variant_id = '" + id + "'"
+	}
+
+	query += getSort(sort, sortType, []string{"final_price", "product_name"})
+
+	rows, err := pdb.Pool.Query(context.Background(), query)
 	if err != nil {
 		return products, err
 	}
@@ -635,18 +643,6 @@ func GetStateNo(ctx context.Context, pdb *Postgres, stateName string) (int, erro
 
 func CreateAdminContent(ctx context.Context, pdb *Postgres, variantId string, data []string) error {
 	err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
-		for _, val := range data {
-			res, err := tx.Exec(ctx,
-				"INSERT INTO product.content(content_variant, data) VALUES ($1, $2)",
-				variantId, val)
-			if err != nil {
-				return err
-			} else if res.RowsAffected() < 1 {
-				return FailedInsert
-			}
-			return err
-		}
-
 		res, err := tx.Exec(ctx,
 			"UPDATE product.variant SET quantity_current = quantity_current + $1 WHERE variant_id = $2",
 			len(data), variantId)
@@ -654,6 +650,17 @@ func CreateAdminContent(ctx context.Context, pdb *Postgres, variantId string, da
 			return err
 		} else if res.RowsAffected() < 1 {
 			return FailedUpdate
+		}
+
+		for _, val := range data {
+			res, err = tx.Exec(ctx,
+				"INSERT INTO product.content(content_variant, data) VALUES ($1, $2)",
+				variantId, val)
+			if err != nil {
+				return err
+			} else if res.RowsAffected() < 1 {
+				return FailedInsert
+			}
 		}
 
 		return err

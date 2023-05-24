@@ -93,9 +93,12 @@ func IsUint64() func(string) error {
 	}
 }
 
-func IsNotBlank() func(string) error {
+func IsNotBlank(isRequired bool) func(string) error {
 	return func(str string) error {
-		if strings.TrimSpace(str) == "" {
+		if !isRequired {
+			return nil
+		}
+		if str == "" {
 			return errors.New("the value is blank")
 		}
 		return nil
@@ -206,30 +209,29 @@ func IsValidInteger(allowNegative bool, allowZero bool) func(string) error {
 	}
 }
 
-func UuidFieldValidators() []func(string) error {
+func UuidFieldValidators(isRequired bool) []func(string) error {
 	return []func(string) error{
-		IsNotBlank(),
-		IsLen(36),
-		IsNotContainsSpace(),
-		IsValidUUID(),
 		IsTrimmedSpace(),
+		IsNotBlank(isRequired),
+		IsLen(36),
+		IsValidUUID(),
 	}
 }
 
 func TextFieldValidatorsWithSpaces() []func(string) error {
 	return []func(string) error{
-		IsNotBlank(),
+		IsTrimmedSpace(),
+		IsNotBlank(true),
 		IsMinMaxLen(2, 64),
 		IsNotContainsConsecutiveSpaces(),
-		IsTrimmedSpace(),
 	}
 }
 
 func LongTextFieldValidatorsWithSpaces() []func(string) error {
 	return []func(string) error{
-		IsNotBlank(),
+		IsTrimmedSpace(),
+		IsNotBlank(true),
 		IsMinMaxLen(2, 10240),
 		IsNotContainsConsecutiveSpaces(),
-		IsTrimmedSpace(),
 	}
 }
