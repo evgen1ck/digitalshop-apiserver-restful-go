@@ -191,7 +191,7 @@ func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, id, searchText
 	if id != "" {
 		query += " AND variant_id = '" + strings.ToLower(id) + "'"
 	}
-	query += getSort(1, sort, sortType, []string{"CASE WHEN state_name = 'active' THEN 0 ELSE 1 END", "type_name", "subtype_name", "product_name", "variant_name", "price", "final_price", "discount_money", "discount_percent"})
+	query += getSort(1, sort, sortType, []string{"CASE WHEN state_name = 'active' THEN 0 ELSE 1 END", "type_name", "subtype_name", "product_name", "variant_name", "price", "final_price", "discount_money", "discount_percent", "quantity_current"})
 
 	rows, err := pdb.Pool.Query(context.Background(), query, getTextWithPercents(searchText))
 	if err != nil {
@@ -692,4 +692,49 @@ func CreateOrder(ctx context.Context, pdb *Postgres, accountId, variantId string
 
 	UpdateData(ctx, pdb)
 	return orderId, variantName, finalPrice, err
+}
+
+type GetAdminContentsData struct {
+	ContentId  string  `json:"content_id"`
+	Data       string  `json:"data"`
+	CreatedAt  string  `json:"created_at"`
+	ModifiedAt string  `json:"modified_at"`
+	Commentary *string `json:"commentary"`
+}
+
+func GetAdminContents(ctx context.Context, pdb *Postgres, id string) ([]GetAdminContentsData, error) {
+	var contents []GetAdminContentsData
+
+	rows, err := pdb.Pool.Query(context.Background(),
+		"SELECT content_id, data, created_at, modified_at, commentary FROM product.content WHERE content_variant = $1 ORDER BY created_at DESC",
+		id)
+	if err != nil {
+		return contents, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var content GetAdminContentsData
+		var createdAt, modifiedAt time.Time
+
+		if err = rows.Scan(
+			&content.ContentId,
+			&content.Data,
+			&createdAt,
+			&modifiedAt,
+			&content.Commentary,
+		); err != nil {
+			return contents, err
+		}
+
+		content.CreatedAt = createdAt.Format(time.DateTime)
+		content.ModifiedAt = modifiedAt.Format(time.DateTime)
+
+		contents = append(contents, content)
+	}
+	if err = rows.Err(); err != nil {
+		return contents, err
+	}
+
+	return contents, err
 }

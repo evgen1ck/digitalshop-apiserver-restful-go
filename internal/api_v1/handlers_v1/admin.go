@@ -343,18 +343,12 @@ type AdminUploadVariantData []struct {
 }
 
 func (rs *Resolver) AdminUploadVariant(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		api_v1.RespondWithBadRequest(w, "")
-		return
-	}
-
 	id := r.FormValue("id")
 	if id == "" {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: the parameter value is empty")
 		return
 	}
-	if err = tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
+	if err := tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
 		return
 	}
@@ -373,14 +367,14 @@ func (rs *Resolver) AdminUploadVariant(w http.ResponseWriter, r *http.Request) {
 
 	var dataList []string
 	for i, obj := range data {
-		if err = tl.Validate(obj.Data, tl.LongTextFieldValidatorsWithSpaces()...); err != nil {
+		if err := tl.Validate(obj.Data, tl.LongTextFieldValidatorsWithSpaces()...); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Data["+strconv.Itoa(i+1)+"]: "+err.Error())
 			return
 		}
 		dataList = append(dataList, obj.Data)
 	}
 
-	err = storage.CreateAdminContent(r.Context(), rs.App.Postgres, id, dataList)
+	err := storage.CreateAdminContent(r.Context(), rs.App.Postgres, id, dataList)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in create content", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -388,4 +382,25 @@ func (rs *Resolver) AdminUploadVariant(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminGetVariantUploads(w http.ResponseWriter, r *http.Request) {
+	id := r.FormValue("id")
+	if id == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Id: the parameter value is empty")
+		return
+	}
+	if err := tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
+		return
+	}
+
+	contents, err := storage.GetAdminContents(r.Context(), rs.App.Postgres, id)
+	if err != nil {
+		rs.App.Logger.NewWarn("error in get contents", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	api_v1.RespondOK(w, contents)
 }

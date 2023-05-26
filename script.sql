@@ -306,20 +306,6 @@ CREATE TABLE product.content
     FOREIGN KEY (content_variant) REFERENCES product.variant(variant_id),
     FOREIGN KEY (content_order) REFERENCES product.order(order_id)
 );
-INSERT INTO product.content (content_variant, data)
-VALUES
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '2T7Q9-4F2S5-WP6R4-DHGK1-BE8K9'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '6U5B7-3G8N2-KV4M1-JCDR3-AF2V9'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '9Y3Z1-5H6M4-XR7G9-PK2L8-BF1N6'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '1C2X3-7W5R9-KF9G2-JV4N6-BL6Y1'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '5P7O2-9S6V3-XL1J4-GZ1H6-BR4T8'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '4A5R8-6T9S3-VN7G1-PK1H9-BZ3L6'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '2K7F4-9H3D1-XT5R6-DL8J2-BP6Y1'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '8U3B5-6F9N4-KZ1X7-PV4G2-BR7T1'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '3S6C9-7G4N1-LB2X5-DH5R8-BZ1V3'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '6T7Q4-2F5S9-WR8P6-JD3G2-BN1K7'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '9Y2Z7-5H4M1-XL6G9-PC2N3-BV8F4'),
-    ('96c7074d-a205-4489-ba38-e5ebbcb676cd', '1C5X3-3W6R9-KG2V8-JL4D7-BF9N5');
 
 
 
@@ -371,10 +357,6 @@ FROM
 REFRESH MATERIALIZED VIEW product.product_variants_summary_all_data;
 SELECT * FROM product.product_variants_summary_all_data;
 
-select * from product.content;
-
-select * from product.order;
-select * from product.content;
 
 
 --GRANT USAGE ON SCHEMA xxxx TO user;

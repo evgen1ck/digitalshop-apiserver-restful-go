@@ -110,7 +110,12 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 			r.Post("/", rs.AdminCreateVariant)
 			r.Patch("/", rs.AdminUpdateVariant)
 			r.Delete("/", rs.AdminDeleteVariant)
-			r.Put("/", rs.AdminUploadVariant)
+			r.Route("/upload", func(r chi.Router) {
+				r.Get("/", rs.AdminGetVariantUploads)
+				r.Post("/", rs.AdminUploadVariant)
+				r.Patch("/", rs.AdminUploadVariant)
+				r.Delete("/", rs.AdminUploadVariant)
+			})
 		})
 		r.Route("/database", func(r chi.Router) {
 			r.Route("/postgres", func(r chi.Router) {

@@ -84,39 +84,40 @@ func getTextWithPercents(s string) string {
 	return "%" + s + "%"
 }
 
-func getSort(ind int, sortBy, sortOperator string, list []string) string {
-	sortBy = strings.ToLower(sortBy)
-	sortOperator = strings.ToLower(sortOperator)
+func getSort(index int, orderBy, sortingDirection string, list []string) string {
+	orderBy = strings.ToLower(orderBy)
+	sortingDirection = strings.ToLower(sortingDirection)
 
 	if len(list) > 0 {
-		var orderBy []string
+		var newOrderByList []string
 		for _, item := range list {
-			if item != sortBy {
-				orderBy = append(orderBy, item)
+			if item != orderBy {
+				newOrderByList = append(newOrderByList, item)
 			}
 		}
-		if sortBy != "" && tl.ContainsStringInSlice(sortBy, list) {
-			if ind >= len(orderBy) {
-				orderBy = append(orderBy, sortBy)
+		if orderBy != "" && tl.StringInSlice(orderBy, list) {
+			if index >= len(newOrderByList) {
+				newOrderByList = append(newOrderByList, orderBy)
 			} else {
-				orderBy = append(orderBy, "")
-				copy(orderBy[ind+1:], orderBy[ind:])
-				orderBy[ind] = sortBy
+				newOrderByList = append(newOrderByList, "")
+				copy(newOrderByList[index+1:], newOrderByList[index:])
+				newOrderByList[index] = orderBy
 			}
 		}
-		switch sortOperator {
+		switch sortingDirection {
 		case "asc":
-			sortOperator = " ASC"
+			sortingDirection = " ASC"
 			break
 		case "desc":
-			sortOperator = " DESC"
+			sortingDirection = " DESC"
 			break
 		default:
-			sortOperator = " ASC"
+			sortingDirection = " ASC"
 			break
 		}
-		if len(orderBy) > 0 {
-			return " ORDER BY " + strings.Trim(strings.Join(orderBy, ", "), ",") + sortOperator
+		if len(newOrderByList) > 0 {
+			newOrderByList[index] += " " + sortingDirection
+			return " ORDER BY " + strings.Trim(strings.Join(newOrderByList, ", "), ",")
 		}
 	}
 	return ""
