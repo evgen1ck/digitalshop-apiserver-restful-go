@@ -80,15 +80,28 @@ func execInPipeline(ctx context.Context, rdb *redis.Client, f func(pipe redis.Pi
 	return nil
 }
 
-func getSort(sortBy, sortOperator string, list []string) string {
+func getTextWithPercents(s string) string {
+	return "%" + s + "%"
+}
+
+func getSort(ind int, sortBy, sortOperator string, list []string) string {
+	sortBy = strings.ToLower(sortBy)
+	sortOperator = strings.ToLower(sortOperator)
+
 	if len(list) > 0 {
 		var orderBy []string
-		if tl.ContainsStringInSlice(sortBy, list) {
-			orderBy = append(orderBy, sortBy)
-		}
 		for _, item := range list {
 			if item != sortBy {
 				orderBy = append(orderBy, item)
+			}
+		}
+		if sortBy != "" && tl.ContainsStringInSlice(sortBy, list) {
+			if ind >= len(orderBy) {
+				orderBy = append(orderBy, sortBy)
+			} else {
+				orderBy = append(orderBy, "")
+				copy(orderBy[ind+1:], orderBy[ind:])
+				orderBy[ind] = sortBy
 			}
 		}
 		switch sortOperator {
@@ -99,10 +112,12 @@ func getSort(sortBy, sortOperator string, list []string) string {
 			sortOperator = " DESC"
 			break
 		default:
-			sortOperator = " DESC"
+			sortOperator = " ASC"
 			break
 		}
-		return " ORDER BY " + strings.Join(orderBy, ", ") + sortOperator
+		if len(orderBy) > 0 {
+			return " ORDER BY " + strings.Trim(strings.Join(orderBy, ", "), ",") + sortOperator
+		}
 	}
 	return ""
 }

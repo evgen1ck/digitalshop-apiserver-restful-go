@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v4"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -42,19 +43,17 @@ func GetProductsForMainpage(ctx context.Context, pdb *Postgres, apiUrl, id, sear
 	productsMap := make(map[string]*Product)
 	products := make([]Product, 0, len(productsMap))
 
-	query := "SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_all_data"
-	//transliterate := tl.Transliterate(searchText)
-	//rusToEng := tl.RusToEng(searchText)
+	query := "SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_all_data WHERE CONCAT(product_name, variant_name, tags, description) ILIKE ANY (ARRAY[$1])"
 	if id != "" {
-		query += " WHERE variant_id = '" + id + "'"
+		query += " AND variant_id = '" + strings.ToLower(id) + "'"
 	}
+	query += getSort(0, sort, sortType, []string{"type_name", "subtype_name", "product_name", "variant_name", "price", "final_price", "discount_money", "discount_percent"})
 
-	query += getSort(sort, sortType, []string{"final_price", "product_name"})
-
-	rows, err := pdb.Pool.Query(context.Background(), query)
+	rows, err := pdb.Pool.Query(context.Background(), query, getTextWithPercents(searchText))
 	if err != nil {
 		return products, err
 	}
+
 	defer rows.Close()
 
 	for rows.Next() {
@@ -185,16 +184,16 @@ type AdminProducts struct {
 	FinalPrice      float64 `json:"final_price"`
 }
 
-func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, variantId string) ([]AdminProducts, error) {
+func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, id, searchText, sort, sortType string) ([]AdminProducts, error) {
 	var products []AdminProducts
 
-	query := "SELECT product_id, product_name, description, type_name, subtype_name, variant_id, variant_name, service_name, state_name, item_name, mask, text_quantity, quantity_current, quantity_sold, price, discount_money, discount_percent, final_price FROM product.product_variants_summary_all_data "
-	if variantId != "" {
-		query += fmt.Sprintf("WHERE variant_id = '%s'", variantId)
+	query := "SELECT product_id, product_name, description, type_name, subtype_name, variant_id, variant_name, service_name, state_name, item_name, mask, text_quantity, quantity_current, quantity_sold, price, discount_money, discount_percent, final_price FROM product.product_variants_summary_all_data WHERE CONCAT(product_name, variant_name, tags, description) ILIKE ANY (ARRAY[$1])"
+	if id != "" {
+		query += " AND variant_id = '" + strings.ToLower(id) + "'"
 	}
-	query += " ORDER BY CASE WHEN state_name = 'active' THEN 0 ELSE 1 END, product_name, type_name, subtype_name, variant_name, service_name"
+	query += getSort(1, sort, sortType, []string{"CASE WHEN state_name = 'active' THEN 0 ELSE 1 END", "type_name", "subtype_name", "product_name", "variant_name", "price", "final_price", "discount_money", "discount_percent"})
 
-	rows, err := pdb.Pool.Query(context.Background(), query)
+	rows, err := pdb.Pool.Query(context.Background(), query, getTextWithPercents(searchText))
 	if err != nil {
 		return products, err
 	}
@@ -236,14 +235,6 @@ func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, variantId stri
 	}
 
 	return products, nil
-}
-
-func GetProductsWithParams(ctx context.Context, pdb *Postgres, query1, query2, query3 string) (pgx.Rows, error) {
-	rows, err := pdb.Pool.Query(context.Background(),
-		"SELECT type_name, subtype_name, service_name, product_name, variant_name, state_name, price, discount_money, discount_percent, final_price, item_name, mask, text_quantity, description, product_id, variant_id FROM product.product_variants_summary_all_data WHERE concat(product_name, variant_name, description, tags) ILIKE ANY (ARRAY[$1, $2, $3])",
-		"%"+query1+"%", "%"+query2+"%", "%"+query3+"%")
-
-	return rows, err
 }
 
 type ProductItem struct {

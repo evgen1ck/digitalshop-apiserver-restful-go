@@ -10,13 +10,18 @@ import (
 )
 
 func (rs *Resolver) AdminGetVariants(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		api_v1.RespondWithBadRequest(w, "")
-		return
+	id := r.FormValue("id")
+	if id != "" {
+		if err := tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
+			api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
+			return
+		}
 	}
+	sortBy := r.FormValue("sort_by")
+	sortType := r.FormValue("sort_type")
+	searchText := r.FormValue("search")
 
-	products, err := storage.GetAdminVariants(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, r.FormValue("id"))
+	products, err := storage.GetAdminVariants(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, id, searchText, sortBy, sortType)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get variants", err)
 		api_v1.RespondWithInternalServerError(w)

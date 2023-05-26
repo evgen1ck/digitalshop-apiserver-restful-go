@@ -15,50 +15,18 @@ func (rs *Resolver) ProductsDataForMainpage(w http.ResponseWriter, r *http.Reque
 			return
 		}
 	}
+	sortBy := r.FormValue("sort_by")
+	sortType := r.FormValue("sort_type")
+	searchText := r.FormValue("search")
 
 	// Block 1 - get products for mainpage
-	products, err := storage.GetProductsForMainpage(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, id)
+	products, err := storage.GetProductsForMainpage(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, id, searchText, sortBy, sortType)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get products for mainpage", err)
 		api_v1.RespondWithInternalServerError(w)
 		return
 	}
 
-	if len(products) == 0 {
-		api_v1.RedRespond(w, http.StatusNotFound, "Not found", "Variant with this id not found")
-		return
-	}
-
 	// Block 2 - send the result
-	api_v1.RespondOK(w, products)
-}
-
-func (rs *Resolver) ProductsData(w http.ResponseWriter, r *http.Request) {
-	// Block 0 - get data
-	err := r.ParseForm()
-	if err != nil {
-		api_v1.RespondWithBadRequest(w, "")
-		return
-	}
-
-	searchText := r.FormValue("search_text")
-	if searchText == "" {
-		api_v1.RespondWithUnprocessableEntity(w, "Search_text: the parameter value is empty")
-		return
-	}
-
-	// Block 1 - get alternative search text variants
-	transliterate := tl.Transliterate(searchText)
-	rusToEng := tl.RusToEng(searchText)
-
-	// Block 2 - get products with params
-	products, err := storage.GetProductsWithParams(r.Context(), rs.App.Postgres, searchText, transliterate, rusToEng)
-	if err != nil {
-		rs.App.Logger.NewWarn("error in get products with params", err)
-		api_v1.RespondWithInternalServerError(w)
-		return
-	}
-
-	// Block 3 - send the result
 	api_v1.RespondOK(w, products)
 }

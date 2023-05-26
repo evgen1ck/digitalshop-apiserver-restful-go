@@ -177,7 +177,7 @@ func GetUserOrders(ctx context.Context, pdb *Postgres, accountId string) ([]Orde
 	var orders []OrderData
 
 	rows, err := pdb.Pool.Query(context.Background(),
-		"SELECT order_id, product_name, variant_name, service_name, data, po.price, paid, pc.created_at FROM product.order po JOIN product.content pc ON po.order_id = pc.content_order JOIN product.variant pv ON pc.content_variant = pv.variant_id JOIN product.product pp ON pv.product_id = pp.product_id JOIN product.service ps ON pv.variant_service = ps.service_no WHERE po.order_account = $1 ORDER BY po.created_at desc",
+		"SELECT order_id, product_name, variant_name, service_name, data, po.price, paid, po.created_at FROM product.order po JOIN product.content pc ON po.order_id = pc.content_order JOIN product.variant pv ON pc.content_variant = pv.variant_id JOIN product.product pp ON pv.product_id = pp.product_id JOIN product.service ps ON pv.variant_service = ps.service_no WHERE po.order_account = $1 ORDER BY po.created_at desc",
 		accountId)
 	if err != nil {
 		return orders, err

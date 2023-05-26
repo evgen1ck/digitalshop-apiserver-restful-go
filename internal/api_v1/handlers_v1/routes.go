@@ -67,7 +67,6 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		//r.Post("/recover-password-with-token", rs.AuthRecoverPasswordWithToken)
 	})
 	r.Route("/product", func(r chi.Router) {
-		r.Get("/", rs.ProductsData)
 		r.Get("/mainpage", rs.ProductsDataForMainpage)
 	})
 	r.Route("/user", func(r chi.Router) {

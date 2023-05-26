@@ -86,7 +86,7 @@ func RusToEng(input string) string {
 
 	for _, char := range input {
 		rusIndex := strings.IndexRune(string(rusLayout), char)
-		if rusIndex != -1 {
+		if rusIndex != -1 && rusIndex < len(engLayout) {
 			result.WriteRune(engLayout[rusIndex])
 		} else {
 			result.WriteRune(char)
