@@ -90,17 +90,17 @@ INSERT INTO account.user(user_account, email, nickname, password, salt_for_passw
 
 
 
-DROP TABLE IF EXISTS account.telegram_user CASCADE;
-CREATE TABLE account.telegram_user
-(
-    account_id               uuid        NOT NULL UNIQUE,
-    telegram_id              text        NOT NULL UNIQUE,
-    username                 text        NOT NULL,
-    photo_url                text        NOT NULL,
-    modified_at         	    timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentary			    text		NULL,
-    FOREIGN KEY (account_id) REFERENCES account.account(account_id)
-);
+-- DROP TABLE IF EXISTS account.telegram_user CASCADE;
+-- CREATE TABLE account.telegram_user
+-- (
+--     account_id               uuid        NOT NULL UNIQUE,
+--     telegram_id              text        NOT NULL UNIQUE,
+--     username                 text        NOT NULL,
+--     photo_url                text        NOT NULL,
+--     modified_at         	    timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--     commentary			    text		NULL,
+--     FOREIGN KEY (account_id) REFERENCES account.account(account_id)
+-- );
 
 
 

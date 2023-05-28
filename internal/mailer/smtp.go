@@ -55,7 +55,7 @@ func (m *Mailer) sendEmail(to []string, title, body string) error {
 	return nil
 }
 
-func (m *Mailer) SendEmailConfirmation(email, nickname, confirmationUrl, clientAppUrl string) error {
+func (m *Mailer) SendEmailConfirmation(nickname, email, confirmationUrl, clientAppUrl string) error {
 	templateFile, err := getPath("mailConfirmationEmail.tmpl")
 	if err != nil {
 		return err

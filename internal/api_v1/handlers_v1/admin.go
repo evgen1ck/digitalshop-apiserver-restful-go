@@ -20,8 +20,9 @@ func (rs *Resolver) AdminGetVariants(w http.ResponseWriter, r *http.Request) {
 	sortBy := r.FormValue("sort_by")
 	sortType := r.FormValue("sort_type")
 	searchText := r.FormValue("search")
+	activeFirst := r.FormValue("active_first")
 
-	products, err := storage.GetAdminVariants(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, id, searchText, sortBy, sortType)
+	products, err := storage.GetAdminVariants(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, id, searchText, sortBy, sortType, activeFirst)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get variants", err)
 		api_v1.RespondWithInternalServerError(w)

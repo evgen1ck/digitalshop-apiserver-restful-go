@@ -184,14 +184,21 @@ type AdminProducts struct {
 	FinalPrice      float64 `json:"final_price"`
 }
 
-func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, id, searchText, sort, sortType string) ([]AdminProducts, error) {
+func GetAdminVariants(ctx context.Context, pdb *Postgres, apiUrl, id, searchText, sort, sortType, activeFirst string) ([]AdminProducts, error) {
 	var products []AdminProducts
 
 	query := "SELECT product_id, product_name, description, type_name, subtype_name, variant_id, variant_name, service_name, state_name, item_name, mask, text_quantity, quantity_current, quantity_sold, price, discount_money, discount_percent, final_price FROM product.product_variants_summary_all_data WHERE CONCAT(product_name, variant_name, tags, description) ILIKE ANY (ARRAY[$1])"
 	if id != "" {
 		query += " AND variant_id = '" + strings.ToLower(id) + "'"
 	}
-	query += getSort(1, sort, sortType, []string{"CASE WHEN state_name = 'active' THEN 0 ELSE 1 END", "type_name", "subtype_name", "product_name", "variant_name", "price", "final_price", "discount_money", "discount_percent", "quantity_current"})
+
+	var ind int
+	if activeFirst == "false" {
+		ind = 0
+	} else {
+		ind = 1
+	}
+	query += getSort(ind, sort, sortType, []string{"CASE WHEN state_name = 'active' THEN 0 ELSE 1 END", "type_name", "subtype_name", "product_name", "variant_name", "price", "final_price", "discount_money", "discount_percent", "quantity_current"})
 
 	rows, err := pdb.Pool.Query(context.Background(), query, getTextWithPercents(searchText))
 	if err != nil {
