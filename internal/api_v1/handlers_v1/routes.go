@@ -84,12 +84,11 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
 		r.Route("/product", func(r chi.Router) {
 			r.Get("/", rs.AdminGetProducts)
-			//r.Post("/", rs.AdminNull)
-			//r.Patch("/{id}", rs.AdminNull)
-			//r.Delete("/{id}", rs.AdminNull)
+			r.Delete("/", rs.AdminDeleteProduct)
 		})
 		r.Route("/service", func(r chi.Router) {
 			r.Get("/", rs.AdminGetServices)
+			r.Delete("/", rs.AdminDeleteService)
 		})
 		r.Route("/state", func(r chi.Router) {
 			r.Get("/", rs.AdminGetStates)
@@ -99,11 +98,12 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		})
 		r.Route("/type", func(r chi.Router) {
 			r.Get("/", rs.AdminGetTypes)
+			r.Delete("/", rs.AdminDeleteType)
 		})
 		r.Route("/subtype", func(r chi.Router) {
 			r.Get("/", rs.AdminGetSubtypes)
 			r.Post("/", rs.AdminGetSubtypes)
-			r.Delete("/", rs.AdminGetSubtypes)
+			r.Delete("/", rs.AdminDeleteSubtype)
 		})
 		r.Route("/variant", func(r chi.Router) {
 			r.Get("/", rs.AdminGetVariants)
@@ -113,8 +113,7 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 			r.Route("/upload", func(r chi.Router) {
 				r.Get("/", rs.AdminGetVariantUploads)
 				r.Post("/", rs.AdminUploadVariant)
-				r.Patch("/", rs.AdminUploadVariant)
-				r.Delete("/", rs.AdminUploadVariant)
+				r.Delete("/", rs.AdminDeleteVariantUpload)
 			})
 		})
 		r.Route("/database", func(r chi.Router) {

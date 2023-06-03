@@ -153,14 +153,14 @@ INSERT INTO product.type(type_name) VALUES ('games'), ('software'), ('media cont
 DROP TABLE IF EXISTS product.subtype CASCADE;
 CREATE TABLE product.subtype
 (
-    type_no         smallint    ,
     subtype_no      serial      UNIQUE,
+    type_no         smallint    ,
     subtype_name    text        NOT NULL UNIQUE,
     created_at      timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at     timestamp	NOT NULL DEFAULT CURRENT_TIMESTAMP,
     commentary      text		NULL,
     PRIMARY KEY (type_no, subtype_no),
-    FOREIGN KEY (type_no) REFERENCES product.type(type_no)
+    FOREIGN KEY (type_no) REFERENCES product.type(type_no) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS product_subtype_name_idx ON product.subtype (lower(subtype_name));
 INSERT INTO product.subtype(type_no, subtype_name) VALUES

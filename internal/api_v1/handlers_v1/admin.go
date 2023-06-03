@@ -405,3 +405,83 @@ func (rs *Resolver) AdminGetVariantUploads(w http.ResponseWriter, r *http.Reques
 
 	api_v1.RespondOK(w, contents)
 }
+
+func (rs *Resolver) AdminDeleteVariantUpload(w http.ResponseWriter, r *http.Request) {
+	id := r.FormValue("id")
+	if id == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Id: the parameter value is empty")
+		return
+	}
+	if err := tl.Validate(id, tl.UuidFieldValidators(true)...); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Id: "+err.Error())
+		return
+	}
+
+	if err := storage.DeleteAdminContent(r.Context(), rs.App.Postgres, id); err != nil {
+		rs.App.Logger.NewWarn("error in delete content(s)", err)
+		api_v1.RespondWithInternalServerError(w)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminDeleteType(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if name == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Name: the parameter value is empty")
+		return
+	}
+
+	if err := storage.DeleteAdminType(r.Context(), rs.App.Postgres, name); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Name"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminDeleteSubtype(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if name == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Name: the parameter value is empty")
+		return
+	}
+
+	if err := storage.DeleteAdminSubtype(r.Context(), rs.App.Postgres, name); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Name"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminDeleteProduct(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if name == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Name: the parameter value is empty")
+		return
+	}
+
+	if err := storage.DeleteAdminProduct(r.Context(), rs.App.Postgres, name); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Name"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminDeleteService(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if name == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Name: the parameter value is empty")
+		return
+	}
+
+	if err := storage.DeleteAdminService(r.Context(), rs.App.Postgres, name); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Name"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

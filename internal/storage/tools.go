@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"errors"
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -116,8 +118,24 @@ func getSort(index int, orderBy, sortingDirection string, list []string) string 
 			break
 		}
 		if len(newOrderByList) > 0 {
+			newOrderByList = newOrderByList[:index+1]
 			newOrderByList[index] += " " + sortingDirection
 			return " ORDER BY " + strings.Trim(strings.Join(newOrderByList, ", "), ",")
+		}
+	}
+	return ""
+}
+
+func PgErrorsHandle(err error, name string) string {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case "23503":
+			return name + ": " + PgForeignKey
+		case "23505":
+			return name + ": " + PgNoUnique
+		default:
+			return ""
 		}
 	}
 	return ""

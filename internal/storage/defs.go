@@ -63,3 +63,11 @@ func GetProductImageUrl(apiUrl, file string) string {
 func GetSvgFileUrl(apiUrl, file string) string {
 	return strings.ToLower(apiUrl + ResourcesSvgFilePath + strings.ReplaceAll(file, " ", "-"))
 }
+
+// Errors
+const (
+	PgNoRows     = "not found value(s)"
+	PgNoUpdated  = "the data not updated"
+	PgForeignKey = "the value is using now"
+	PgNoUnique   = "the value not unique"
+)

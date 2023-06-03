@@ -745,3 +745,59 @@ func GetAdminContents(ctx context.Context, pdb *Postgres, id string) ([]GetAdmin
 
 	return contents, err
 }
+
+func DeleteAdminContent(ctx context.Context, pdb *Postgres, id string) error {
+	if err := execInTx(ctx, pdb.Pool, func(tx pgx.Tx) error {
+		res, err := tx.Exec(ctx,
+			"UPDATE product.variant SET quantity_current = quantity_current - 1 WHERE variant_id = (SELECT content_variant FROM product.content WHERE content_id = $1)",
+			id)
+		if err != nil {
+			return err
+		} else if res.RowsAffected() < 1 {
+			return FailedUpdate
+		}
+
+		res, err = tx.Exec(context.Background(),
+			"DELETE FROM product.content WHERE content_id = $1 AND content_order IS NULL",
+			id)
+		if err != nil {
+			return err
+		} else if res.RowsAffected() < 1 {
+			return FailedDelete
+		}
+
+		return err
+	}); err != nil {
+		return err
+	}
+
+	return UpdateData(ctx, pdb)
+}
+
+func DeleteAdminType(ctx context.Context, pdb *Postgres, id string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"DELETE FROM product.type WHERE type_name = $1",
+		id)
+	return err
+}
+
+func DeleteAdminSubtype(ctx context.Context, pdb *Postgres, id string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"DELETE FROM product.subtype WHERE subtype_name = $1",
+		id)
+	return err
+}
+
+func DeleteAdminService(ctx context.Context, pdb *Postgres, id string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"DELETE FROM product.service WHERE service_name = $1",
+		id)
+	return err
+}
+
+func DeleteAdminProduct(ctx context.Context, pdb *Postgres, id string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"DELETE FROM product.product WHERE product_name = $1",
+		id)
+	return err
+}
