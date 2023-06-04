@@ -2,8 +2,13 @@ package handlers_v1
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"test-server-go/internal/api_v1"
 	"test-server-go/internal/storage"
 	tl "test-server-go/internal/tools"
@@ -135,45 +140,55 @@ func (rs *Resolver) AdminCreateVariant(w http.ResponseWriter, r *http.Request) {
 	// Block 1 - data validation
 	if err := tl.Validate(data.ProductName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Product name: "+err.Error())
+		fmt.Println("1")
 		return
 	}
 	if err := tl.Validate(data.VariantName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Variant name: "+err.Error())
+		fmt.Println("2")
 		return
 	}
 	if err := tl.Validate(data.ServiceName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "ServiceName name: "+err.Error())
+		fmt.Println("3")
 		return
 	}
 	if err := tl.Validate(data.StateName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "StateName name: "+err.Error())
+		fmt.Println("4")
 		return
 	}
 	if err := tl.Validate(data.SubtypeName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "SubtypeName name: "+err.Error())
+		fmt.Println("5")
 		return
 	}
 	if err := tl.Validate(data.ItemName, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "ItemName name: "+err.Error())
+		fmt.Println("6")
 		return
 	}
 	if err := tl.Validate(data.Mask, tl.IsNotBlank(true), tl.IsMinMaxLen(MinTextLength, MaxTextLength), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Mask: "+err.Error())
+		fmt.Println("7")
 		return
 	}
 	if err := tl.Validate(data.Price, tl.IsNotBlank(true), tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
 		api_v1.RespondWithUnprocessableEntity(w, "Price: "+err.Error())
+		fmt.Println("8")
 		return
 	}
-	if data.DiscountMoney != nil {
+	if data.DiscountMoney != nil && *data.DiscountMoney != "" {
 		if err := tl.Validate(*data.DiscountMoney, tl.IsMoney(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Discount money: "+err.Error())
+			fmt.Println("9")
 			return
 		}
 	}
-	if data.DiscountPercent != nil {
+	if data.DiscountPercent != nil && *data.DiscountPercent != "" {
 		if err := tl.Validate(*data.DiscountPercent, tl.IsValidInteger(false, true), tl.IsNotContainsConsecutiveSpaces(), tl.IsTrimmedSpace()); err != nil {
 			api_v1.RespondWithUnprocessableEntity(w, "Discount percent: "+err.Error())
+			fmt.Println("10")
 			return
 		}
 	}
@@ -482,6 +497,109 @@ func (rs *Resolver) AdminDeleteService(w http.ResponseWriter, r *http.Request) {
 		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Name"))
 		return
 	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminAddType(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		TypeName string `json:"type_name"`
+	}
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
+	if decodeErr != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+	if err := tl.Validate(data.TypeName, tl.TextFieldValidatorsWithSpaces()...); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Type_name: "+err.Error())
+		return
+	}
+
+	if err := storage.CreateAdminType(r.Context(), rs.App.Postgres, data.TypeName); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Type_name"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminAddSubtype(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if name == "" {
+		api_v1.RespondWithUnprocessableEntity(w, "Name: the parameter value is empty")
+		return
+	}
+	if err := tl.Validate(name, tl.TextFieldValidatorsWithSpaces()...); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Name: "+err.Error())
+		return
+	}
+
+	var data struct {
+		SubtypeName string `json:"subtype_name"`
+	}
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
+	if decodeErr != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+	if err := tl.Validate(data.SubtypeName, tl.TextFieldValidatorsWithSpaces()...); err != nil {
+		api_v1.RespondWithUnprocessableEntity(w, "Subtype_name: "+err.Error())
+		return
+	}
+
+	if err := storage.CreateAdminSubtype(r.Context(), rs.App.Postgres, data.SubtypeName, name); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Subtype_name"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminAddService(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(10 << 20)
+
+	serviceName := r.FormValue("service_name")
+	fmt.Println(serviceName)
+	if serviceName == "" {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	if err := storage.CreateAdminService(r.Context(), rs.App.Postgres, serviceName); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Service_name"))
+		return
+	}
+
+	file, handler, err := r.FormFile("file")
+	serviceName = strings.ToLower(serviceName)
+	if err != nil {
+		fmt.Println("Error Retrieving the File")
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+
+	fmt.Printf("Uploaded File: %+v\n", handler.Filename)
+	fmt.Printf("File Size: %+v\n", handler.Size)
+	fmt.Printf("MIME Header: %+v\n", handler.Header)
+
+	if !strings.HasSuffix(handler.Filename, ".svg") || handler.Header.Get("Content-Type") != "image/svg+xml" {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	path, err := tl.GetExecutablePath()
+	dir := filepath.Join(path, "resources", "svg_files")
+	fileName := strings.ReplaceAll(serviceName, " ", "-") + ".svg"
+	fullPath := filepath.Join(dir, fileName)
+
+	tempFile, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+	defer tempFile.Close()
+	io.Copy(tempFile, file)
 
 	w.WriteHeader(http.StatusNoContent)
 }

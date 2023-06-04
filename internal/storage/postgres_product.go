@@ -801,3 +801,32 @@ func DeleteAdminProduct(ctx context.Context, pdb *Postgres, id string) error {
 		id)
 	return err
 }
+
+func CreateAdminType(ctx context.Context, pdb *Postgres, name string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"INSERT INTO product.type(type_name) VALUES ($1)",
+		name)
+	return err
+}
+
+func CreateAdminSubtype(ctx context.Context, pdb *Postgres, name, name2 string) error {
+	var typeNo int
+
+	if err := pdb.Pool.QueryRow(context.Background(),
+		"SELECT type_no FROM product.type WHERE type_name = $1",
+		name2).Scan(&typeNo); err != nil {
+		return err
+	}
+
+	_, err := pdb.Pool.Exec(context.Background(),
+		"INSERT INTO product.subtype(type_no, subtype_name) VALUES ($1, $2)",
+		typeNo, name)
+	return err
+}
+
+func CreateAdminService(ctx context.Context, pdb *Postgres, name string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"INSERT INTO product.service(service_name) VALUES ($1)",
+		name)
+	return err
+}

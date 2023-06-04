@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	timeout            = 5 * time.Second
+	timeout            = 50 * time.Second
 	rateLimitRequests  = 1000
 	rateLimitInterval  = 1 * time.Minute
 	requestMaxSize     = 4 * 1024 * 1024 // 4 MB
@@ -88,6 +88,8 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		})
 		r.Route("/service", func(r chi.Router) {
 			r.Get("/", rs.AdminGetServices)
+			r.Post("/", rs.AdminAddService)
+			r.Post("/svg", rs.AdminAddService)
 			r.Delete("/", rs.AdminDeleteService)
 		})
 		r.Route("/state", func(r chi.Router) {
@@ -98,11 +100,12 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		})
 		r.Route("/type", func(r chi.Router) {
 			r.Get("/", rs.AdminGetTypes)
+			r.Post("/", rs.AdminAddType)
 			r.Delete("/", rs.AdminDeleteType)
 		})
 		r.Route("/subtype", func(r chi.Router) {
 			r.Get("/", rs.AdminGetSubtypes)
-			r.Post("/", rs.AdminGetSubtypes)
+			r.Post("/", rs.AdminAddSubtype)
 			r.Delete("/", rs.AdminDeleteSubtype)
 		})
 		r.Route("/variant", func(r chi.Router) {
