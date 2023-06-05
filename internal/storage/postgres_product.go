@@ -296,11 +296,17 @@ type ProductService struct {
 	Commentary  *string `json:"commentary"`
 }
 
-func AdminGetServices(ctx context.Context, pdb *Postgres, apiUrl string) ([]ProductService, error) {
+func AdminGetServices(ctx context.Context, pdb *Postgres, apiUrl, serviceName string) ([]ProductService, error) {
 	var services []ProductService
 
+	query := "SELECT service_no, service_name, created_at, modified_at, commentary FROM product.service"
+	if serviceName != "" {
+		query += " WHERE service_name = '" + serviceName + "'"
+	}
+	query += " ORDER BY service_name"
+
 	rows, err := pdb.Pool.Query(context.Background(),
-		"SELECT service_no, service_name, created_at, modified_at, commentary FROM product.service ORDER BY service_name")
+		query)
 	if err != nil {
 		return services, err
 	}
@@ -384,11 +390,17 @@ type ProductType struct {
 	Commentary *string `json:"commentary"`
 }
 
-func AdminGetTypes(ctx context.Context, pdb *Postgres) ([]ProductType, error) {
+func AdminGetTypes(ctx context.Context, pdb *Postgres, typeName string) ([]ProductType, error) {
 	var types []ProductType
 
+	query := "SELECT type_no, type_name, created_at, modified_at, commentary FROM product.type"
+	if typeName != "" {
+		query += " WHERE type_name = '" + typeName + "'"
+	}
+	query += " ORDER BY type_name"
+
 	rows, err := pdb.Pool.Query(context.Background(),
-		"SELECT type_no, type_name, created_at, modified_at, commentary FROM product.type ORDER BY type_name")
+		query)
 	if err != nil {
 		return types, err
 	}
@@ -427,12 +439,21 @@ type ProductSubtype struct {
 	Commentary  *string `json:"commentary"`
 }
 
-func AdminGetSubtypes(ctx context.Context, pdb *Postgres, typeName string) ([]ProductSubtype, error) {
+func AdminGetSubtypes(ctx context.Context, pdb *Postgres, typeName, subtypeName string) ([]ProductSubtype, error) {
 	var subtypes []ProductSubtype
 
+	query := "SELECT subtype_no, subtype_name, st.created_at, st.modified_at, st.commentary FROM product.subtype st join product.type t on st.type_no = t.type_no  "
+	if subtypeName != "" && typeName != "" {
+		query += " WHERE type_name = '" + typeName + "' AND subtype_name = '" + subtypeName + "'"
+	} else if subtypeName != "" {
+		query += " WHERE subtype_name = '" + subtypeName + "'"
+	} else if typeName != "" {
+		query += " WHERE type_name = '" + typeName + "'"
+	}
+	query += " ORDER BY subtype_name"
+
 	rows, err := pdb.Pool.Query(context.Background(),
-		"SELECT subtype_no, subtype_name, st.created_at, st.modified_at, st.commentary FROM product.subtype st join product.type t on st.type_no = t.type_no WHERE type_name  = $1 ORDER BY subtype_name",
-		typeName)
+		query)
 	if err != nil {
 		return subtypes, err
 	}
@@ -594,29 +615,13 @@ func UpdateAdminVariant(ctx context.Context, pdb *Postgres, id string, updateDat
 	return nil
 }
 
-func AdminDeleteVariant(ctx context.Context, pdb *Postgres, variantId string) (bool, error) {
-	var inUsage bool
-
-	if err := pdb.Pool.QueryRow(context.Background(),
-		"SELECT EXISTS(SELECT 1 FROM product.content WHERE content_variant = $1 AND content_order IS NOT NULL)",
-		variantId).Scan(&inUsage); err != nil {
-		return false, err
-	}
-	if inUsage {
-		return true, nil
-	}
-
-	result, err := pdb.Pool.Exec(context.Background(),
+func AdminDeleteVariant(ctx context.Context, pdb *Postgres, variantId string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
 		"DELETE FROM product.variant WHERE variant_id = $1",
 		variantId)
-	if err != nil {
-		return false, err
-	} else if result.RowsAffected() < 1 {
-		return false, FailedDelete
-	}
 
 	UpdateData(ctx, pdb)
-	return false, nil
+	return err
 }
 
 func GetItemNo(ctx context.Context, pdb *Postgres, itemName string) (int, error) {
@@ -778,6 +783,8 @@ func DeleteAdminType(ctx context.Context, pdb *Postgres, id string) error {
 	_, err := pdb.Pool.Exec(context.Background(),
 		"DELETE FROM product.type WHERE type_name = $1",
 		id)
+
+	UpdateData(ctx, pdb)
 	return err
 }
 
@@ -785,6 +792,8 @@ func DeleteAdminSubtype(ctx context.Context, pdb *Postgres, id string) error {
 	_, err := pdb.Pool.Exec(context.Background(),
 		"DELETE FROM product.subtype WHERE subtype_name = $1",
 		id)
+
+	UpdateData(ctx, pdb)
 	return err
 }
 
@@ -792,6 +801,8 @@ func DeleteAdminService(ctx context.Context, pdb *Postgres, id string) error {
 	_, err := pdb.Pool.Exec(context.Background(),
 		"DELETE FROM product.service WHERE service_name = $1",
 		id)
+
+	UpdateData(ctx, pdb)
 	return err
 }
 
@@ -799,6 +810,8 @@ func DeleteAdminProduct(ctx context.Context, pdb *Postgres, id string) error {
 	_, err := pdb.Pool.Exec(context.Background(),
 		"DELETE FROM product.product WHERE product_name = $1",
 		id)
+
+	UpdateData(ctx, pdb)
 	return err
 }
 
@@ -806,6 +819,8 @@ func CreateAdminType(ctx context.Context, pdb *Postgres, name string) error {
 	_, err := pdb.Pool.Exec(context.Background(),
 		"INSERT INTO product.type(type_name) VALUES ($1)",
 		name)
+
+	UpdateData(ctx, pdb)
 	return err
 }
 
@@ -821,6 +836,8 @@ func CreateAdminSubtype(ctx context.Context, pdb *Postgres, name, name2 string) 
 	_, err := pdb.Pool.Exec(context.Background(),
 		"INSERT INTO product.subtype(type_no, subtype_name) VALUES ($1, $2)",
 		typeNo, name)
+
+	UpdateData(ctx, pdb)
 	return err
 }
 
@@ -828,5 +845,47 @@ func CreateAdminService(ctx context.Context, pdb *Postgres, name string) error {
 	_, err := pdb.Pool.Exec(context.Background(),
 		"INSERT INTO product.service(service_name) VALUES ($1)",
 		name)
+
+	UpdateData(ctx, pdb)
+	return err
+}
+
+func CreateAdminProduct(ctx context.Context, pdb *Postgres, productName, tags, description string) (string, error) {
+	var uuid string
+
+	if err := pdb.Pool.QueryRow(context.Background(),
+		"INSERT INTO product.product(product_name, tags, description) VALUES ($1, $2, $3) RETURNING product_id",
+		productName, tags, description).Scan(&uuid); err != nil {
+		return "", err
+	}
+
+	UpdateData(ctx, pdb)
+	return uuid, nil
+}
+
+func EditAdminType(ctx context.Context, pdb *Postgres, name, newName string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"UPDATE product.type SET type_name = $1 WHERE type_name = $2",
+		newName, name)
+
+	UpdateData(ctx, pdb)
+	return err
+}
+
+func EditAdminSubtype(ctx context.Context, pdb *Postgres, name, newName string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"UPDATE product.subtype SET subtype_name = $1 WHERE subtype_name = $2",
+		newName, name)
+
+	UpdateData(ctx, pdb)
+	return err
+}
+
+func EditAdminService(ctx context.Context, pdb *Postgres, name, newName string) error {
+	_, err := pdb.Pool.Exec(context.Background(),
+		"UPDATE product.service SET service_name = $1 WHERE service_name = $2",
+		newName, name)
+
+	UpdateData(ctx, pdb)
 	return err
 }

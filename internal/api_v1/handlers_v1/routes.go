@@ -45,10 +45,10 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 	r.Use(api_v1.RateLimitMiddleware(rateLimitRequests, rateLimitInterval)) // Error 429 - Too Many Requests
 	r.Use(api_v1.UriLengthMiddleware(uriMaxLength))                         // Error 414 - URI Too Long
 	r.Use(api_v1.RequestSizeMiddleware(requestMaxSize))                     // Error 413 - Payload Too Large
-	r.Use(api_v1.UnprocessableEntityMiddleware)                             // Error 422 - Unprocessable Entity
-	r.Use(api_v1.MethodNotAllowedMiddleware)                                // Error 405 - Method Not Allowed
-	r.Use(api_v1.GatewayTimeoutMiddleware(timeout))                         // Error 504 - Gateway Timeout
-	r.NotFound(api_v1.NotFoundMiddleware())                                 // Error 404 - Not Found
+	//r.Use(api_v1.UnprocessableEntityMiddleware)                             // Error 422 - Unprocessable Entity
+	r.Use(api_v1.MethodNotAllowedMiddleware)        // Error 405 - Method Not Allowed
+	r.Use(api_v1.GatewayTimeoutMiddleware(timeout)) // Error 504 - Gateway Timeout
+	r.NotFound(api_v1.NotFoundMiddleware())         // Error 404 - Not Found
 	//r.Use(api_v1.CsrfMiddleware(rs.Client, csrfTokenLength, csrfHeaderName, csrfCookieDuration)) // Error 403 - Forbidden
 
 	rs.registerRoutes(r)
@@ -84,12 +84,13 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Use(api_v1.JwtAuthMiddleware(rs.App.Postgres, rs.App.Redis, rs.App.Logger, rs.App.Config.App.Jwt, storage.AccountRoleAdmin))
 		r.Route("/product", func(r chi.Router) {
 			r.Get("/", rs.AdminGetProducts)
+			r.Post("/", rs.AdminAddProduct)
 			r.Delete("/", rs.AdminDeleteProduct)
 		})
 		r.Route("/service", func(r chi.Router) {
 			r.Get("/", rs.AdminGetServices)
 			r.Post("/", rs.AdminAddService)
-			r.Post("/svg", rs.AdminAddService)
+			r.Patch("/", rs.AdminEditService)
 			r.Delete("/", rs.AdminDeleteService)
 		})
 		r.Route("/state", func(r chi.Router) {
@@ -101,11 +102,13 @@ func (rs *Resolver) registerRoutes(r chi.Router) {
 		r.Route("/type", func(r chi.Router) {
 			r.Get("/", rs.AdminGetTypes)
 			r.Post("/", rs.AdminAddType)
+			r.Patch("/", rs.AdminEditType)
 			r.Delete("/", rs.AdminDeleteType)
 		})
 		r.Route("/subtype", func(r chi.Router) {
 			r.Get("/", rs.AdminGetSubtypes)
 			r.Post("/", rs.AdminAddSubtype)
+			r.Patch("/", rs.AdminEditSubtype)
 			r.Delete("/", rs.AdminDeleteSubtype)
 		})
 		r.Route("/variant", func(r chi.Router) {

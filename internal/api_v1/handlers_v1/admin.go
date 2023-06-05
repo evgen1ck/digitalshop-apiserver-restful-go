@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -49,7 +50,9 @@ func (rs *Resolver) AdminGetProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rs *Resolver) AdminGetServices(w http.ResponseWriter, r *http.Request) {
-	services, err := storage.AdminGetServices(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server)
+	serviceName := r.FormValue("service_name")
+
+	services, err := storage.AdminGetServices(r.Context(), rs.App.Postgres, rs.App.Config.App.Service.Url.Server, serviceName)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get services", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -82,7 +85,9 @@ func (rs *Resolver) AdminGetItems(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rs *Resolver) AdminGetTypes(w http.ResponseWriter, r *http.Request) {
-	types, err := storage.AdminGetTypes(r.Context(), rs.App.Postgres)
+	typ := r.FormValue("type_name")
+
+	types, err := storage.AdminGetTypes(r.Context(), rs.App.Postgres, typ)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get types", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -93,19 +98,11 @@ func (rs *Resolver) AdminGetTypes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rs *Resolver) AdminGetSubtypes(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		api_v1.RespondWithBadRequest(w, "")
-		return
-	}
+	subtypeName := r.FormValue("subtype_name")
 
 	typeName := r.FormValue("type_name")
-	if typeName == "" {
-		api_v1.RespondWithUnprocessableEntity(w, "Type_name: the parameter value is empty")
-		return
-	}
 
-	subtypes, err := storage.AdminGetSubtypes(r.Context(), rs.App.Postgres, typeName)
+	subtypes, err := storage.AdminGetSubtypes(r.Context(), rs.App.Postgres, typeName, subtypeName)
 	if err != nil {
 		rs.App.Logger.NewWarn("error in get subtypes", err)
 		api_v1.RespondWithInternalServerError(w)
@@ -340,14 +337,8 @@ func (rs *Resolver) AdminDeleteVariant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inUsage, err := storage.AdminDeleteVariant(r.Context(), rs.App.Postgres, id)
-	if err != nil {
-		rs.App.Logger.NewWarn("error in delete variant", err)
-		api_v1.RespondWithInternalServerError(w)
-		return
-	}
-	if inUsage {
-		api_v1.RespondWithConflict(w, "Variant using in orders")
+	if err = storage.AdminDeleteVariant(r.Context(), rs.App.Postgres, id); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "variant_name"))
 		return
 	}
 
@@ -559,7 +550,6 @@ func (rs *Resolver) AdminAddService(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(10 << 20)
 
 	serviceName := r.FormValue("service_name")
-	fmt.Println(serviceName)
 	if serviceName == "" {
 		api_v1.RespondWithBadRequest(w, "")
 		return
@@ -579,10 +569,6 @@ func (rs *Resolver) AdminAddService(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fmt.Printf("Uploaded File: %+v\n", handler.Filename)
-	fmt.Printf("File Size: %+v\n", handler.Size)
-	fmt.Printf("MIME Header: %+v\n", handler.Header)
-
 	if !strings.HasSuffix(handler.Filename, ".svg") || handler.Header.Get("Content-Type") != "image/svg+xml" {
 		api_v1.RespondWithBadRequest(w, "")
 		return
@@ -600,6 +586,155 @@ func (rs *Resolver) AdminAddService(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tempFile.Close()
 	io.Copy(tempFile, file)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminAddProduct(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(10 << 20)
+
+	productName := r.FormValue("product_name")
+	tags := r.FormValue("tags")
+	description := r.FormValue("description")
+	if productName == "" {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	uuid, err := storage.CreateAdminProduct(r.Context(), rs.App.Postgres, productName, tags, description)
+	if err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Service_name"))
+		return
+	}
+
+	file, handler, err := r.FormFile("file")
+	productName = strings.ToLower(productName)
+	if err != nil {
+		fmt.Println("Error Retrieving the File")
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+
+	path, err := tl.GetExecutablePath()
+	dir := filepath.Join(path, "resources", "product_images")
+	fileName := uuid + filepath.Ext(handler.Filename)
+	fullPath := filepath.Join(dir, fileName)
+
+	tempFile, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+	defer tempFile.Close()
+	io.Copy(tempFile, file)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminEditType(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("type_name")
+	var data struct {
+		TypeName string `json:"type_name"`
+	}
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
+	if decodeErr != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	if err := storage.EditAdminType(r.Context(), rs.App.Postgres, name, data.TypeName); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Name"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminEditSubtype(w http.ResponseWriter, r *http.Request) {
+	subtypeName := r.FormValue("subtype_name")
+	var data struct {
+		SubtypeName string `json:"subtype_name"`
+	}
+	decodeErr := json.NewDecoder(r.Body).Decode(&data)
+	if decodeErr != nil {
+		api_v1.RespondWithBadRequest(w, "")
+		return
+	}
+
+	if err := storage.EditAdminSubtype(r.Context(), rs.App.Postgres, subtypeName, data.SubtypeName); err != nil {
+		api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Name"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rs *Resolver) AdminEditService(w http.ResponseWriter, r *http.Request) {
+	u, err := url.Parse(r.RequestURI)
+	if err != nil {
+		panic(err)
+	}
+	values := u.Query()
+	serviceNameInUrl := values.Get("service_name")
+
+	r.ParseMultipartForm(10 << 20)
+
+	serviceName := r.FormValue("service_name2")
+	if serviceName != "" {
+		if err := storage.EditAdminService(r.Context(), rs.App.Postgres, serviceNameInUrl, serviceName); err != nil {
+			api_v1.RespondWithConflict(w, storage.PgErrorsHandle(err, "Service_name"))
+			return
+		}
+	}
+
+	file, handler, err := r.FormFile("file")
+	if file != nil {
+		serviceName = strings.ToLower(serviceName)
+		if err != nil {
+			fmt.Println("Error Retrieving the File")
+			fmt.Println(err)
+			return
+		}
+		defer file.Close()
+
+		if !strings.HasSuffix(handler.Filename, ".svg") || handler.Header.Get("Content-Type") != "image/svg+xml" {
+			api_v1.RespondWithBadRequest(w, "")
+			return
+		}
+
+		path, err := tl.GetExecutablePath()
+		dir := filepath.Join(path, "resources", "svg_files")
+		if serviceName == "" {
+			serviceName = serviceNameInUrl
+		}
+		fileName := strings.ReplaceAll(serviceName, " ", "-") + ".svg"
+		fullPath := filepath.Join(dir, fileName)
+
+		tempFile, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			api_v1.RespondWithBadRequest(w, "")
+			return
+		}
+		defer tempFile.Close()
+		io.Copy(tempFile, file)
+	}
+
+	if serviceName != "" {
+		path, _ := tl.GetExecutablePath()
+		oldFileName := strings.ReplaceAll(serviceNameInUrl, " ", "-") + ".svg"
+		newFileName := strings.ReplaceAll(serviceName, " ", "-") + ".svg"
+		oldPath := filepath.Join(path, "resources", "svg_files", oldFileName)
+		newPath := filepath.Join(path, "resources", "svg_files", newFileName)
+
+		if _, err := os.Stat(oldPath); err == nil {
+			err = os.Rename(oldPath, newPath)
+			if err != nil {
+				fmt.Println("Error renaming the file: ", err)
+				return
+			}
+		}
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
