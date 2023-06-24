@@ -35,6 +35,7 @@ func (rs *Resolver) SetupRouterApiVer1(pathPrefix string) {
 		corsAllowedOrigins = append(corsAllowedOrigins, "http://localhost:"+strconv.Itoa(rs.App.Config.App.Port))
 	} else {
 		corsAllowedOrigins = append(corsAllowedOrigins, rs.App.Config.App.Service.Url.Client)
+		corsAllowedOrigins = append(corsAllowedOrigins, rs.App.Config.App.Service.Url.Server)
 	}
 
 	// CORS settings

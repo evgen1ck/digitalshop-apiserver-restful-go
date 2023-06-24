@@ -200,6 +200,9 @@ func GetUserOrders(ctx context.Context, pdb *Postgres, accountId string) ([]Orde
 		); err != nil {
 			return nil, err
 		}
+		if !order.Paid {
+			order.DataContent = "--//--//--"
+		}
 		order.CreatedAt = createdAt.Format(time.DateTime)
 
 		orders = append(orders, order)

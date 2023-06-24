@@ -26,7 +26,7 @@ func (rs *Resolver) FreekassaNotification(w http.ResponseWriter, r *http.Request
 	//commission := r.FormValue("commission")
 
 	splitID := strings.Split(merchantID, "_")
-	if len(splitID) < 3 {
+	if len(splitID) < 2 {
 		rs.App.Logger.NewWarn("error in split merchantID", err)
 		api_v1.RespondWithInternalServerError(w)
 		return

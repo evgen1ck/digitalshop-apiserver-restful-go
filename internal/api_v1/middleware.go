@@ -20,14 +20,17 @@ import (
 )
 
 func CorsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
-	return cors.New(cors.Options{
-		//AllowedOrigins: allowedOrigins,
-		AllowedOrigins:   []string{"*"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}).Handler
+	//return cors.New(cors.Options{
+	//	AllowedOrigins: []string{"*"},
+	//	//AllowedOrigins: allowedOrigins,
+	//	AllowedHeaders: []string{"*"},
+	//	//AllowedHeaders:   []string{"Authorization", "Content-Type", "X-CSRF-Token"},
+	//	ExposedHeaders: []string{"*"},
+	//	//ExposedHeaders:   []string{"Link"},
+	//	AllowCredentials: true,
+	//	MaxAge:           300,
+	//}).Handler
+	return cors.AllowAll().Handler
 }
 
 func NotFoundMiddleware() http.HandlerFunc {
