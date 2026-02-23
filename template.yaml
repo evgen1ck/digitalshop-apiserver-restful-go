@@ -1,0 +1,58 @@
+# General
+app:
+  service:
+    name: Evgenicks Digitals
+    url:
+      client: client
+      server: server
+  port: port
+  debug: false
+  jwt: jwt
+
+# Prometheus
+prometheus:
+  port: 9991
+
+# E-mail for noreply@evgenick.com
+mailNoreply:
+  username: noreply@evgenick.com
+  password: password
+  host: host
+  port: port
+  from: noreply@evgenick.com
+
+# E-mail for support@evgenick.com
+mailSupport:
+  username: mailSupport
+  password: password
+  host: host
+  port: port
+  from: support@evgenick.com
+
+# Postgres
+postgres:
+  user: user
+  password: password
+  ip: ip
+  port: port
+  database: database
+
+# Redis
+redis:
+  password: password
+  ip: ip
+  port: port
+  database: database
+
+# TLS
+tls:
+  certfile: certfile
+  keyfile: keyfile
+
+# Payments
+payments:
+  freekassa:
+    shopId: shopId
+    apiKey: apiKey
+    firstSecretWord: firstSecretWord
+    secondSecretWord: secondSecretWord
