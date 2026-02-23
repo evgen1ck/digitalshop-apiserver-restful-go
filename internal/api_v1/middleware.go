@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
-	"github.com/go-chi/httprate"
 	"io"
 	"net/http"
 	"strconv"
@@ -17,6 +14,10 @@ import (
 	tl "test-server-go/internal/tools"
 	"time"
 	"unicode/utf8"
+
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 )
 
 func CorsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {

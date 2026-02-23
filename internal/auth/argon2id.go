@@ -2,8 +2,9 @@ package auth
 
 import (
 	"encoding/base64"
-	"golang.org/x/crypto/argon2"
 	"test-server-go/internal/tools"
+
+	"golang.org/x/crypto/argon2"
 )
 
 // Define parameters for Argon2id

@@ -3,9 +3,10 @@ package storage
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v4"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v4"
 )
 
 func CreateUser(ctx context.Context, pdb *Postgres, rdb *Redis, nickname, email, base64PasswordHash, base64Salt, token string) (string, error) {

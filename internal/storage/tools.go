@@ -3,12 +3,13 @@ package storage
 import (
 	"context"
 	"errors"
+	"strings"
+	tl "test-server-go/internal/tools"
+
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"strings"
-	tl "test-server-go/internal/tools"
 )
 
 // execInTx executes a given function inside a transaction.

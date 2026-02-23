@@ -3,8 +3,9 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"test-server-go/internal/config"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type Redis struct {

@@ -1,8 +1,8 @@
-go.sum
-vendor
+vendor/
+log/
+*.log
 .idea
 server.yaml
-*.log
 *.log.gz
 *.zip
 *.gz

@@ -2,10 +2,11 @@ package config
 
 import (
 	"flag"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	tl "test-server-go/internal/tools"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {

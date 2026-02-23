@@ -2,7 +2,6 @@ package mailer
 
 import (
 	"bytes"
-	"github.com/go-mail/mail/v2"
 	"html/template"
 	"log"
 	"path/filepath"
@@ -10,6 +9,8 @@ import (
 	"test-server-go/internal/config"
 	tl "test-server-go/internal/tools"
 	"time"
+
+	"github.com/go-mail/mail/v2"
 )
 
 type Mailer struct {

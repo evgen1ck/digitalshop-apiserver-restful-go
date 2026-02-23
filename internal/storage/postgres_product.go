@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v4"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v4"
 )
 
 type Variant struct {

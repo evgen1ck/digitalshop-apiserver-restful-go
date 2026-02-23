@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"math/big"
 	"net"
@@ -19,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/google/uuid"
 )
 
 // GenerateSixDigitNumber generates a six-digit random number.

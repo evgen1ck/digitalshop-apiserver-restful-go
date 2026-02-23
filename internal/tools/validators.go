@@ -2,7 +2,6 @@ package tools
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -10,6 +9,8 @@ import (
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"github.com/google/uuid"
 )
 
 func Validate(s string, validators ...func(string) error) error {

@@ -3,8 +3,9 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"test-server-go/internal/config"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // Postgres is a struct that holds a connection to a database
